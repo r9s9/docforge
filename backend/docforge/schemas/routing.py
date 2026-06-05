@@ -1,0 +1,40 @@
+"""Content routing schemas (spec §5 ai_router, §9 AI task C)."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class PlacementInstruction(BaseModel):
+    """Where a piece of incoming content should go in the template.
+
+    ``value`` is a scalar for simple fields, or a list[dict] for table fields
+    (one dict per row, keyed by column field_name).
+    """
+
+    field_name: str
+    value: Any = None
+    confidence: float = 1.0
+    source_excerpt: str = ""  # the chunk of input this came from
+    ambiguous: bool = False
+    alternatives: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+class RoutingResult(BaseModel):
+    """Output of routing structured or unstructured content into a template."""
+
+    template_id: str
+    version: int
+    placements: list[PlacementInstruction] = Field(default_factory=list)
+    missing_required: list[str] = Field(default_factory=list)
+    ambiguous_fields: list[str] = Field(default_factory=list)
+    unmapped_content: list[str] = Field(default_factory=list)
+    model_used: str | None = None
+    source: str = "heuristic"
+
+    def to_context(self) -> dict[str, Any]:
+        """Collapse placements into a flat ``{field_name: value}`` render context."""
+        return {p.field_name: p.value for p in self.placements if p.value is not None}

@@ -1,0 +1,239 @@
+"""Generation orchestration: route -> validate -> assemble -> persist (Flows 2 & 3)."""
+
+from __future__ import annotations
+
+import logging
+from io import BytesIO
+
+from docx import Document
+from docx.table import Table
+from sqlalchemy.orm import Session
+
+from ..ai_router import (
+    document_content,
+    extraction_blocks,
+    route,
+    route_document_content,
+)
+from ..assembler import assemble
+from ..common.textutil import slugify_field
+from ..config import Settings, get_settings
+from ..db.models import GeneratedDocument, GenerationRequest, Template
+from ..document_ingest import extract_source_document, store_source_document
+from ..schemas.enums import GenerationMode, JobStatus
+from ..schemas.extraction import DocumentExtraction
+from ..schemas.generation import GenerationInput
+from ..schemas.routing import RoutingResult
+from ..structure_normalizer import iter_block_items
+from ..template_registry import TemplateRegistry
+from .audit import record_decision
+
+logger = logging.getLogger("docforge.generation")
+
+
+def _resolve_version(db: Session, template: Template, version: int | None) -> int:
+    if version is not None:
+        return version
+    return template.latest_version
+
+
+def resolve_routing(template_id, version, gen_input: GenerationInput, fields, settings) -> RoutingResult:
+    """Shared routing step used by both generate and preview."""
+    if gen_input.placements:
+        return RoutingResult(
+            template_id=template_id, version=version, placements=gen_input.placements, source="user"
+        )
+    if gen_input.mode == GenerationMode.UNSTRUCTURED_TEXT:
+        return route(
+            fields, template_id=template_id, version=version, raw_text=gen_input.raw_text, settings=settings
+        )
+    return route(
+        fields, template_id=template_id, version=version, data=gen_input.data or {}, settings=settings
+    )
+
+
+def _parse_docx_blocks(data: bytes) -> list[dict]:
+    """Flatten a rendered DOCX into ordered preview blocks (no file written)."""
+    doc = Document(BytesIO(data))
+    blocks: list[dict] = []
+    for block in iter_block_items(doc):
+        if isinstance(block, Table):
+            rows = [[c.text.strip() for c in r.cells] for r in block.rows]
+            blocks.append({"type": "table", "headers": rows[0] if rows else [], "rows": rows[1:]})
+        else:  # Paragraph
+            text = block.text
+            if not text.strip():
+                continue
+            style = ""
+            try:
+                style = block.style.name if block.style else ""
+            except Exception:
+                style = ""
+            kind = "heading" if style.lower().startswith(("heading", "title")) else "paragraph"
+            blocks.append({"type": kind, "text": text, "style": style})
+    return blocks
+
+
+def route_document(
+    db: Session,
+    template: Template,
+    *,
+    filename: str,
+    data: bytes,
+    version: int | None = None,
+    settings: Settings | None = None,
+    registry: TemplateRegistry | None = None,
+) -> dict:
+    """Extract an uploaded document's content and map it onto the template fields.
+
+    Returns the routing result + the extracted content (for review/preview).
+    """
+    settings = settings or get_settings()
+    registry = registry or TemplateRegistry(settings.templates_dir)
+    version = version or template.latest_version
+    fields = registry.load_fields(template.id, version)
+
+    source = store_source_document(db, filename, data)
+    extracted = extract_source_document(db, source)
+    doc = DocumentExtraction.model_validate(extracted.extraction)
+
+    content = document_content(doc)
+    routing = route_document_content(fields, content, template_id=template.id, version=version)
+
+    if routing.source == "llm":
+        record_decision(
+            db,
+            kind="route",
+            source="llm",
+            subject_type="template",
+            subject_id=template.id,
+            model_used=routing.model_used,
+            summary=f"Mapped uploaded '{filename}' into {len(routing.placements)} field(s).",
+        )
+    db.commit()
+    return {
+        "routing": routing.model_dump(mode="json"),
+        "extracted": extraction_blocks(doc),
+        "version": version,
+    }
+
+
+def preview_document(
+    template: Template,
+    gen_input: GenerationInput,
+    *,
+    settings: Settings | None = None,
+    registry: TemplateRegistry | None = None,
+) -> dict:
+    """Render a template with the given input and return a structured preview
+    (ordered blocks + validation) WITHOUT persisting anything."""
+    settings = settings or get_settings()
+    registry = registry or TemplateRegistry(settings.templates_dir)
+    version = gen_input.version or template.latest_version
+    fields = registry.load_fields(template.id, version)
+    rules = registry.load_rules(template.id, version)
+    template_docx = registry.template_docx_path(template.id, version)
+
+    routing = resolve_routing(template.id, version, gen_input, fields, settings)
+    context = routing.to_context()
+
+    from ..validator import validate
+
+    report = None if gen_input.skip_validation else validate(context, fields, rules)
+    output_bytes = assemble(str(template_docx), context, fields)
+    return {
+        "blocks": _parse_docx_blocks(output_bytes),
+        "validation": report.model_dump(mode="json") if report else None,
+        "routing": routing.model_dump(mode="json"),
+        "context_used": context,
+    }
+
+
+def generate_document(
+    db: Session,
+    template: Template,
+    gen_input: GenerationInput,
+    *,
+    settings: Settings | None = None,
+    registry: TemplateRegistry | None = None,
+) -> GeneratedDocument:
+    settings = settings or get_settings()
+    registry = registry or TemplateRegistry(settings.templates_dir)
+    settings.ensure_dirs()
+
+    version = _resolve_version(db, template, gen_input.version)
+    fields = registry.load_fields(template.id, version)
+    rules = registry.load_rules(template.id, version)
+    template_docx = registry.template_docx_path(template.id, version)
+
+    req = GenerationRequest(
+        template_id=template.id,
+        version=version,
+        mode=gen_input.mode.value,
+        status=JobStatus.RUNNING.value,
+        input_payload={"data": gen_input.data, "raw_text": gen_input.raw_text},
+    )
+    db.add(req)
+    db.flush()
+
+    try:
+        # 1) Resolve a routing result -> render context.
+        routing = resolve_routing(template.id, version, gen_input, fields, settings)
+        context = routing.to_context()
+        req.routing = routing.model_dump(mode="json")
+
+        # 2) Validate (unless explicitly skipped).
+        from ..validator import validate  # local import avoids cycle at import time
+
+        report = None
+        if not gen_input.skip_validation:
+            report = validate(context, fields, rules)
+
+        # 3) Assemble the final DOCX deterministically.
+        output_bytes = assemble(str(template_docx), context, fields)
+        out_name = f"{slugify_field(template.name, fallback='document')}-{req.id[:8]}.docx"
+        out_path = settings.generated_dir / out_name
+        out_path.write_bytes(output_bytes)
+
+        # Best-effort retention: keep the generated folder from growing forever.
+        try:
+            from .retention import prune_generated
+
+            prune_generated(settings)
+        except Exception:  # never fail a generation over cleanup
+            logger.debug("retention prune failed", exc_info=True)
+
+        gen_doc = GeneratedDocument(
+            generation_request_id=req.id,
+            template_id=template.id,
+            version=version,
+            output_path=str(out_path),
+            output_filename=out_name,
+            validation=report.model_dump(mode="json") if report else None,
+            status="generated",
+        )
+        db.add(gen_doc)
+
+        req.status = JobStatus.COMPLETED.value
+        req.context_used = context
+
+        if routing.source == "llm":
+            record_decision(
+                db,
+                kind="route",
+                source="llm",
+                subject_type="generation",
+                subject_id=req.id,
+                model_used=routing.model_used,
+                summary=f"Routed unstructured content into {len(routing.placements)} field(s).",
+            )
+    except Exception as exc:
+        logger.exception("Generation failed")
+        req.status = JobStatus.FAILED.value
+        req.error = str(exc)
+        db.commit()
+        raise
+
+    db.commit()
+    db.refresh(gen_doc)
+    return gen_doc

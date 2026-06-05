@@ -1,0 +1,30 @@
+# DocForge — two services: FastAPI backend + Next.js frontend.
+# Visit http://localhost:3000 (the Next server proxies /api to the backend).
+
+services:
+  backend:
+    build: ./backend
+    environment:
+      # Override to enable an LLM (defaults to the offline heuristic engine):
+      # DOCFORGE_AI_ENABLED: "true"
+      # DOCFORGE_AI_BASE_URL: "http://host.docker.internal:11434/v1"
+      # DOCFORGE_AI_API_KEY: "ollama"
+      # DOCFORGE_AI_MODEL: "llama3.1"
+      DOCFORGE_ENV: production
+    volumes:
+      - docforge-data:/data
+    ports:
+      - "8000:8000"
+
+  web:
+    build: ./frontend
+    environment:
+      # The Next server proxies /api to the backend service on the compose network.
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  docforge-data:

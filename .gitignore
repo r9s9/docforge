@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite3
+
+# Node / Next.js
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+frontend/.env.local
+npm-debug.log*
+.vercel
+
+# DocForge runtime data (generated)
+data/
+backend/data/
+!backend/tests/fixtures/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
