@@ -81,17 +81,26 @@ The repo includes `render.yaml`, which defines both services.
    (frontend), then **trigger a redeploy** of both (the frontend must rebuild
    because `NEXT_PUBLIC_*` is baked in at build time).
 
-## 5. (Optional) Enable AI
+## 5. Enable the cloud LLM (pay-per-token)
 
-On **docforge-backend** set:
+`render.yaml` already enables AI and points at OpenAI; you just add the **API
+key** secret. On **docforge-backend** the relevant env vars are:
 ```
 DOCFORGE_AI_ENABLED=true
-DOCFORGE_AI_BASE_URL=https://api.openai.com/v1      # or Anthropic-compatible
-DOCFORGE_AI_MODEL=gpt-4o-mini
-DOCFORGE_AI_API_KEY=<your key>                       # secret
+DOCFORGE_AI_PROVIDER=openai                          # or "anthropic"
+DOCFORGE_AI_BASE_URL=https://api.openai.com/v1
+DOCFORGE_AI_MODEL=gpt-4o-mini                        # cheap + capable
+DOCFORGE_AI_API_KEY=<your key>                        # ← set this secret in the dashboard
 ```
-Without these, DocForge uses its deterministic heuristic engine (no external
-calls, no cost).
+Notes:
+- **Set AI via env, not the in-app Settings page.** The UI writes a file under
+  the data dir that is wiped when a free service restarts; env vars are durable.
+- Until the API key is present, the app safely falls back to the **offline
+  heuristic engine** (no external calls, no cost) — so a missing key never breaks
+  the demo, it just reduces AI quality.
+- Cost is pay-per-token on your OpenAI/Anthropic account. `gpt-4o-mini` is
+  inexpensive; watch usage if the demo gets traffic, and consider adding rate
+  limiting before sharing widely.
 
 ## 6. Verify
 

@@ -47,17 +47,20 @@ services:
       # The deployed frontend origin, for CORS, e.g. https://docforge-frontend.onrender.com
       - key: DOCFORGE_CORS_ALLOW_ORIGINS
         sync: false
-      # --- AI (optional) ---
-      # Leave disabled to run the offline heuristic engine. To enable a cloud
-      # LLM, set these in the dashboard (key is a secret):
+      # --- AI: cloud LLM (pay-per-token) ---
+      # Configure AI via ENV (durable). The in-app Settings UI writes to a file
+      # that is wiped on restart on the free tier, so it won't stick — use env.
+      # Until DOCFORGE_AI_API_KEY is set, the app safely runs heuristic-only.
       - key: DOCFORGE_AI_ENABLED
-        value: "false"
-      # - key: DOCFORGE_AI_BASE_URL
-      #   value: https://api.openai.com/v1
-      # - key: DOCFORGE_AI_MODEL
-      #   value: gpt-4o-mini
-      # - key: DOCFORGE_AI_API_KEY
-      #   sync: false
+        value: "true"
+      - key: DOCFORGE_AI_PROVIDER
+        value: openai            # or "anthropic"
+      - key: DOCFORGE_AI_BASE_URL
+        value: https://api.openai.com/v1
+      - key: DOCFORGE_AI_MODEL
+        value: gpt-4o-mini       # cheap + capable; change as you like
+      - key: DOCFORGE_AI_API_KEY
+        sync: false              # secret — set in the dashboard
 
   # --- Frontend: Next.js app ---------------------------------------------
   - type: web
