@@ -131,6 +131,16 @@ def _make_supabase() -> tuple[SupabaseStorage, _FakeBucket]:
     return st, bucket
 
 
+def test_supabase_strips_whitespace_in_credentials():
+    """A pasted key/URL with a trailing newline must not produce illegal headers."""
+    st = SupabaseStorage("https://proj.supabase.co\n", "svc-key\n", "docforge\n")
+    assert st._headers["Authorization"] == "Bearer svc-key"
+    assert st._headers["apikey"] == "svc-key"
+    assert "\n" not in st._headers["Authorization"]
+    assert st.base == "https://proj.supabase.co/storage/v1"
+    assert st.bucket == "docforge"
+
+
 def test_supabase_roundtrip():
     st, _ = _make_supabase()
     st.put_bytes("uploads/a.docx", b"hello", content_type="application/x")

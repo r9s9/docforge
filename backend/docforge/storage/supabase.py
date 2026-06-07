@@ -44,6 +44,12 @@ def _parse_ts(value: str | None) -> float | None:
 
 class SupabaseStorage(Storage):
     def __init__(self, url: str, service_key: str, bucket: str, *, timeout: float = 30.0):
+        # Strip stray whitespace/newlines: env vars are often pasted with a
+        # trailing "\n", which is an illegal HTTP header value (would crash every
+        # request with httpx.LocalProtocolError).
+        url = (url or "").strip()
+        service_key = (service_key or "").strip()
+        bucket = (bucket or "").strip()
         if not url or not service_key:
             raise ValueError("Supabase storage requires supabase_url and a service-role key")
         self.base = url.rstrip("/") + "/storage/v1"

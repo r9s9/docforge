@@ -63,17 +63,18 @@ def _verify_token(token: str, settings: Settings) -> dict:
     options = {"verify_aud": bool(audience)}
 
     if alg == "HS256":
-        if not settings.supabase_jwt_secret:
+        secret = (settings.supabase_jwt_secret or "").strip()
+        if not secret:
             raise jwt.InvalidTokenError("HS256 token but no JWT secret is configured")
         return jwt.decode(
-            token, settings.supabase_jwt_secret, algorithms=["HS256"],
-            audience=audience, options=options,
+            token, secret, algorithms=["HS256"], audience=audience, options=options,
         )
 
     # Asymmetric (Supabase JWT Signing Keys): resolve the public key via JWKS.
-    if not settings.supabase_url:
+    supabase_url = (settings.supabase_url or "").strip()
+    if not supabase_url:
         raise jwt.InvalidTokenError("asymmetric token but supabase_url is not configured")
-    jwks_url = settings.supabase_url.rstrip("/") + "/auth/v1/.well-known/jwks.json"
+    jwks_url = supabase_url.rstrip("/") + "/auth/v1/.well-known/jwks.json"
     kid = header.get("kid")
     jwk = _jwks_keys(jwks_url).get(kid)
     if jwk is None:  # unknown key id -> refresh once (keys rotate)
