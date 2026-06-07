@@ -226,6 +226,19 @@ export interface DimensionScore {
   score: number;
 }
 
+export interface ComplianceAlignedPair {
+  node_id: string;
+  classification: string;
+  status: string; // match | changed | missing | field | field_missing | table | table_changed | missing_table | extra
+  severity: string;
+  template_text: string;
+  document_text: string;
+  field_name: string | null;
+  is_table: boolean;
+  template_headers: string[];
+  document_headers: string[];
+}
+
 export interface ComplianceReport {
   template_id: string;
   version: number;
@@ -236,6 +249,8 @@ export interface ComplianceReport {
   differences: ComplianceDifference[];
   matched_fields: string[];
   missing_fields: string[];
+  alignment: ComplianceAlignedPair[];
+  fixable: boolean;
   document_preview: PreviewBlock[];
 }
 

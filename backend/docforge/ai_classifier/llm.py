@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pydantic import ValidationError
 
-from ..ai.client import LLMClient, LLMError, _extract_json
+from ..ai.client import LLMCancelled, LLMClient, _extract_json
 from ..ai.prompts import LLMClassifyResponse, build_classify_prompt
 from ..schemas.classification import (
     ClassificationResult,
@@ -131,33 +131,38 @@ def _apply_optional_from_diff(result: ClassificationResult, diff: DiffRunResult 
             c.optional = True
 
 
-def _classify_streaming(extraction, diff, client, system, developer, user, on_progress):
-    """Stream the classification so the UI sees live token progress."""
-    n_nodes = max(1, len(extraction.top_level_elements()))
-    target = max(300, n_nodes * 45)  # rough expected output-token count
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "system", "content": f"[developer instructions]\n{developer}"},
-        {"role": "user", "content": user},
-    ]
-    state = {"n": 0}
+# A single classify response holds one object per element. Past ~20 elements the
+# JSON output risks exceeding the model's max_output_tokens and getting truncated
+# (finish_reason=length), so we classify large documents in batches of this size.
+CLASSIFY_BATCH_SIZE = 20
 
-    def on_delta(_chunk, _acc):
-        state["n"] += 1
-        on_progress(f"AI generating classification… {state['n']} tokens", min(0.97, state["n"] / target))
 
-    raw = client.stream_openai(messages, on_delta=on_delta)
-    data = _extract_json(raw)
-    if data is None:
-        raise LLMError("streamed response was not valid JSON")
-    try:
-        resp = LLMClassifyResponse.model_validate(data)
-    except ValidationError as exc:
-        raise LLMError(f"streamed response failed schema: {exc.errors()[:2]}") from exc
-    result = map_response(extraction, resp, client.model)
-    _apply_optional_from_diff(result, diff)
-    on_progress("AI classification complete", 1.0)
-    return result
+def _chunk(items: list, size: int) -> list[list]:
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
+def _run_batch(
+    client, system, developer, user, on_delta, cancel_event
+) -> LLMClassifyResponse:
+    """Classify one batch. Stream when possible (live progress), with a robust
+    non-streaming + repair fallback if the streamed JSON can't be parsed."""
+    if on_delta is not None and client.supports_streaming:
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "system", "content": f"[developer instructions]\n{developer}"},
+            {"role": "user", "content": user},
+        ]
+        raw = client.stream_openai(messages, on_delta=on_delta, cancel_event=cancel_event)
+        data = _extract_json(raw)
+        if data is not None:
+            try:
+                return LLMClassifyResponse.model_validate(data)
+            except ValidationError:
+                pass  # fall through to the repair loop below
+    return client.complete_json(
+        system=system, developer=developer, user=user,
+        schema=LLMClassifyResponse, cancel_event=cancel_event,
+    )
 
 
 def classify_llm(
@@ -165,19 +170,55 @@ def classify_llm(
     diff: DiffRunResult | None,
     client: LLMClient,
     on_progress=None,
+    cancel_event=None,
 ) -> ClassificationResult:
-    system, developer, user = build_classify_prompt(extraction, diff)
+    node_ids = [e.node_id for e in extraction.top_level_elements()]
+    batches = _chunk(node_ids, CLASSIFY_BATCH_SIZE) or [[]]
+    n_batches = len(batches)
 
-    # Live token streaming when a progress callback is wired and supported.
-    if on_progress is not None and client.supports_streaming:
+    merged: list = []
+    sections: list = []
+    document_type_guess = ""
+
+    for bi, batch_ids in enumerate(batches):
+        if cancel_event is not None and cancel_event.is_set():
+            raise LLMCancelled("cancelled before classify batch")
+        first = bi == 0
+        system, developer, user = build_classify_prompt(
+            extraction, diff, node_ids=set(batch_ids), include_sections=first
+        )
+        on_delta = None
+        if on_progress is not None and client.supports_streaming:
+            target = max(150, len(batch_ids) * 45)
+            state = {"n": 0}
+
+            def on_delta(_chunk_text, _acc, _bi=bi, _target=target, _state=state):
+                _state["n"] += 1
+                frac = (_bi + min(0.99, _state["n"] / _target)) / n_batches
+                label = (
+                    f"AI classifying… batch {_bi + 1}/{n_batches} "
+                    f"({_state['n']} tokens)"
+                )
+                on_progress(label, min(0.99, frac))
+
         try:
-            return _classify_streaming(extraction, diff, client, system, developer, user, on_progress)
-        except LLMError:
-            pass  # fall through to the standard (non-streaming) path
+            resp = _run_batch(client, system, developer, user, on_delta, cancel_event)
+        except LLMCancelled:
+            raise  # cancellation must propagate, never fall back to heuristics
+        merged.extend(resp.classifications)
+        if first:
+            sections = resp.sections
+            document_type_guess = resp.document_type_guess
+        elif not document_type_guess and resp.document_type_guess:
+            document_type_guess = resp.document_type_guess
 
-    resp = client.complete_json(
-        system=system, developer=developer, user=user, schema=LLMClassifyResponse
+    combined = LLMClassifyResponse(
+        document_type_guess=document_type_guess,
+        classifications=merged,
+        sections=sections,
     )
-    result = map_response(extraction, resp, client.model)
+    result = map_response(extraction, combined, client.model)
     _apply_optional_from_diff(result, diff)
+    if on_progress is not None:
+        on_progress("AI classification complete", 1.0)
     return result

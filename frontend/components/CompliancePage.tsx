@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { ComplianceReport, Template } from "@/lib/types";
 import { ErrorBox, Spinner } from "@/components/ui";
-import DocBlocks from "@/components/DocBlocks";
+import DocxPreview from "@/components/DocxPreview";
 
 const GRADE_COLOR: Record<string, string> = {
   pass: "var(--green)",
@@ -19,6 +19,8 @@ export default function CompliancePage() {
   const [report, setReport] = useState<ComplianceReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [fixBusy, setFixBusy] = useState(false);
+  const [fixMsg, setFixMsg] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,12 +32,38 @@ export default function CompliancePage() {
     setBusy(true);
     setError("");
     setReport(null);
+    setFixMsg("");
     try {
       setReport(await api.compliance(templateId, file));
     } catch (e: any) {
       setError(String(e.message || e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function fixDoc() {
+    if (!templateId || !file || !report) return;
+    setFixBusy(true);
+    setFixMsg("");
+    setError("");
+    try {
+      const { blob, fixed, filename } = await api.complianceFix(templateId, file, report.version);
+      if (fixed > 0) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        setFixMsg(`Applied ${fixed} fix${fixed === 1 ? "" : "es"} — downloaded ${filename}.`);
+      } else {
+        setFixMsg("No fixed-text (boilerplate) issues to repair in this document.");
+      }
+    } catch (e: any) {
+      setError(String(e.message || e));
+    } finally {
+      setFixBusy(false);
     }
   }
 
@@ -75,13 +103,57 @@ export default function CompliancePage() {
         </button>
       </div>
 
-      {report && <Report report={report} />}
+      {report && file && (
+        <Report
+          report={report}
+          file={file}
+          templateId={templateId}
+          onFix={fixDoc}
+          fixBusy={fixBusy}
+          fixMsg={fixMsg}
+        />
+      )}
     </div>
   );
 }
 
-function Report({ report }: { report: ComplianceReport }) {
+function Report({
+  report,
+  file,
+  templateId,
+  onFix,
+  fixBusy,
+  fixMsg,
+}: {
+  report: ComplianceReport;
+  file: File;
+  templateId: string;
+  onFix: () => void;
+  fixBusy: boolean;
+  fixMsg: string;
+}) {
   const color = GRADE_COLOR[report.grade] || "var(--muted)";
+  // Keyed (by template node id) highlights so clicking a difference can scroll
+  // the matching paragraph in either Word page into view.
+  const actionable = report.alignment.filter(
+    (p) => p.status === "changed" || p.status === "missing" || p.status === "field_missing",
+  );
+  const leftHighlights = actionable
+    .filter((p) => p.template_text)
+    .map((p) => ({ key: p.node_id, text: p.template_text }));
+  const rightHighlights = actionable
+    .filter((p) => p.status === "changed" && p.document_text)
+    .map((p) => ({ key: p.node_id, text: p.document_text }));
+
+  function jumpTo(nodeId: string | null) {
+    if (!nodeId) return;
+    document.querySelectorAll<HTMLElement>(`[data-hl="${nodeId}"]`).forEach((el) => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("docx-hl-flash");
+      setTimeout(() => el.classList.remove("docx-hl-flash"), 1400);
+    });
+  }
+
   return (
     <div className="section">
       <div className="card" style={{ display: "flex", gap: 32, alignItems: "center" }}>
@@ -106,59 +178,93 @@ function Report({ report }: { report: ComplianceReport }) {
             </div>
           ))}
         </div>
+        <div style={{ textAlign: "right" }}>
+          <button
+            className="btn"
+            onClick={onFix}
+            disabled={fixBusy || !report.fixable}
+            title={
+              report.fixable
+                ? "Restore changed/missing boilerplate to match the template"
+                : "No fixed-text issues to repair"
+            }
+          >
+            {fixBusy ? <Spinner label="Fixing…" /> : "✦ Fix to match template"}
+          </button>
+          <div className="muted" style={{ fontSize: 12, marginTop: 6, maxWidth: 220 }}>
+            Restores boilerplate text; keeps your field values &amp; extra content.
+          </div>
+        </div>
       </div>
 
-      <h2 className="section-h" style={{ marginTop: 28 }}>
-        Differences ({report.differences.length})
-      </h2>
-      {report.differences.length === 0 ? (
-        <div className="card empty">Fully compliant — no differences found. 🎉</div>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Severity</th>
-              <th>Kind</th>
-              <th>Field / Node</th>
-              <th>Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.differences.map((d, i) => (
-              <tr key={i}>
-                <td>
-                  <span
-                    className={`badge ${d.severity === "error" ? "fail" : d.severity === "warning" ? "warning" : "fixed"}`}
-                  >
-                    {d.severity}
-                  </span>
-                </td>
-                <td className="mono">{d.kind}</td>
-                <td className="mono">{d.field_name || d.node_id}</td>
-                <td>
-                  {d.message}
-                  {(d.expected || d.found) && (
-                    <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                      {d.expected && <>expected: “{d.expected}” </>}
-                      {d.found && <>· found: “{d.found}”</>}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {report.document_preview.length > 0 && (
-        <div className="section" style={{ marginTop: 28 }}>
-          <h2 className="section-h">Checked document</h2>
-          <p className="muted" style={{ marginTop: 0 }}>
-            The content extracted from your upload that was compared to the template.
-          </p>
-          <DocBlocks blocks={report.document_preview} />
+      {fixMsg && (
+        <div className="banner info section" role="status">
+          {fixMsg}
         </div>
       )}
+
+      <div className="section" style={{ marginTop: 28 }}>
+        <h2 className="section-h">Side-by-side comparison</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          The template&apos;s example (left) and your document (right) as full A4 pages, with the
+          differences listed between them. Click a difference to jump straight to it — changed
+          lines are highlighted in <span className="cmp-hl-key">light red</span>.
+        </p>
+        <div className="cmp-3col">
+          <div className="cmp-doc-col">
+            <div className="cmp-docx-head">Template (expected)</div>
+            <DocxPreview
+              load={() => api.representativeDocx(templateId, report.version)}
+              highlights={leftHighlights}
+              fitWidth
+            />
+          </div>
+
+          <div className="cmp-diff-mid">
+            <div className="cmp-docx-head">Differences ({report.differences.length})</div>
+            {report.differences.length === 0 ? (
+              <div className="card empty" style={{ padding: 18 }}>
+                Fully compliant — no differences. 🎉
+              </div>
+            ) : (
+              <div className="cmp-diff-list">
+                {report.differences.map((d, i) => (
+                  <button
+                    key={i}
+                    className={`cmp-diff-item sev-${d.severity}`}
+                    onClick={() => jumpTo(d.node_id)}
+                    title="Jump to this difference in the documents"
+                  >
+                    <div className="cmp-diff-row1">
+                      <span
+                        className={`badge ${d.severity === "error" ? "fail" : d.severity === "warning" ? "warning" : "fixed"}`}
+                      >
+                        {d.severity}
+                      </span>
+                      <span className="mono cmp-diff-field">
+                        {d.field_name || d.kind.replace(/_/g, " ")}
+                      </span>
+                      <span className="cmp-diff-jump">↦</span>
+                    </div>
+                    <div className="cmp-diff-msg">{d.message}</div>
+                    {(d.expected || d.found) && (
+                      <div className="muted cmp-diff-ef">
+                        {d.expected && <div>expected: “{d.expected}”</div>}
+                        {d.found && <div>found: “{d.found}”</div>}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="cmp-doc-col">
+            <div className="cmp-docx-head">Your document</div>
+            <DocxPreview load={() => file.arrayBuffer()} highlights={rightHighlights} fitWidth />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

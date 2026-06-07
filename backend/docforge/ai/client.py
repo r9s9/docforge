@@ -12,6 +12,7 @@ Design rules (spec §10, §19):
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import TypeVar
 
@@ -20,11 +21,21 @@ from pydantic import BaseModel, ValidationError
 
 from ..settings_store import AIConfig, get_ai_config
 
+logger = logging.getLogger("docforge.ai")
+
 T = TypeVar("T", bound=BaseModel)
 
 
 class LLMError(Exception):
     """Raised when the model cannot be reached or cannot produce valid output."""
+
+
+class LLMCancelled(LLMError):
+    """Raised when an in-flight LLM call is aborted via its cancellation Event.
+
+    Distinct from LLMError so callers can mark the job *cancelled* rather than
+    silently fall back to heuristics (which would defeat the cancel).
+    """
 
 
 # Bases that 400'd on response_format=json_object (e.g. LM Studio expects
@@ -62,12 +73,118 @@ def _explain_http_error(resp: httpx.Response) -> str:
 
 
 def _strip_thinking(text: str) -> str:
-    """Remove <think>…</think> blocks emitted by reasoning models (Qwen3, etc.)."""
-    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    """Remove reasoning blocks emitted by models like Qwen3.
+
+    Handles both the closed ``<think>…</think>`` form and the *unclosed* form
+    (an opening ``<think>`` with no matching close — common when generation is
+    truncated mid-thought), where everything from the tag onward is reasoning
+    that contains no JSON.
+    """
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    if "<think>" in text and "</think>" not in text:
+        text = text.split("<think>", 1)[0]
+    return text.strip()
+
+
+_PRIMITIVE_CHARS = set("0123456789truefalsen-+.eEnul")  # number/bool/null body chars
+
+
+def _repair_truncated_json(s: str) -> str | None:
+    """Best-effort close of a JSON document truncated mid-output (finish=length).
+
+    Walks the text tracking string state and bracket depth, recording the last
+    structurally-complete position, then closes the still-open brackets/braces.
+    Fully-formed elements survive (e.g. 30 of 42 classifications) instead of the
+    whole response being discarded.
+
+    A *complete* trailing primitive is retained symmetrically with strings: a
+    value is "complete" once a delimiter or whitespace follows it. Only a bare
+    primitive at the very end with no following character is dropped — there it
+    is genuinely ambiguous whether ``7`` was final or about to become ``78``.
+    """
+    depth: list[str] = []
+    in_str = False
+    escaped = False
+    last_safe = -1  # index (exclusive) of the last structurally-complete point
+    prim_start = -1  # start index of an in-progress primitive run, else -1
+
+    def _commit_primitive(end: int) -> None:
+        nonlocal last_safe, prim_start
+        if prim_start != -1:
+            last_safe = max(last_safe, end)
+            prim_start = -1
+
+    for i, ch in enumerate(s):
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_str = False
+                # A closed string is a complete value only when NOT directly
+                # inside an object — inside ``{}`` it may be a key still awaiting
+                # its ``: value``, so committing here would yield ``{"k"}``.
+                if not (depth and depth[-1] == "{"):
+                    last_safe = i + 1
+            continue
+        if ch == '"':
+            _commit_primitive(i)
+            in_str = True
+        elif ch in "{[":
+            _commit_primitive(i)
+            depth.append(ch)
+        elif ch in "}]":
+            _commit_primitive(i)
+            if depth:
+                depth.pop()
+            last_safe = i + 1
+        elif ch == ",":
+            _commit_primitive(i)
+            last_safe = i  # complete element boundary (drop the comma itself)
+        elif ch in ": \t\r\n":
+            _commit_primitive(i)  # whitespace/colon terminates a primitive
+        elif ch in _PRIMITIVE_CHARS:
+            if prim_start == -1:
+                prim_start = i
+        else:
+            prim_start = -1  # unexpected char — abandon any primitive run
+    if last_safe <= 0:
+        return None
+    head = s[:last_safe].rstrip().rstrip(",").rstrip()
+    # Re-derive open brackets over the trimmed head and close them in reverse.
+    depth = []
+    in_str = False
+    escaped = False
+    for ch in head:
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            depth.append(ch)
+        elif ch in "}]" and depth:
+            depth.pop()
+    if in_str:
+        head += '"'
+    closers = "".join("}" if b == "{" else "]" for b in reversed(depth))
+    return head + closers
 
 
 def _extract_json(text: str) -> dict | list | None:
-    """Best-effort extraction of a JSON object/array from a model response."""
+    """Best-effort extraction of a JSON object/array from a model response.
+
+    Order matters: try a clean parse, then narrow using the document's *own*
+    leading bracket type (so a truncated object never gets mis-read as one of
+    its inner arrays), then attempt a structural repair of a truncated document,
+    and only as a last resort fall back to any-bracket narrowing.
+    """
     if not text:
         return None
     cleaned = _strip_thinking(text)
@@ -78,6 +195,29 @@ def _extract_json(text: str) -> dict | list | None:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
+
+    # Identify the document's leading structural bracket and prefer it, so a
+    # truncated object isn't salvaged as one of its inner arrays (and vice versa).
+    lead = next((ch for ch in cleaned if ch in "{[" or not ch.isspace()), None)
+    if lead in ("{", "["):
+        start = cleaned.find(lead)
+        close = "}" if lead == "{" else "]"
+        end = cleaned.rfind(close)
+        if end > start:
+            try:
+                return json.loads(cleaned[start : end + 1])
+            except json.JSONDecodeError:
+                pass
+        repaired = _repair_truncated_json(cleaned[start:])
+        if repaired:
+            try:
+                obj = json.loads(repaired)
+                logger.debug("recovered JSON from a truncated model response")
+                return obj
+            except json.JSONDecodeError:
+                pass
+
+    # Last resort: any-bracket narrowing (handles junk-prefixed / mixed output).
     for open_ch, close_ch in (("{", "}"), ("[", "]")):
         start = cleaned.find(open_ch)
         end = cleaned.rfind(close_ch)
@@ -128,15 +268,24 @@ class LLMClient:
                 out.append(m)
         return out
 
-    def stream_openai(self, messages: list[dict], *, on_delta=None, temperature: float = 0.0) -> str:
+    def stream_openai(
+        self, messages: list[dict], *, on_delta=None, temperature: float = 0.0, cancel_event=None
+    ) -> str:
         """Stream an OpenAI-compatible completion for live progress.
 
         Calls ``on_delta(chunk, accumulated)`` per content chunk and returns the
         full text. Used so the UI can show the model working token-by-token.
+
+        When ``cancel_event`` is set mid-stream we break out of the read loop;
+        exiting the ``with client.stream(...)`` block closes the TCP connection,
+        which signals the model server to **stop generating** rather than run to
+        completion. We then raise ``LLMCancelled``.
         """
         messages = self._apply_no_think(messages)
         if not self.active:
             raise LLMError("LLM client is not active")
+        if cancel_event is not None and cancel_event.is_set():
+            raise LLMCancelled("cancelled before request")
         base = self.config.base_url.rstrip("/") + "/"
         payload = {
             "model": self.config.model,
@@ -147,6 +296,7 @@ class LLMClient:
         }
         headers = {"Authorization": f"Bearer {self.config.api_key}"}
         acc: list[str] = []
+        cancelled = False
         try:
             with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
                 with client.stream("POST", "chat/completions", json=payload, headers=headers) as resp:
@@ -154,6 +304,9 @@ class LLMClient:
                         resp.read()
                         raise LLMError(_explain_http_error(resp))
                     for line in resp.iter_lines():
+                        if cancel_event is not None and cancel_event.is_set():
+                            cancelled = True
+                            break  # closes the connection -> server stops generating
                         if not line:
                             continue
                         if line.startswith("data:"):
@@ -170,9 +323,11 @@ class LLMClient:
                             acc.append(delta)
                             if on_delta is not None:
                                 on_delta(delta, "".join(acc))
-            return "".join(acc)
         except (httpx.HTTPError, KeyError, IndexError) as exc:
             raise LLMError(f"streaming request failed: {exc}") from exc
+        if cancelled:
+            raise LLMCancelled("cancelled mid-stream")
+        return "".join(acc)
 
     # ----- transport ------------------------------------------------------
     def complete(self, messages: list[dict], *, temperature: float = 0.0, json_mode: bool = True) -> str:
@@ -237,15 +392,28 @@ class LLMClient:
             raise LLMError(f"Anthropic request failed: {exc}") from exc
 
     # ----- validated JSON -------------------------------------------------
-    def complete_json(self, *, system: str, developer: str, user: str, schema: type[T]) -> T:
+    def complete_json(
+        self, *, system: str, developer: str, user: str, schema: type[T], cancel_event=None
+    ) -> T:
         messages: list[dict] = [
             {"role": "system", "content": system},
             {"role": "system", "content": f"[developer instructions]\n{developer}"},
             {"role": "user", "content": user},
         ]
+        # When cancellable, route through the streaming transport so the request
+        # can be aborted between chunks (and the model server stops generating).
+        stream_ok = cancel_event is not None and self.supports_streaming
+
+        def _raw(msgs: list[dict]) -> str:
+            if cancel_event is not None and cancel_event.is_set():
+                raise LLMCancelled("cancelled")
+            if stream_ok:
+                return self.stream_openai(msgs, cancel_event=cancel_event)
+            return self.complete(msgs)
+
         last_error = "unknown error"
         for _ in range(self.config.max_retries + 1):
-            raw = self.complete(messages)
+            raw = _raw(messages)
             data = _extract_json(raw)
             if data is not None:
                 try:

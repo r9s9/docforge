@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from ... import __version__
 from ...services.pdf import pdf_available
 from ...settings_store import get_ai_config
+from ..auth import CurrentUser, get_current_user
 
 router = APIRouter(tags=["system"])
+
+
+@router.get("/me")
+def me(user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Identify the signed-in user (used by the frontend to confirm the session)."""
+    return {"id": user.id, "email": user.email}
 
 
 @router.get("/health")

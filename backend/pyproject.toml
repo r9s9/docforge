@@ -29,6 +29,7 @@ dependencies = [
     "Jinja2>=3.1",
 
     # Utilities
+    "PyJWT>=2.8",                # verify Supabase auth JWTs
     "httpx>=0.27",               # OpenAI-compatible AI calls
     "python-dateutil>=2.9",      # robust date detection in the differ
     "Pillow>=10.2",              # image dimensions (optional, best-effort)

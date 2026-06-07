@@ -111,7 +111,10 @@ def assemble(
     source: Any = BytesIO(template) if isinstance(template, (bytes, bytearray)) else str(template)
     tpl = DocxTemplate(source)
     render_ctx = build_render_context(fields, context) if fields else context
-    jinja_env = Environment(undefined=_SilentUndefined)
+    # autoescape is required: field values can contain &, <, > (e.g. "R&D",
+    # "Smith & Jones"). Without it those land raw in the document XML and either
+    # corrupt it (xmlParseEntityRef) or get silently dropped.
+    jinja_env = Environment(undefined=_SilentUndefined, autoescape=True)
     tpl.render(render_ctx, jinja_env=jinja_env)
     out = BytesIO()
     tpl.save(out)

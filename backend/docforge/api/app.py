@@ -77,10 +77,12 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS — permissive for local dev; lock this down for production deployments.
+    # CORS — restrict to the configured frontend origin(s) in production; defaults
+    # to "*" for local dev. Bearer token travels in a header (not cookies), so
+    # credentials stay disabled.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=get_settings().cors_origins,
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],

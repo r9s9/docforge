@@ -38,6 +38,7 @@ class User(Base, UUIDMixin, TimestampMixin):
 class SourceDocument(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "source_documents"
     workspace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     filename: Mapped[str] = mapped_column(String(500))
     stored_path: Mapped[str] = mapped_column(String(1000))
     size_bytes: Mapped[int] = mapped_column(Integer, default=0)
@@ -65,6 +66,7 @@ class AnalysisJob(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "analysis_jobs"
     workspace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="pending")  # JobStatus
     progress: Mapped[int] = mapped_column(Integer, default=0)  # 0..100
     stage: Mapped[str | None] = mapped_column(String(200), nullable=True)  # live status text
@@ -86,6 +88,7 @@ class AnalysisJob(Base, UUIDMixin, TimestampMixin):
 class Template(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "templates"
     workspace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(300))
     document_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -108,6 +111,7 @@ class TemplateVersion(Base, UUIDMixin, TimestampMixin):
 class GenerationRequest(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "generation_requests"
     template_id: Mapped[str] = mapped_column(ForeignKey("templates.id"))
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     version: Mapped[int] = mapped_column(Integer, default=1)
     mode: Mapped[str] = mapped_column(String(40), default="structured_json")
     status: Mapped[str] = mapped_column(String(40), default="pending")
@@ -120,6 +124,7 @@ class GenerationRequest(Base, UUIDMixin, TimestampMixin):
 class GeneratedDocument(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "generated_documents"
     generation_request_id: Mapped[str] = mapped_column(ForeignKey("generation_requests.id"))
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     template_id: Mapped[str] = mapped_column(String(32))
     version: Mapped[int] = mapped_column(Integer, default=1)
     output_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
@@ -133,6 +138,7 @@ class AIDecisionLog(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "ai_decision_logs"
     workspace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     kind: Mapped[str] = mapped_column(String(60))  # classify|route|section|publish
     subject_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
     subject_id: Mapped[str | None] = mapped_column(String(32), nullable=True)

@@ -7,9 +7,10 @@ against the Pydantic models here before being mapped onto the domain schema.
 from __future__ import annotations
 
 import json
+import typing
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ..schemas.diff import DiffRunResult
 from ..schemas.enums import ElementType
@@ -21,7 +22,42 @@ from ..schemas.template import FieldDefinition
 # ---------------------------------------------------------------------------
 
 
-class LLMElementClassification(BaseModel):
+class _LenientLLMModel(BaseModel):
+    """Base for LLM response models that tolerates the small JSON imperfections
+    local models routinely produce.
+
+    Qwen3 and other local models frequently emit ``null`` for fields the schema
+    declares as lists (``"enum_values": null``) or required strings. Strict
+    Pydantic rejects these, which previously caused every *valid* classification
+    to fail validation and burn three slow repair retries before falling back to
+    heuristics. We coerce ``null`` → ``[]`` for list fields and ``null`` → ``""``
+    for plain (non-optional) string fields, so good output is accepted as-is.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_nulls(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        for name, field in cls.model_fields.items():
+            if name not in data or data[name] is not None:
+                continue
+            ann = field.annotation
+            origin = typing.get_origin(ann)
+            if origin in (list, tuple, set):
+                data[name] = []
+            elif ann is str and not field.is_required():
+                # Coerce null -> "" ONLY for optional/defaulted strings (e.g.
+                # description, rationale, title). A null in a *required*
+                # identifier (node_id, section_key, field_name) is a strong
+                # signal of a garbled response — leave it None so validation
+                # fails and the repair/retry loop kicks in instead of silently
+                # dropping the element downstream.
+                data[name] = ""
+        return data
+
+
+class LLMElementClassification(_LenientLLMModel):
     node_id: str
     classification: str = "UNKNOWN"
     field_name: str | None = None
@@ -36,7 +72,7 @@ class LLMElementClassification(BaseModel):
     rationale: str = ""
 
 
-class LLMSection(BaseModel):
+class LLMSection(_LenientLLMModel):
     section_key: str
     title: str = ""
     purpose: str = ""
@@ -45,13 +81,13 @@ class LLMSection(BaseModel):
     related_sections: list[str] = Field(default_factory=list)
 
 
-class LLMClassifyResponse(BaseModel):
+class LLMClassifyResponse(_LenientLLMModel):
     document_type_guess: str = ""
     classifications: list[LLMElementClassification] = Field(default_factory=list)
     sections: list[LLMSection] = Field(default_factory=list)
 
 
-class LLMPlacement(BaseModel):
+class LLMPlacement(_LenientLLMModel):
     field_name: str
     value: Any = None
     confidence: float = 1.0
@@ -61,7 +97,7 @@ class LLMPlacement(BaseModel):
     note: str = ""
 
 
-class LLMRouteResponse(BaseModel):
+class LLMRouteResponse(_LenientLLMModel):
     placements: list[LLMPlacement] = Field(default_factory=list)
     missing_required: list[str] = Field(default_factory=list)
     ambiguous_fields: list[str] = Field(default_factory=list)
@@ -122,10 +158,16 @@ Rules:
 """
 
 
-def _node_payload(extraction: DocumentExtraction, diff: DiffRunResult | None) -> list[dict]:
+def _node_payload(
+    extraction: DocumentExtraction,
+    diff: DiffRunResult | None,
+    node_ids: set[str] | None = None,
+) -> list[dict]:
     diff_by_node = {d.representative_node_id: d for d in (diff.node_diffs if diff else [])}
     payload: list[dict] = []
     for e in extraction.top_level_elements():
+        if node_ids is not None and e.node_id not in node_ids:
+            continue
         node: dict[str, Any] = {
             "node_id": e.node_id,
             "type": e.type.value,
@@ -151,14 +193,31 @@ def _node_payload(extraction: DocumentExtraction, diff: DiffRunResult | None) ->
 
 
 def build_classify_prompt(
-    extraction: DocumentExtraction, diff: DiffRunResult | None
+    extraction: DocumentExtraction,
+    diff: DiffRunResult | None,
+    node_ids: set[str] | None = None,
+    include_sections: bool = True,
 ) -> tuple[str, str, str]:
-    nodes = _node_payload(extraction, diff)
+    """Build the (system, developer, user) classify prompt.
+
+    ``node_ids`` scopes the prompt to a subset of elements so large documents can
+    be classified in batches (one response per batch never exceeds the model's
+    output limit). ``include_sections`` requests the section grouping only once
+    (on the first batch) to avoid redundant output on later batches.
+    """
+    nodes = _node_payload(extraction, diff, node_ids)
+    if include_sections:
+        tail = "Classify every node_id above and group them into sections."
+    else:
+        tail = (
+            "Classify every node_id above. Return an empty \"sections\" array "
+            "([]) — do not produce sections for this batch."
+        )
     user = (
         f"Number of sample documents analyzed: {diff.n_documents if diff else 1}.\n"
         f"Document elements (top-level), with diff evidence where available:\n"
         f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
-        "Classify every node_id above and group them into sections."
+        f"{tail}"
     )
     return _CLASSIFY_SYSTEM, _CLASSIFY_DEVELOPER, user
 
@@ -227,6 +286,7 @@ def build_route_prompt(
     *,
     raw_text: str | None = None,
     structured_data: dict | None = None,
+    from_document: bool = False,
 ) -> tuple[str, str, str]:
     parts = [
         "Template fields:\n"
@@ -238,6 +298,17 @@ def build_route_prompt(
             + json.dumps(structured_data, ensure_ascii=False, indent=2)
         )
     if raw_text:
-        parts.append("Unstructured input to route:\n" + raw_text)
+        if from_document:
+            parts.append(
+                "The text below was extracted from an uploaded document whose layout and "
+                "structure may NOT match this template. Ignore the source document's original "
+                "format, headings and ordering. Treat it purely as a pool of text and map only "
+                "the pieces of meaning that genuinely fit a template field; put anything that "
+                "doesn't fit into unmapped_content. Do not force-fit unrelated text into a field, "
+                "and do not dump large multi-topic blocks into a single field.\n\n"
+                "Extracted document text:\n" + raw_text
+            )
+        else:
+            parts.append("Unstructured input to route:\n" + raw_text)
     parts.append("Produce placement instructions for the fields above.")
     return _ROUTE_SYSTEM, _ROUTE_DEVELOPER, "\n\n".join(parts)

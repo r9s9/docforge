@@ -16,7 +16,12 @@ from __future__ import annotations
 from ..common.textutil import similarity
 from ..multi_doc_differ import align_to_representative
 from ..schemas.classification import ElementClassification
-from ..schemas.compliance import ComplianceDifference, ComplianceReport, DimensionScore
+from ..schemas.compliance import (
+    ComplianceAlignedPair,
+    ComplianceDifference,
+    ComplianceReport,
+    DimensionScore,
+)
 from ..schemas.enums import ClassificationType, ElementType, is_dynamic
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition, ValidationRule
@@ -64,12 +69,16 @@ def check_compliance(
     differences: list[ComplianceDifference] = []
     matched_fields: list[str] = []
     missing_fields: list[str] = []
+    alignment: list[ComplianceAlignedPair] = []
+    aligned_doc_ids: set[str] = set()
 
     for node in rep.top_level_elements():
         c = cls_by_node.get(node.node_id)
         if c is None or c.classification in (ClassificationType.AUTO_FIELD, ClassificationType.UNKNOWN):
             continue
         doc_el = aligned.get(node.node_id)
+        if doc_el is not None:
+            aligned_doc_ids.add(doc_el.node_id)
 
         if c.classification == ClassificationType.FIXED:
             _score_fixed(node, doc_el, dims["structure"], differences)
@@ -81,12 +90,33 @@ def check_compliance(
                 dims["fields"], differences, matched_fields, missing_fields,
             )
 
+        pair = _build_pair(node, c, field_by_node.get(node.node_id), doc_el)
+        if pair is not None:
+            alignment.append(pair)
+
+    # Doc-only content (present in the upload, not in the template) -> "extra".
+    for el in doc.top_level_elements():
+        if el.node_id in aligned_doc_ids or not (el.text or "").strip():
+            continue
+        if el.type == ElementType.TABLE:
+            alignment.append(ComplianceAlignedPair(
+                node_id=el.node_id, status="extra", severity="info", is_table=True,
+                document_headers=(el.table_structure.headers if el.table_structure else []),
+                document_text="(table not in template)",
+            ))
+        else:
+            alignment.append(ComplianceAlignedPair(
+                node_id=el.node_id, status="extra", severity="info",
+                document_text=el.text.strip()[:400],
+            ))
+
     total = sum(d.total for d in dims.values())
     satisfied = sum(d.satisfied for d in dims.values())
     for d in dims.values():
         d.score = round(100.0 * d.satisfied / d.total, 1) if d.total else 100.0
     overall = round(100.0 * satisfied / total, 1) if total else 100.0
     grade = "pass" if overall >= 90 else "warning" if overall >= 70 else "fail"
+    fixable = any(d.kind in ("changed_fixed", "missing_fixed") for d in differences)
 
     return ComplianceReport(
         template_id=template_id,
@@ -98,7 +128,61 @@ def check_compliance(
         differences=differences,
         matched_fields=matched_fields,
         missing_fields=missing_fields,
+        alignment=alignment,
+        fixable=fixable,
     )
+
+
+def _build_pair(node, c, field, doc_el) -> ComplianceAlignedPair | None:
+    """Build one side-by-side row (template element vs aligned doc element)."""
+    cls = c.classification
+    if cls == ClassificationType.FIXED:
+        expected = node.text.strip()
+        if not expected:
+            return None
+        if doc_el is None:
+            return ComplianceAlignedPair(
+                node_id=node.node_id, classification=cls.value, status="missing",
+                severity="error", template_text=expected,
+            )
+        sim = similarity(doc_el.text.strip(), expected)
+        status = "match" if sim >= _FIXED_MATCH_THRESHOLD else "changed"
+        return ComplianceAlignedPair(
+            node_id=node.node_id, classification=cls.value, status=status,
+            severity="info" if status == "match" else "warning",
+            template_text=expected, document_text=doc_el.text.strip(),
+        )
+
+    if cls == ClassificationType.REPEATABLE_TABLE:
+        name = (field.field_name if field else c.field_name) or node.node_id
+        exp_headers = node.table_structure.headers if node.table_structure else []
+        if doc_el is None or doc_el.type != ElementType.TABLE or doc_el.table_structure is None:
+            return ComplianceAlignedPair(
+                node_id=node.node_id, classification=cls.value, status="missing_table",
+                severity="error", field_name=name, is_table=True, template_headers=exp_headers,
+            )
+        ts = doc_el.table_structure
+        sim = similarity(" | ".join(ts.headers).lower(), " | ".join(exp_headers).lower())
+        status = "table" if sim >= _HEADER_MATCH_THRESHOLD else "table_changed"
+        return ComplianceAlignedPair(
+            node_id=node.node_id, classification=cls.value, status=status,
+            severity="info" if status == "table" else "warning", field_name=name, is_table=True,
+            template_headers=exp_headers, document_headers=ts.headers,
+            document_text=f"{max(0, ts.n_rows - 1)} data row(s)",
+        )
+
+    if is_dynamic(cls):
+        name = (field.field_name if field else c.field_name) or node.node_id
+        required = field.required if field else c.required
+        value = _extract_value(doc_el.text, c.static_prefix) if doc_el is not None else ""
+        status = "field_missing" if (required and not value) else "field"
+        return ComplianceAlignedPair(
+            node_id=node.node_id, classification=cls.value, status=status,
+            severity="error" if status == "field_missing" else "info",
+            field_name=name, template_text=node.text.strip(),
+            document_text=(doc_el.text.strip() if doc_el is not None else ""),
+        )
+    return None
 
 
 def _score_fixed(node, doc_el, dim: DimensionScore, diffs: list) -> None:

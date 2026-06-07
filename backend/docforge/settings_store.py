@@ -89,6 +89,15 @@ def interactive_ai_config() -> AIConfig:
     return cfg
 
 
+def generation_ai_config() -> AIConfig:
+    """Effective AI config for document generation routing — a longer timeout than
+    the interactive cap, since routing a whole document into a large template can
+    take a few minutes on a local model (otherwise it falls back to heuristics)."""
+    cfg = get_ai_config()
+    cfg.timeout_seconds = get_settings().ai_generation_timeout_seconds
+    return cfg
+
+
 def update_ai_config(patch: dict) -> AIConfig:
     """Merge a patch into the persisted overrides. Blank api_key is ignored
     (so saving other settings doesn't wipe an existing key)."""

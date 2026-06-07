@@ -77,6 +77,7 @@ def store_source_document(
     data: bytes,
     *,
     workspace_id: str | None = None,
+    owner_id: str | None = None,
 ) -> SourceDocument:
     """Validate and persist an uploaded DOCX, returning the SourceDocument row."""
     validate_upload(filename, len(data), None)
@@ -91,6 +92,7 @@ def store_source_document(
     rec = SourceDocument(
         id=doc_id,
         workspace_id=workspace_id,
+        owner_id=owner_id,
         filename=filename,
         stored_path=str(dest),
         size_bytes=len(data),

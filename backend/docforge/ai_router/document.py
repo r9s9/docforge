@@ -13,6 +13,8 @@ import logging
 
 from ..ai.client import LLMClient, LLMError
 from ..common.textutil import similarity
+from ..multi_doc_differ import align_to_representative
+from ..schemas.classification import ElementClassification
 from ..schemas.enums import ElementType, FieldType
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.routing import PlacementInstruction, RoutingResult
@@ -21,6 +23,74 @@ from .llm import route_llm
 from .router import route_unstructured_heuristic
 
 logger = logging.getLogger("docforge.ai_router.document")
+
+
+def _extract_value(text: str, label: str | None) -> str:
+    """Strip a known label/prefix (e.g. 'Invoice Date: ') to get the value."""
+    if label and text.startswith(label):
+        return text[len(label):].strip()
+    if label:
+        head = label.rstrip().rstrip(":")
+        if head and text.lower().startswith(head.lower()):
+            return text.split(":", 1)[-1].strip() if ":" in text else text[len(head):].strip()
+    return text.strip()
+
+
+def route_document_structural(
+    rep: DocumentExtraction,
+    classifications: list[ElementClassification],
+    fields: list[FieldDefinition],
+    doc: DocumentExtraction,
+    *,
+    template_id: str,
+    version: int,
+) -> RoutingResult:
+    """Map a document that shares the template's structure by aligning it to the
+    template's representative and reading each field's value from the matching
+    element. This is near-exact when the upload is the same *kind* of document the
+    template was built from (including the original source document) — far more
+    reliable than fuzzy text routing.
+    """
+    aligned = align_to_representative(rep, doc)  # {rep_node_id: matched element}
+    cls_by_node = {c.node_id: c for c in classifications}
+    placements: list[PlacementInstruction] = []
+
+    for f in fields:
+        if f.field_type == FieldType.BOOLEAN:
+            continue  # include-toggles default to on
+        node_id = next((nid for nid in f.node_ids if nid in aligned), None)
+        if node_id is None:
+            continue
+        el = aligned[node_id]
+        if f.field_type == FieldType.TABLE:
+            ts = el.table_structure
+            if ts and len(ts.rows) > 1:
+                cols = [c.field_name for c in f.columns]
+                rows = [
+                    {cols[i]: (r[i] if i < len(r) else "") for i in range(len(cols))}
+                    for r in ts.rows[1:]
+                    if any((cell or "").strip() for cell in r)
+                ]
+                if rows:
+                    placements.append(PlacementInstruction(
+                        field_name=f.field_name, value=rows, confidence=0.9,
+                        source_excerpt="(matched table)",
+                    ))
+            continue
+        c = cls_by_node.get(node_id)
+        value = _extract_value(el.text or "", c.static_prefix if c else None)
+        if value:
+            placements.append(PlacementInstruction(
+                field_name=f.field_name, value=value, confidence=0.9,
+                source_excerpt=(el.text or "")[:80],
+            ))
+
+    placed = {p.field_name for p in placements}
+    missing = [f.field_name for f in fields if f.required and f.field_name not in placed]
+    return RoutingResult(
+        template_id=template_id, version=version, placements=placements,
+        missing_required=missing, source="structural",
+    )
 
 
 def document_content(doc: DocumentExtraction) -> dict:
@@ -150,9 +220,9 @@ def route_document_content(
     client: LLMClient | None = None,
 ) -> RoutingResult:
     """Map extracted document content onto template fields (LLM, heuristic fallback)."""
-    from ..settings_store import interactive_ai_config
+    from ..settings_store import generation_ai_config
 
-    client = client or LLMClient(interactive_ai_config())
+    client = client or LLMClient(generation_ai_config())
     if client.active:
         try:
             return route_llm(
@@ -162,7 +232,10 @@ def route_document_content(
                 client=client,
                 template_id=template_id,
                 version=version,
+                from_document=True,
             )
         except LLMError as exc:
             logger.warning("LLM document routing failed, falling back to heuristic: %s", exc)
+        except Exception:  # never let a routing hiccup 500 the request
+            logger.exception("Unexpected error during document routing; using heuristic")
     return route_document_heuristic(fields, content, template_id, version)

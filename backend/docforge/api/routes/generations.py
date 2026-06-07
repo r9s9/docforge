@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from ...config import Settings
 from ...db.models import GeneratedDocument, GenerationRequest
 from ...services.pdf import PdfError, docx_to_pdf
+from ..auth import CurrentUser, get_current_user
 from ..deps import get_db, get_settings_dep
 from ..serializers import generation_dto
 
@@ -28,16 +29,30 @@ def _generated_for(db: Session, req_id: str) -> GeneratedDocument | None:
     )
 
 
-@router.get("/generations/{req_id}")
-def get_generation(req_id: str, db: Session = Depends(get_db)) -> dict:
+def _get_request(db: Session, req_id: str, user: CurrentUser) -> GenerationRequest:
     req = db.get(GenerationRequest, req_id)
-    if req is None:
+    if req is None or req.owner_id != user.id:
         raise HTTPException(status_code=404, detail="generation not found")
+    return req
+
+
+@router.get("/generations/{req_id}")
+def get_generation(
+    req_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    req = _get_request(db, req_id, user)
     return generation_dto(req, _generated_for(db, req_id))
 
 
 @router.get("/generations/{req_id}/download")
-def download_generation(req_id: str, db: Session = Depends(get_db)) -> FileResponse:
+def download_generation(
+    req_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> FileResponse:
+    _get_request(db, req_id, user)
     gen = _generated_for(db, req_id)
     if gen is None or not gen.output_path or not Path(gen.output_path).exists():
         raise HTTPException(status_code=404, detail="generated document not found")
@@ -53,8 +68,10 @@ def download_generation_pdf(
     req_id: str,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
+    user: CurrentUser = Depends(get_current_user),
 ) -> FileResponse:
     """Convert the generated DOCX to PDF (requires LibreOffice on the server)."""
+    _get_request(db, req_id, user)
     gen = _generated_for(db, req_id)
     if gen is None or not gen.output_path or not Path(gen.output_path).exists():
         raise HTTPException(status_code=404, detail="generated document not found")

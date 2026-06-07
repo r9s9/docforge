@@ -83,6 +83,7 @@ def route_document(
     version: int | None = None,
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
+    owner_id: str | None = None,
 ) -> dict:
     """Extract an uploaded document's content and map it onto the template fields.
 
@@ -93,12 +94,40 @@ def route_document(
     version = version or template.latest_version
     fields = registry.load_fields(template.id, version)
 
-    source = store_source_document(db, filename, data)
+    source = store_source_document(db, filename, data, owner_id=owner_id)
     extracted = extract_source_document(db, source)
     doc = DocumentExtraction.model_validate(extracted.extraction)
 
-    content = document_content(doc)
-    routing = route_document_content(fields, content, template_id=template.id, version=version)
+    # Prefer STRUCTURAL mapping: if the upload shares the template's structure
+    # (same kind of document, incl. the original source), align it to the
+    # template's representative and read each field's exact value. Only fall back
+    # to fuzzy AI text-routing when structural alignment covers little (truly
+    # different document).
+    routing = None
+    rep_raw = registry.load_representative(template.id, version)
+    if rep_raw:
+        try:
+            from ..ai_router.document import route_document_structural
+
+            rep = DocumentExtraction.model_validate(rep_raw)
+            classifications = registry.load_intelligence(template.id, version).classifications
+            structural = route_document_structural(
+                rep, classifications, fields, doc, template_id=template.id, version=version
+            )
+            mappable = max(1, len([f for f in fields if f.field_type.value != "boolean"]))
+            coverage = len(structural.placements) / mappable
+            logger.info(
+                "structural document mapping covered %d/%d fields (%.0f%%)",
+                len(structural.placements), mappable, coverage * 100,
+            )
+            if coverage >= 0.4:  # the document clearly matches this template
+                routing = structural
+        except Exception:
+            logger.exception("structural document mapping failed; trying AI routing")
+
+    if routing is None:
+        content = document_content(doc)
+        routing = route_document_content(fields, content, template_id=template.id, version=version)
 
     if routing.source == "llm":
         record_decision(
@@ -116,6 +145,27 @@ def route_document(
         "extracted": extraction_blocks(doc),
         "version": version,
     }
+
+
+def render_preview_docx(
+    template: Template,
+    gen_input: GenerationInput,
+    *,
+    settings: Settings | None = None,
+    registry: TemplateRegistry | None = None,
+) -> bytes:
+    """Assemble the filled template and return the DOCX bytes (no persistence).
+
+    Used for the live Word-page preview in the Generate UI. Callers pass
+    structured data, so routing is deterministic (no LLM) and this is fast.
+    """
+    settings = settings or get_settings()
+    registry = registry or TemplateRegistry(settings.templates_dir)
+    version = gen_input.version or template.latest_version
+    fields = registry.load_fields(template.id, version)
+    template_docx = registry.template_docx_path(template.id, version)
+    routing = resolve_routing(template.id, version, gen_input, fields, settings)
+    return assemble(str(template_docx), routing.to_context(), fields)
 
 
 def preview_document(
@@ -156,6 +206,7 @@ def generate_document(
     *,
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
+    owner_id: str | None = None,
 ) -> GeneratedDocument:
     settings = settings or get_settings()
     registry = registry or TemplateRegistry(settings.templates_dir)
@@ -172,6 +223,7 @@ def generate_document(
         mode=gen_input.mode.value,
         status=JobStatus.RUNNING.value,
         input_payload={"data": gen_input.data, "raw_text": gen_input.raw_text},
+        owner_id=owner_id,
     )
     db.add(req)
     db.flush()
@@ -207,6 +259,7 @@ def generate_document(
             generation_request_id=req.id,
             template_id=template.id,
             version=version,
+            owner_id=owner_id,
             output_path=str(out_path),
             output_filename=out_name,
             validation=report.model_dump(mode="json") if report else None,

@@ -99,12 +99,17 @@ export default function TemplateDetail({ id }: { id: string }) {
           <Link className="btn" href={`/generate/${detail.id}`}>
             Generate Document
           </Link>
-          <a
+          <button
             className="btn secondary"
-            href={api.templateDownloadUrl(detail.id, detail.latest_version)}
+            onClick={() =>
+              api.download(
+                api.templateDownloadUrl(detail.id, detail.latest_version),
+                `template_v${detail.latest_version}.docx`,
+              )
+            }
           >
             Download template.docx
-          </a>
+          </button>
           <button className="btn secondary" onClick={startEdit}>
             ✎ Edit fields
           </button>
@@ -329,12 +334,17 @@ export default function TemplateDetail({ id }: { id: string }) {
                 <td className="muted">{v.changelog}</td>
                 <td className="muted">{new Date(v.created_at).toLocaleString()}</td>
                 <td>
-                  <a
+                  <button
                     className="btn secondary small"
-                    href={api.templateDownloadUrl(detail.id, v.version)}
+                    onClick={() =>
+                      api.download(
+                        api.templateDownloadUrl(detail.id, v.version),
+                        `template_v${v.version}.docx`,
+                      )
+                    }
                   >
                     .docx
-                  </a>
+                  </button>
                 </td>
               </tr>
             ))}

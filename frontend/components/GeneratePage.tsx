@@ -7,13 +7,13 @@ import type {
   GenerationResult,
   PlacementInstruction,
   PreviewBlock,
-  PreviewResult,
   RoutingResult,
   Template,
   TemplateDetail,
 } from "@/lib/types";
 import { AiBadge, AiStatusBanner, ErrorBox, Spinner, StatusBadge } from "@/components/ui";
 import DocBlocks from "@/components/DocBlocks";
+import DocxPreview from "@/components/DocxPreview";
 import ProgressBar from "@/components/ProgressBar";
 
 type Mode = "form" | "raw" | "document" | "json";
@@ -89,7 +89,8 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   const [jsonText, setJsonText] = useState("{\n  \n}");
   const [routing, setRouting] = useState<RoutingResult | null>(null);
   const [result, setResult] = useState<GenerationResult | null>(null);
-  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [previewKey, setPreviewKey] = useState(0); // bump to re-render the Word preview
+  const [docMismatch, setDocMismatch] = useState(false); // uploaded doc didn't match this template
   const [docFile, setDocFile] = useState<File | null>(null);
   const [extracted, setExtracted] = useState<PreviewBlock[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -119,8 +120,8 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     setDetail(null);
     setResult(null);
     setRouting(null);
-    setPreview(null);
     setExtracted(null);
+    setDocMismatch(false);
     api
       .getTemplate(selectedId)
       .then((d) => {
@@ -144,7 +145,9 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       const next: FormValues = { ...values };
       r.placements.forEach((p) => (next[p.field_name] = p.value));
       setValues(next);
+      setDocMismatch(false); // pasted text isn't a structural mismatch
       setMode("form");
+      setPreviewKey((k) => k + 1);
     } catch (e: any) {
       setError(String(e.message || e));
     } finally {
@@ -166,7 +169,14 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       const next: FormValues = { ...values };
       r.routing.placements.forEach((p) => (next[p.field_name] = p.value));
       setValues(next);
+      // Heuristic: if most required fields couldn't be filled, the uploaded doc
+      // didn't really match this template — warn the user.
+      const flds = detail?.latest?.fields || [];
+      const req = flds.filter((f) => f.required);
+      const filledReq = req.filter((f) => !r.routing.missing_required.includes(f.field_name)).length;
+      setDocMismatch(req.length > 0 && filledReq / req.length < 0.5);
       setMode("form");
+      setPreviewKey((k) => k + 1);
     } catch (e: any) {
       setError(String(e.message || e));
     } finally {
@@ -175,23 +185,50 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     }
   }
 
+  function refreshPreview() {
+    setPreviewKey((k) => k + 1);
+  }
+
+  // Scroll the Word preview to where a field landed (and flash it). Falls back to
+  // flashing the field card when the field has no anchor in the document yet.
+  function jumpToField(fieldName: string) {
+    const targets = document.querySelectorAll<HTMLElement>(`.review-doc [data-hl="${fieldName}"]`);
+    if (targets.length === 0) {
+      const card = document.getElementById(`genfield-${fieldName}`);
+      if (card) {
+        card.classList.add("fc-flash");
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => card.classList.remove("fc-flash"), 1000);
+      }
+      return;
+    }
+    targets.forEach((el) => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("docx-hl-flash");
+      setTimeout(() => el.classList.remove("docx-hl-flash"), 1400);
+    });
+  }
+
+  function valueText(f: FieldDefinition): string {
+    const v = values[f.field_name];
+    return typeof v === "string" ? v : "";
+  }
+
+  // Anchors for click-to-jump: each field's value (preferred) then its label as a
+  // fallback, so even unfilled fields can scroll to roughly where they belong.
+  const previewHighlights = [
+    ...fields
+      .map((f) => ({ key: f.field_name, text: valueText(f) }))
+      .filter((h) => h.text.length >= 4),
+    ...fields
+      .map((f) => ({ key: f.field_name, text: f.label || "" }))
+      .filter((h) => h.text.length >= 4),
+  ];
+
   function buildBody(): Record<string, unknown> {
     if (mode === "json") return { mode: "structured_json", data: JSON.parse(jsonText) };
     if (mode === "raw") return { mode: "unstructured_text", raw_text: rawText };
     return { mode: "structured_json", data: values };
-  }
-
-  async function previewDoc() {
-    setBusy(true);
-    setError("");
-    setPreview(null);
-    try {
-      setPreview(await api.preview(selectedId, buildBody()));
-    } catch (e: any) {
-      setError(String(e.message || e));
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function generate() {
@@ -281,13 +318,6 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
             </div>
           )}
 
-          {extracted && (
-            <div className="section">
-              <h2 className="section-h">Extracted from your document</h2>
-              <DocBlocks blocks={extracted} />
-            </div>
-          )}
-
           {mode === "raw" && (
             <div className="section">
               <label className="field">
@@ -336,66 +366,151 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
           )}
 
           {mode === "form" && (
-            <div className="section">
-              {fields.map((f) => {
-                const placement = routing?.placements.find((p) => p.field_name === f.field_name) || null;
-                return (
-                <label className="field" key={f.field_name}>
-                  <span>
-                    {f.label} {f.required && <span className="req">*</span>}{" "}
-                    <span className="muted mono" style={{ fontWeight: 400 }}>
-                      ({f.field_type})
-                    </span>
-                    {placement && <RoutedChip p={placement} />}
-                  </span>
-                  {f.field_type === "table" ? (
-                    <TableEditor
-                      field={f}
-                      rows={values[f.field_name] || []}
-                      onChange={(rows) => setValues({ ...values, [f.field_name]: rows })}
-                    />
-                  ) : f.field_type === "boolean" ? (
-                    <label className="row" style={{ gap: 8, fontWeight: 400 }}>
-                      <input
-                        type="checkbox"
-                        style={{ width: "auto" }}
-                        checked={values[f.field_name] ?? true}
-                        onChange={(e) => setValues({ ...values, [f.field_name]: e.target.checked })}
-                      />
-                      <span className="muted">Include this content</span>
-                    </label>
-                  ) : f.field_type === "multiline_text" ? (
-                    <textarea
-                      value={values[f.field_name] || ""}
-                      onChange={(e) => setValues({ ...values, [f.field_name]: e.target.value })}
-                      placeholder={
-                        f.classification === "REPEATABLE_SECTION" ? "One item per line…" : ""
-                      }
-                    />
-                  ) : (
-                    <input
-                      value={values[f.field_name] || ""}
-                      onChange={(e) => setValues({ ...values, [f.field_name]: e.target.value })}
-                    />
-                  )}
-                </label>
-                );
-              })}
+            <>
+              {docMismatch ? (
+                <div className="banner warn section">
+                  <strong>⚠ The uploaded document didn’t match this template.</strong> Its text was
+                  extracted and mapped to this template’s fields as best as possible, so the mapping
+                  <strong> may not be 100% accurate</strong>. Review each field below — click a field
+                  to jump to it in the preview — and fix anything before generating.
+                </div>
+              ) : (
+                <div className="banner info section">
+                  <strong>Review your document.</strong> The panel on the left is the real Word
+                  document that will be generated. Click a field to jump to it in the preview, edit
+                  anything, hit <strong>↻ Update preview</strong>, then <strong>Generate DOCX</strong>.
+                </div>
+              )}
+
+              <div className="review-grid">
+                <div className="review-doc">
+                  <div className="review-head">
+                    <h2 className="section-h">Document preview</h2>
+                    <button className="btn secondary small" disabled={busy} onClick={refreshPreview}>
+                      ↻ Update preview
+                    </button>
+                  </div>
+                  <DocxPreview
+                    load={() =>
+                      api.generatePreviewDocx(selectedId, { mode: "structured_json", data: values })
+                    }
+                    refreshKey={previewKey}
+                    fitWidth
+                    markPersistent={false}
+                    highlights={previewHighlights}
+                  />
+                </div>
+
+                <div className="review-fields">
+                  <div className="review-head">
+                    <h2 className="section-h">Fields ({fields.length})</h2>
+                    <button className="btn" disabled={busy} onClick={generate}>
+                      {busy ? <Spinner label="Generating…" /> : "Generate DOCX"}
+                    </button>
+                  </div>
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    Values mapped into your template — edit anything that needs fixing.
+                    {routing && routing.missing_required.length > 0 && (
+                      <span style={{ color: "var(--red)" }}>
+                        {" "}{routing.missing_required.length} required field(s) still need a value.
+                      </span>
+                    )}
+                  </p>
+                  <div className="field-cards">
+                    {fields.map((f) => {
+                      const placement =
+                        routing?.placements.find((p) => p.field_name === f.field_name) || null;
+                      const missing = routing?.missing_required.includes(f.field_name);
+                      return (
+                        <div
+                          className={`field-card ${missing ? "needs-value" : ""}`}
+                          id={`genfield-${f.field_name}`}
+                          key={f.field_name}
+                        >
+                          <div className="field-card-head">
+                            <button
+                              type="button"
+                              className="field-card-name fc-jump"
+                              onClick={() => jumpToField(f.field_name)}
+                              title="Jump to this field in the document preview"
+                            >
+                              {f.label} {f.required && <span className="req">*</span>}
+                              <span className="fc-jump-icon">↦</span>
+                            </button>
+                            <span className="badge fixed" style={{ fontSize: 11 }}>
+                              {f.field_type.replace(/_/g, " ")}
+                            </span>
+                            {placement && <RoutedChip p={placement} />}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            {f.field_type === "table" ? (
+                              <TableEditor
+                                field={f}
+                                rows={values[f.field_name] || []}
+                                onChange={(rows) => setValues({ ...values, [f.field_name]: rows })}
+                              />
+                            ) : f.field_type === "boolean" ? (
+                              <label className="row" style={{ gap: 8, fontWeight: 400 }}>
+                                <input
+                                  type="checkbox"
+                                  style={{ width: "auto" }}
+                                  checked={values[f.field_name] ?? true}
+                                  onChange={(e) =>
+                                    setValues({ ...values, [f.field_name]: e.target.checked })
+                                  }
+                                />
+                                <span className="muted">Include this content</span>
+                              </label>
+                            ) : f.field_type === "multiline_text" ? (
+                              <textarea
+                                value={values[f.field_name] || ""}
+                                onChange={(e) =>
+                                  setValues({ ...values, [f.field_name]: e.target.value })
+                                }
+                                placeholder={
+                                  f.classification === "REPEATABLE_SECTION" ? "One item per line…" : ""
+                                }
+                              />
+                            ) : (
+                              <input
+                                value={values[f.field_name] || ""}
+                                onChange={(e) =>
+                                  setValues({ ...values, [f.field_name]: e.target.value })
+                                }
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {mode !== "form" && (
+            <div className="row">
+              <button className="btn" disabled={busy} onClick={generate}>
+                {busy ? <Spinner label="Generating…" /> : "Generate DOCX"}
+              </button>
             </div>
           )}
 
-          <div className="row">
-            <button className="btn secondary" disabled={busy} onClick={previewDoc}>
-              {busy ? <Spinner label="Rendering…" /> : "Preview"}
-            </button>
-            <button className="btn" disabled={busy} onClick={generate}>
-              {busy ? <Spinner label="Generating…" /> : "Generate DOCX"}
-            </button>
-          </div>
+          {extracted && (
+            <details className="extracted-box section">
+              <summary>
+                Extracted from your document
+                <span className="muted"> · {extracted.length} block(s) — click to expand</span>
+              </summary>
+              <div className="extracted-scroll">
+                <DocBlocks blocks={extracted} />
+              </div>
+            </details>
+          )}
         </>
       )}
 
-      {preview && <PreviewPanel preview={preview} />}
       {result && <ResultPanel result={result} />}
     </div>
   );
@@ -424,26 +539,6 @@ function RoutedChip({ p }: { p: PlacementInstruction }) {
   );
 }
 
-function PreviewPanel({ preview }: { preview: PreviewResult }) {
-  const v = preview.validation;
-  return (
-    <div className="section" style={{ marginTop: 28 }}>
-      <div className="spread" style={{ marginBottom: 12 }}>
-        <h2 className="section-h" style={{ margin: 0 }}>
-          Preview
-        </h2>
-        {v && <StatusBadge value={v.status} />}
-      </div>
-      <DocBlocks blocks={preview.blocks} />
-      {v && v.issues.length > 0 && (
-        <div className="muted" style={{ marginTop: 10 }}>
-          {v.issues.length} validation note(s) — see the report after generating.
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ResultPanel({ result }: { result: GenerationResult }) {
   const v = result.validation;
   const [pdfMsg, setPdfMsg] = useState("");
@@ -452,24 +547,10 @@ function ResultPanel({ result }: { result: GenerationResult }) {
     if (!result.download_url) return;
     setPdfMsg("Converting…");
     try {
-      const res = await fetch(`${result.download_url}.pdf`);
-      if (!res.ok) {
-        let detail = res.status === 501 ? "PDF export needs LibreOffice installed on the server." : `Failed (${res.status})`;
-        try {
-          detail = (await res.json()).detail || detail;
-        } catch {
-          /* ignore */
-        }
-        setPdfMsg(detail);
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = (result.output_filename || "document.docx").replace(".docx", ".pdf");
-      a.click();
-      URL.revokeObjectURL(url);
+      await api.download(
+        `${result.download_url}.pdf`,
+        (result.output_filename || "document.docx").replace(".docx", ".pdf"),
+      );
       setPdfMsg("");
     } catch (e: any) {
       setPdfMsg(String(e.message || e));
@@ -497,9 +578,12 @@ function ResultPanel({ result }: { result: GenerationResult }) {
 
       <div className="row" style={{ margin: "16px 0" }}>
         {result.download_url && (
-          <a className="btn" href={result.download_url}>
+          <button
+            className="btn"
+            onClick={() => api.download(result.download_url!, result.output_filename || undefined)}
+          >
             ⬇ Download {result.output_filename}
-          </a>
+          </button>
         )}
         {result.download_url && (
           <button className="btn secondary" onClick={downloadPdf}>

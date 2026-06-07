@@ -18,21 +18,40 @@ import type {
   VersionDetail,
 } from "./types";
 
+import { getAccessToken } from "./supabase";
+
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const BASE = `${API_ORIGIN}/api`;
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, init);
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      detail = body.detail || JSON.stringify(body);
-    } catch {
-      /* ignore */
-    }
-    throw new Error(detail);
+/** Merge the signed-in user's Bearer token into request headers. */
+async function withAuth(headers?: HeadersInit): Promise<Headers> {
+  const h = new Headers(headers);
+  const token = await getAccessToken();
+  if (token) h.set("Authorization", `Bearer ${token}`);
+  return h;
+}
+
+/** Turn a non-OK response into a thrown Error, with a clear message on 401. */
+async function raiseForStatus(res: Response): Promise<never> {
+  if (res.status === 401) throw new Error("Your session expired — please sign in again.");
+  let detail = res.statusText;
+  try {
+    const body = await res.json();
+    detail = body.detail || JSON.stringify(body);
+  } catch {
+    /* ignore */
   }
+  throw new Error(detail);
+}
+
+/** Authenticated fetch: attaches the Bearer token (used by raw-blob endpoints). */
+export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${BASE}${path}`, { ...init, headers: await withAuth(init?.headers) });
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await authFetch(path, init);
+  if (!res.ok) await raiseForStatus(res);
   return (await res.json()) as T;
 }
 
@@ -46,6 +65,33 @@ export const api = {
   },
 
   getAnalysis: (id: string) => request<AnalysisJob>(`/analyses/${id}`),
+
+  cancelAnalysis: (id: string) =>
+    request<AnalysisJob>(`/analyses/${id}/cancel`, { method: "POST" }),
+
+  // Build the proposed template as a real DOCX (review screen). mode: filled|tags.
+  analysisPreviewDocx: async (
+    id: string,
+    mode: "filled" | "tags",
+    fields?: unknown[],
+  ): Promise<ArrayBuffer> => {
+    const res = await authFetch(`/analyses/${id}/preview.docx?mode=${mode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: fields ?? null }),
+    });
+    if (!res.ok) await raiseForStatus(res);
+    return res.arrayBuffer();
+  },
+
+  // Fire-and-forget cancel that survives page unload/navigation (keepalive).
+  cancelAnalysisBeacon: (id: string) => {
+    try {
+      void authFetch(`/analyses/${id}/cancel`, { method: "POST", keepalive: true });
+    } catch {
+      /* best effort */
+    }
+  },
 
   publish: (payload: Record<string, unknown>) =>
     request<{ template: Template; version: { version: number } }>("/templates", {
@@ -73,8 +119,8 @@ export const api = {
     }),
 
   deleteTemplate: async (id: string) => {
-    const res = await fetch(`${BASE}/templates/${id}`, { method: "DELETE" });
-    if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+    const res = await authFetch(`/templates/${id}`, { method: "DELETE" });
+    if (!res.ok) await raiseForStatus(res);
   },
 
   getVersion: (id: string, version: number) =>
@@ -108,6 +154,17 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  // Render the filled template as a real DOCX (for the live Word-page preview).
+  generatePreviewDocx: async (id: string, body: Record<string, unknown>): Promise<ArrayBuffer> => {
+    const res = await authFetch(`/templates/${id}/preview.docx`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) await raiseForStatus(res);
+    return res.arrayBuffer();
+  },
+
   routeDocument: (id: string, file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -125,6 +182,27 @@ export const api = {
       method: "POST",
       body: form,
     });
+  },
+
+  // In-place fix: returns the corrected DOCX blob + how many fixes were applied.
+  complianceFix: async (
+    id: string,
+    file: File,
+    version?: number,
+  ): Promise<{ blob: Blob; fixed: number; filename: string }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const q = version ? `?version=${version}` : "";
+    const res = await authFetch(`/templates/${id}/compliance/fix${q}`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) await raiseForStatus(res);
+    const fixed = Number(res.headers.get("X-Fixes-Applied") || "0");
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = cd.match(/filename="?([^"]+)"?/);
+    const filename = m ? m[1] : file.name.replace(/\.docx$/i, "") + "-fixed.docx";
+    return { blob: await res.blob(), fixed, filename };
   },
 
   getAISettings: () => request<{ ai: AISettings }>("/settings"),
@@ -145,4 +223,31 @@ export const api = {
 
   templateDownloadUrl: (id: string, version: number) =>
     `${BASE}/templates/${id}/versions/${version}/template.docx`,
+
+  // Download a backend file with the Bearer token attached, then save it in the
+  // browser. Needed because plain <a href> / window navigations can't send the
+  // Authorization header. `url` may be absolute (already includes /api).
+  download: async (url: string, filename?: string): Promise<void> => {
+    const res = await fetch(url, { headers: await withAuth() });
+    if (!res.ok) await raiseForStatus(res);
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = cd.match(/filename="?([^"]+)"?/);
+    const name = filename || (m ? m[1] : url.split("/").pop() || "download");
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  },
+
+  // The template's stored example (left side of the compliance comparison).
+  representativeDocx: async (id: string, version: number): Promise<ArrayBuffer> => {
+    const res = await authFetch(`/templates/${id}/versions/${version}/representative.docx`);
+    if (!res.ok) await raiseForStatus(res);
+    return res.arrayBuffer();
+  },
 };

@@ -1,19 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { AnalysisJob, FieldDefinition } from "@/lib/types";
-import { AiBadge, AiStatusBanner, ClassificationBadge, Confidence, ErrorBox, Spinner } from "@/components/ui";
+import { AiBadge, AiStatusBanner, ErrorBox, Spinner } from "@/components/ui";
 import ProgressBar from "@/components/ProgressBar";
-import ReviewElements from "@/components/ReviewElements";
-
-const FIELD_TYPES = ["text", "multiline_text", "date", "person", "number", "enum", "table", "boolean"];
-
-interface EditableField {
-  field: FieldDefinition;
-  include: boolean;
-}
+import DocxPreview from "@/components/DocxPreview";
+import FieldCards, { type EditableField } from "@/components/FieldCards";
 
 export default function NewTemplate() {
   const router = useRouter();
@@ -27,13 +21,41 @@ export default function NewTemplate() {
   const [fields, setFields] = useState<EditableField[]>([]);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<string | null>(null);
-  const [selectedField, setSelectedField] = useState<string | null>(null);
+  // Retained for field-card highlighting; click-to-jump was tied to the removed
+  // color-coded view, so there is no setter wired up right now.
+  const [selectedField] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"filled" | "tags">("filled");
+  // Snapshot of the fields the Word preview was last rendered from; bumping the
+  // key (on toggle / "Update preview") re-renders against the current edits.
+  const [previewKey, setPreviewKey] = useState(0);
+  const [previewFields, setPreviewFields] = useState<FieldDefinition[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Track the in-flight analysis so we can stop the model when the user cancels
+  // or navigates away (otherwise the local LLM keeps generating in LM Studio).
+  const activeJobId = useRef<string | null>(null);
+  const cancelledRef = useRef(false);
 
-  function selectField(fieldName: string) {
-    setSelectedField(fieldName);
-    const row = document.getElementById(`fieldrow-${fieldName}`);
-    if (row) row.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Cancel the running job if the user leaves the page mid-analysis.
+  useEffect(() => {
+    return () => {
+      if (activeJobId.current) {
+        api.cancelAnalysisBeacon(activeJobId.current);
+        activeJobId.current = null;
+      }
+    };
+  }, []);
+
+  // Re-render the Word preview from the user's current (included) edits.
+  function updatePreview() {
+    setPreviewFields(fields.filter((e) => e.include).map((e) => ({ ...e.field })));
+    setPreviewKey((k) => k + 1);
+  }
+
+  function setMode(mode: "filled" | "tags") {
+    if (mode === previewMode) return;
+    setPreviewMode(mode);
+    setPreviewFields(fields.filter((e) => e.include).map((e) => ({ ...e.field })));
+    setPreviewKey((k) => k + 1);
   }
 
   function addFiles(list: FileList | null) {
@@ -47,18 +69,27 @@ export default function NewTemplate() {
     setError("");
     setProgress(0);
     setStage("Uploading…");
+    cancelledRef.current = false;
     try {
       // Analysis runs in the background (the LLM can be slow); poll for live progress.
       let result = await api.analyze(files);
+      activeJobId.current = result.id;
       setProgress(result.progress || 0);
       setStage(result.stage);
       let tries = 0;
       while ((result.status === "pending" || result.status === "running") && tries < 480) {
+        if (cancelledRef.current) break;
         await new Promise((r) => setTimeout(r, 1000));
+        if (cancelledRef.current) break;
         result = await api.getAnalysis(result.id);
         setProgress(result.progress || 0);
         setStage(result.stage);
         tries += 1;
+      }
+      if (cancelledRef.current || result.status === "cancelled") {
+        setStage("Cancelled");
+        setError("Analysis cancelled — the model was stopped.");
+        return;
       }
       if (result.status === "failed") {
         setError(result.error || "Analysis failed.");
@@ -71,11 +102,27 @@ export default function NewTemplate() {
       setJob(result);
       setName(result.name || result.document_type_guess || "Untitled Template");
       setFields(result.field_definitions.map((f) => ({ field: { ...f }, include: true })));
+      setPreviewFields(result.field_definitions.map((f) => ({ ...f })));
+      setPreviewKey((k) => k + 1);
       setStep("review");
     } catch (e: any) {
-      setError(String(e.message || e));
+      if (!cancelledRef.current) setError(String(e.message || e));
     } finally {
+      activeJobId.current = null;
       setBusy(false);
+    }
+  }
+
+  async function cancelAnalysis() {
+    cancelledRef.current = true;
+    setStage("Cancelling…");
+    const id = activeJobId.current;
+    if (id) {
+      try {
+        await api.cancelAnalysis(id);
+      } catch {
+        /* the polling loop already stopped; ignore */
+      }
     }
   }
 
@@ -196,11 +243,21 @@ export default function NewTemplate() {
                   )}
                 </button>
                 {busy && (
+                  <button
+                    className="btn secondary"
+                    style={{ marginLeft: 10 }}
+                    onClick={cancelAnalysis}
+                  >
+                    Cancel
+                  </button>
+                )}
+                {busy && (
                   <div style={{ marginTop: 16 }}>
                     <ProgressBar percent={progress} stage={stage} busy />
                     <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
                       Local AI models can take a minute or two — you can watch it work above. It
                       falls back to the fast heuristic engine if the model is too slow.
+                      Cancelling stops the model immediately.
                     </p>
                   </div>
                 )}
@@ -245,102 +302,62 @@ export default function NewTemplate() {
             </div>
           )}
 
+          <div className="banner info section">
+            <strong>Here’s your reusable template.</strong> DocForge turned your example
+            into a Word template — each <em>variable</em> part becomes a fillable field.
+            Check the document preview on the left and the fields on the right; adjust any
+            names or types, then <strong>Publish</strong>.
+          </div>
+
           <div className="review-grid">
-            <div>
-              <h2 className="section-h">Document</h2>
+            <div className="review-doc">
+              <div className="review-head">
+                <h2 className="section-h">Document preview</h2>
+                <div className="seg-toggle" role="tablist" aria-label="Preview mode">
+                  <button
+                    className={previewMode === "filled" ? "active" : ""}
+                    onClick={() => setMode("filled")}
+                  >
+                    Sample-filled
+                  </button>
+                  <button
+                    className={previewMode === "tags" ? "active" : ""}
+                    onClick={() => setMode("tags")}
+                  >
+                    Template tags
+                  </button>
+                </div>
+              </div>
               <p className="muted" style={{ marginTop: 0 }}>
-                Your document, color-coded by behaviour. Click a highlighted
-                placeholder to jump to its field.
+                {previewMode === "filled"
+                  ? "A real Word page with each variable shown as «Label». This is how the document is structured."
+                  : "The raw template with {{ placeholders }} and loop tags — what the engine fills in."}
               </p>
-              <ReviewElements
-                elements={job.elements || []}
-                selected={selectedField}
-                onSelect={selectField}
+              <DocxPreview
+                load={() => api.analysisPreviewDocx(job.id, previewMode, previewFields)}
+                refreshKey={previewKey}
               />
             </div>
 
             <div className="review-fields">
-              <h2 className="section-h">Fields ({fields.filter((f) => f.include).length})</h2>
+              <div className="review-head">
+                <h2 className="section-h">
+                  Fields ({fields.filter((f) => f.include).length})
+                </h2>
+                <button className="btn secondary small" onClick={updatePreview}>
+                  ↻ Update preview
+                </button>
+              </div>
               <p className="muted" style={{ marginTop: 0 }}>
-                Edit names, types and requirements. Uncheck a field to keep it fixed.
+                Each card is one fillable field. Edit its name or type, or untick it to keep
+                that text fixed. Then refresh the preview to see your changes.
               </p>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Use</th>
-                    <th>Field name</th>
-                    <th>Label</th>
-                    <th>Type</th>
-                    <th>Req</th>
-                    <th>Class</th>
-                    <th>Conf</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fields.map((ef, i) => (
-                    <tr
-                      key={i}
-                      id={`fieldrow-${ef.field.field_name}`}
-                      className={`${ef.field.confidence < 0.6 ? "low-conf" : ""} ${
-                        ef.field.field_name === selectedField ? "row-selected" : ""
-                      }`}
-                    >
-                      <td>
-                    <input
-                      type="checkbox"
-                      style={{ width: "auto" }}
-                      checked={ef.include}
-                      onChange={() => toggleInclude(i)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="mono"
-                      value={ef.field.field_name}
-                      onChange={(e) => updateField(i, { field_name: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      value={ef.field.label}
-                      onChange={(e) => updateField(i, { label: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={ef.field.field_type}
-                      onChange={(e) => updateField(i, { field_type: e.target.value })}
-                    >
-                      {FIELD_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      style={{ width: "auto" }}
-                      checked={ef.field.required}
-                      onChange={(e) => updateField(i, { required: e.target.checked })}
-                    />
-                  </td>
-                  <td>
-                    <ClassificationBadge value={ef.field.classification} />
-                    {ef.field.columns.length > 0 && (
-                      <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                        cols: {ef.field.columns.map((c) => c.field_name).join(", ")}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <Confidence value={ef.field.confidence} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-              </table>
+              <FieldCards
+                items={fields}
+                onUpdate={updateField}
+                onToggle={toggleInclude}
+                selected={selectedField}
+              />
             </div>
           </div>
 

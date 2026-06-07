@@ -86,18 +86,74 @@ a:hover {
 .app {
   display: flex;
   min-height: 100vh;
+  padding-left: 66px; /* collapsed sidebar footprint */
+  transition: padding-left 0.18s ease;
+}
+.app:has(.sidebar.pinned) {
+  padding-left: 248px;
 }
 .sidebar {
-  width: 248px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 66px;
+  z-index: 50;
   background: var(--sidebar);
   border-right: 1px solid var(--border);
-  padding: 22px 16px;
+  padding: 18px 13px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  overflow: hidden;
+  transition: width 0.18s ease, box-shadow 0.18s ease;
+}
+/* Expand on hover (when not pinned) — overlays content, no layout shift. */
+.sidebar:not(.pinned):hover {
+  width: 248px;
+  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.18);
+}
+.sidebar.pinned {
+  width: 248px;
+}
+/* Collapsed state: hide labels/chrome, center the icons. */
+.sidebar.collapsed-hidden,
+.sidebar:not(.pinned):not(:hover) .label,
+.sidebar:not(.pinned):not(:hover) .brand-text,
+.sidebar:not(.pinned):not(:hover) .pin-btn,
+.sidebar:not(.pinned):not(:hover) .sidebar-foot {
+  display: none;
+}
+.sidebar:not(.pinned):not(:hover) .nav-link {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+.sidebar:not(.pinned):not(:hover) .brand {
+  justify-content: center;
+  margin-left: 0;
+  margin-right: 0;
+}
+.pin-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pin-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text);
+}
+.pin-btn.on {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 .brand {
   display: flex;
@@ -168,8 +224,14 @@ a:hover {
 
 .main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
   padding: 40px 48px;
-  max-width: 1180px;
+}
+.main-inner {
+  width: 100%;
+  max-width: 1500px;
 }
 .page-title {
   font-family: var(--font-serif);
@@ -447,6 +509,11 @@ tr.low-conf td {
   border-color: color-mix(in srgb, var(--amber) 45%, transparent);
   color: var(--amber);
 }
+.banner.info {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text);
+}
 .notice {
   background: var(--card);
   border: 1px solid var(--border);
@@ -666,25 +733,463 @@ tr.low-conf td {
 /* ---- Side-by-side review ---- */
 .review-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) minmax(420px, 1.2fr);
-  gap: 22px;
+  /* Left column sized to hold a full A4/Letter page (~816px) without clipping. */
+  grid-template-columns: minmax(0, 900px) minmax(340px, 1fr);
+  gap: 28px;
   align-items: start;
 }
-.review-fields {
-  overflow-x: auto;
+.review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.review-grid table {
-  font-size: 13px;
-}
-.review-grid th,
-.review-grid td {
-  padding: 8px 9px;
-}
-.row-selected td {
-  background: var(--accent-soft) !important;
-}
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   .review-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---- Segmented toggle (Sample-filled / Template tags) ---- */
+.seg-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-subtle, var(--card));
+  padding: 2px;
+}
+.seg-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ---- Real DOCX preview (docx-preview render) ---- */
+.docx-canvas {
+  position: relative;
+  background: #6b6f76;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 14px;
+  max-height: 78vh;
+  overflow: auto;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+.docx-host .docx-wrapper {
+  background: transparent;
+  padding: 0;
+}
+.docx-host .docx-wrapper > section.docx {
+  margin: 0 auto 18px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  background: #fff;
+}
+.docx-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(40, 42, 46, 0.55);
+  border-radius: var(--radius);
+  z-index: 2;
+}
+
+/* ---- Compliance: two Word files + differences in the middle ---- */
+.cmp-3col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1200px) {
+  .cmp-3col {
+    grid-template-columns: 1fr;
+  }
+}
+.cmp-docx-head {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.cmp-hl-key {
+  background: var(--red-soft);
+  color: var(--red);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+/* Full-A4 pages: the canvas frames a whole page (page is scaled to fit width). */
+.docx-canvas.fit {
+  max-height: 84vh;
+  padding: 14px;
+}
+.docx-canvas.fit .docx-host {
+  display: flex;
+  justify-content: center;
+}
+
+/* Middle differences column — clickable items that jump to the docs. */
+.cmp-diff-mid {
+  position: sticky;
+  top: 12px;
+}
+.cmp-diff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 80vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+.cmp-diff-item {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 9px 11px;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.cmp-diff-item:hover {
+  background: var(--accent-soft);
+  box-shadow: var(--shadow);
+}
+.cmp-diff-item.sev-error {
+  border-left-color: var(--red);
+}
+.cmp-diff-item.sev-warning {
+  border-left-color: var(--amber);
+}
+.cmp-diff-row1 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.cmp-diff-field {
+  font-size: 12px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmp-diff-jump {
+  color: var(--muted);
+}
+.cmp-diff-msg {
+  font-size: 12.5px;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.cmp-diff-ef {
+  font-size: 11px;
+  margin-top: 5px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* Highlighted differing paragraphs inside the rendered Word pages (light red). */
+.docx-host .docx p.docx-hl {
+  background: rgba(214, 78, 62, 0.18) !important;
+  box-shadow: inset 3px 0 0 var(--red);
+  border-radius: 2px;
+}
+.docx-host .docx p.docx-hl-flash {
+  background: rgba(214, 78, 62, 0.42) !important;
+  transition: background 0.25s ease;
+}
+
+/* ---- Field cards ---- */
+.field-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 78vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+.field-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+.field-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.field-card.excluded {
+  opacity: 0.55;
+  border-left-color: var(--border-strong);
+}
+.field-card.needs-value {
+  border-left-color: var(--red);
+  background: var(--red-soft);
+}
+/* Clickable field label that jumps to the value in the preview. */
+.fc-jump {
+  flex: 1;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fc-jump:hover {
+  color: var(--accent);
+}
+.fc-jump-icon {
+  opacity: 0;
+  color: var(--accent);
+  transition: opacity 0.12s ease;
+}
+/* Feedback flash when a clicked field has no anchor in the document yet. */
+.field-card.fc-flash {
+  animation: fc-flash 1s ease;
+}
+@keyframes fc-flash {
+  0%, 100% { box-shadow: none; }
+  30% { box-shadow: 0 0 0 2px var(--accent); }
+}
+.fc-jump:hover .fc-jump-icon {
+  opacity: 1;
+}
+/* Big text values: tall, scrollable, resizable so long content is readable. */
+.field-card textarea {
+  width: 100%;
+  min-height: 96px;
+  max-height: 320px;
+  overflow: auto;
+  resize: vertical;
+  line-height: 1.5;
+}
+.field-card input,
+.field-card select {
+  width: 100%;
+}
+.field-card table {
+  font-size: 12.5px;
+}
+
+/* Collapsible, scrollable "Extracted from your document" panel (kept compact). */
+.extracted-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 10px 14px;
+}
+.extracted-box > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+.extracted-box .extracted-scroll {
+  max-height: 280px;
+  overflow: auto;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.field-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.field-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  margin: 0;
+}
+.field-card-toggle input[type="checkbox"] {
+  width: auto;
+}
+.field-card-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 5px 8px;
+}
+.field-card-desc {
+  margin: 9px 0 12px;
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.field-card-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+.fc-ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+}
+.fc-ctl > span {
+  color: var(--muted);
+}
+.fc-ctl input,
+.fc-ctl select {
+  font-size: 13px;
+  padding: 5px 7px;
+}
+.fc-req {
+  align-items: center;
+}
+.fc-req input[type="checkbox"] {
+  width: auto;
+}
+.field-card-conf {
+  margin-top: 11px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.field-card-conf.high {
+  color: var(--green);
+}
+.field-card-conf.med {
+  color: var(--amber);
+}
+.field-card-conf.low {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* --- Auth (login / splash) --- */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  box-shadow: var(--shadow);
+  padding: 28px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 600;
+}
+.auth-brand .mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-family: var(--font-serif);
+}
+.auth-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 2px 0 6px;
+}
+.auth-card .btn {
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+}
+.auth-switch {
+  font-size: 13.5px;
+  color: var(--muted, #888);
+  text-align: center;
+  margin: 2px 0 0;
+}
+.linklike {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+.auth-splash {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  color: var(--muted, #888);
+}
+.auth-splash .mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 20px;
+  font-family: var(--font-serif);
+}
+
+/* --- Sidebar user menu --- */
+.user-menu {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.user-menu .user-email {
+  font-size: 12.5px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu .signout {
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+.user-menu .signout:hover {
+  background: var(--card-2);
 }

@@ -10,7 +10,7 @@ from ..ai.client import LLMClient, LLMError
 from ..config import Settings
 from ..schemas.routing import RoutingResult
 from ..schemas.template import FieldDefinition
-from ..settings_store import interactive_ai_config
+from ..settings_store import generation_ai_config
 from .llm import route_llm
 from .router import route_structured, route_unstructured_heuristic
 
@@ -27,7 +27,7 @@ def route(
     client: LLMClient | None = None,
     settings: Settings | None = None,
 ) -> RoutingResult:
-    client = client or LLMClient(interactive_ai_config())
+    client = client or LLMClient(generation_ai_config())
 
     # Pure structured input maps deterministically — no model needed.
     if data and not raw_text:
@@ -45,5 +45,7 @@ def route(
             )
         except LLMError as exc:
             logger.warning("LLM routing failed, falling back to heuristic: %s", exc)
+        except Exception:  # never let a routing hiccup 500 the request
+            logger.exception("Unexpected error during LLM routing; using heuristic")
 
     return route_unstructured_heuristic(fields, raw_text or "", template_id, version)

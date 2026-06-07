@@ -40,6 +40,7 @@ def publish_template(
     rules: list[ValidationRule] | None = None,
     document_type: str | None = None,
     workspace_id: str | None = None,
+    owner_id: str | None = None,
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
 ) -> tuple[Template, TemplateVersion]:
@@ -77,6 +78,7 @@ def publish_template(
             name=name or result.document_type_guess or "Untitled Template",
             document_type=result.document_type_guess,
             workspace_id=workspace_id,
+            owner_id=owner_id,
         )
         db.add(template)
         db.flush()

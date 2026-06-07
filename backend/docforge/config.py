@@ -49,11 +49,24 @@ class Settings(BaseSettings):
     ai_api_key: str = ""
     ai_model: str = "gpt-4o-mini"
     ai_timeout_seconds: int = 240  # generous for slow local models (background work)
-    # Shorter cap for in-request routing so the UI never hangs for minutes; it
-    # falls back to heuristics if the model can't answer in time.
+    # Shorter cap for tiny in-request calls (e.g. the Settings "test connection").
     ai_interactive_timeout_seconds: int = 90
+    # Document/raw routing in the Generate tab sends a large prompt (the whole
+    # document + all template fields) to a local model, which can take a few
+    # minutes — give it a real budget instead of falling back to heuristics early.
+    ai_generation_timeout_seconds: int = 300
     ai_max_retries: int = 2
     ai_max_output_tokens: int = 6000
+
+    # --- Auth (Supabase) ---
+    # When auth_required, API data routes require a valid Supabase JWT (verified
+    # locally with the project's JWT secret) and scope all data to that user.
+    auth_required: bool = True
+    supabase_url: str = ""
+    supabase_jwt_secret: str = ""  # Supabase project JWT secret (HS256)
+    supabase_jwt_audience: str = "authenticated"
+    # Comma-separated allowed CORS origins (the deployed frontend). "*" allows all.
+    cors_allow_origins: str = "*"
 
     # --- Logging ---
     log_level: str = "INFO"
@@ -83,6 +96,14 @@ class Settings(BaseSettings):
     @property
     def zip_max_total_bytes(self) -> int:
         return self.zip_max_total_mb * 1024 * 1024
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Allowed CORS origins as a list (``*`` -> allow all)."""
+        raw = (self.cors_allow_origins or "*").strip()
+        if raw == "*":
+            return ["*"]
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
     @property
     def ai_active(self) -> bool:

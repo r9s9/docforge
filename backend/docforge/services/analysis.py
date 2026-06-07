@@ -19,11 +19,13 @@ import time
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from ..ai.client import LLMCancelled
 from ..ai_classifier import classify, derive_field_definitions, derive_validation_rules
 from ..config import Settings, get_settings
 from ..db.models import AnalysisJob, SourceDocument
 from ..db.session import SessionLocal, engine
 from ..document_ingest import extract_source_document
+from ..jobs import clear_cancel, register_cancel
 from ..multi_doc_differ import diff_documents, pick_representative
 from ..schemas.enums import JobStatus
 from ..schemas.extraction import DocumentExtraction
@@ -38,6 +40,7 @@ def _execute_analysis(
     sources: list[SourceDocument],
     settings: Settings,
     report=None,
+    cancel_event=None,
 ) -> None:
     """Run the pipeline and fill ``job`` (caller commits).
 
@@ -98,7 +101,9 @@ def _execute_analysis(
     hb = threading.Thread(target=heartbeat, daemon=True)
     hb.start()
     try:
-        result = classify(rep, diff, settings=settings, on_progress=cls_progress)
+        result = classify(
+            rep, diff, settings=settings, on_progress=cls_progress, cancel_event=cancel_event
+        )
     finally:
         stop.set()
         hb.join(timeout=2)
@@ -177,6 +182,7 @@ def start_analysis(
     settings: Settings | None = None,
     name: str | None = None,
     workspace_id: str | None = None,
+    owner_id: str | None = None,
 ) -> AnalysisJob:
     """Create a PENDING analysis job (the work is run later by run_analysis_job)."""
     settings = settings or get_settings()
@@ -190,6 +196,7 @@ def start_analysis(
         name=name,
         source_document_ids=[s.id for s in sources],
         workspace_id=workspace_id,
+        owner_id=owner_id,
     )
     db.add(job)
     db.commit()
@@ -200,10 +207,17 @@ def start_analysis(
 def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
     """Execute a pending analysis job in its own DB session (background-safe)."""
     settings = settings or get_settings()
+    cancel_event = register_cancel(job_id)
     db = SessionLocal()
     try:
         job = db.get(AnalysisJob, job_id)
         if job is None:
+            return
+        # Cancelled while still queued -> stop before doing any work.
+        if cancel_event.is_set():
+            job.status = JobStatus.CANCELLED.value
+            job.stage = "Cancelled"
+            db.commit()
             return
         job.status = JobStatus.RUNNING.value
         job.progress = 2
@@ -224,10 +238,20 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
         sources = [
             s for sid in (job.source_document_ids or []) if (s := db.get(SourceDocument, sid))
         ]
-        _execute_analysis(db, job, sources, settings, report=report)
+        _execute_analysis(db, job, sources, settings, report=report, cancel_event=cancel_event)
         job.progress = 100
         job.stage = "Done"
         db.commit()
+    except LLMCancelled:
+        logger.info("Analysis job %s cancelled by user", job_id)
+        try:
+            job = db.get(AnalysisJob, job_id)
+            if job is not None:
+                job.status = JobStatus.CANCELLED.value
+                job.stage = "Cancelled"
+                db.commit()
+        except Exception:  # pragma: no cover - best effort
+            pass
     except Exception as exc:
         logger.exception("Background analysis failed")
         try:
@@ -239,4 +263,5 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
         except Exception:  # pragma: no cover - best effort
             pass
     finally:
+        clear_cancel(job_id)
         db.close()

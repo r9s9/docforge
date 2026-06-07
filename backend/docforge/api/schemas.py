@@ -40,6 +40,13 @@ class RepublishRequest(BaseModel):
     notes: str = ""
 
 
+class PreviewDocxRequest(BaseModel):
+    """Optional in-progress edits so the review preview matches the user's changes."""
+
+    fields: list[FieldDefinition] | None = None
+    classifications: list[ElementClassification] | None = None
+
+
 class RouteRequest(BaseModel):
     version: int | None = None
     raw_text: str | None = None
