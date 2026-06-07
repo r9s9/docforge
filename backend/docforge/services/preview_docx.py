@@ -16,6 +16,7 @@ from ..db.models import AnalysisJob, SourceDocument
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
+from ..storage import get_storage
 from ..template_builder import build_template_docx
 
 
@@ -64,7 +65,9 @@ def build_job_preview_docx(
     if rep is None:
         raise ValueError("representative source document not found")
 
-    template_bytes = build_template_docx(rep.stored_path, result, fields)
+    # rep.stored_path is a storage key -> materialize a local path for the builder.
+    with get_storage().local_path(rep.stored_path) as rep_path:
+        template_bytes = build_template_docx(str(rep_path), result, fields)
     if mode == "tags":
         return template_bytes
     return assemble(template_bytes, _sample_context(fields), fields)

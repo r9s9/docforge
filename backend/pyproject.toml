@@ -43,6 +43,11 @@ dev = [
     "ruff>=0.3",
     "mypy>=1.9",
 ]
+# Production extras (installed in the Docker image): a Postgres driver for the
+# managed database (e.g. Supabase). Dev stays on SQLite and skips this.
+prod = [
+    "psycopg2-binary>=2.9",
+]
 
 [project.scripts]
 docforge = "docforge.cli:main"

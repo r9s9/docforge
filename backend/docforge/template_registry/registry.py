@@ -1,27 +1,27 @@
-"""template_registry — persist versioned template packages on disk (spec §12).
+"""template_registry — persist versioned template packages (spec §12).
 
-Layout per version:
+Layout per version (keys under ``templates/<id>/<version>/``):
 
-  templates/{template_id}/{version}/
-    template.docx
-    template_intelligence.json
-    field_definitions.json
-    validation_rules.json
-    manifest.json
-    review_snapshot.json
-    source_examples/        <- the original uploaded DOCX files
-    extracted_sources/      <- normalized extraction JSON per source
+  template.docx
+  template_intelligence.json
+  field_definitions.json
+  validation_rules.json
+  manifest.json
+  review_snapshot.json
+  representative.json / representative.docx
+  source_examples/        <- the original uploaded DOCX files
+  extracted_sources/      <- normalized extraction JSON per source
 
-The package directory is the source of truth for a template version; the DB only
-stores a pointer + light metadata.
+The package is the source of truth for a template version; the DB stores only a
+pointer + light metadata. Persistence goes through the :mod:`storage` layer, so
+the same code works on a local disk (dev) or Supabase Storage (disk-less prod).
 """
 
 from __future__ import annotations
 
-import json
+from contextlib import AbstractContextManager
 from pathlib import Path
 
-from ..config import get_settings
 from ..schemas.template import (
     FieldDefinition,
     ReviewSnapshot,
@@ -29,6 +29,7 @@ from ..schemas.template import (
     TemplateManifest,
     ValidationRule,
 )
+from ..storage import TEMPLATES, Storage, get_storage, join_key
 
 _TEMPLATE_DOCX = "template.docx"
 _INTELLIGENCE = "template_intelligence.json"
@@ -42,28 +43,22 @@ _SOURCES = "source_examples"
 _EXTRACTED = "extracted_sources"
 
 
-def _write_json(path: Path, data) -> None:
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def _read_json(path: Path):
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 class TemplateRegistry:
-    def __init__(self, base_dir: Path | str | None = None):
-        self.base_dir = Path(base_dir) if base_dir else get_settings().templates_dir
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+    """Reads/writes template-version packages through the storage backend.
 
-    # ----- paths ----------------------------------------------------------
-    def template_dir(self, template_id: str) -> Path:
-        return self.base_dir / template_id
+    The legacy positional argument (a base directory ``Path``) is accepted and
+    ignored for backward compatibility — the active storage backend is resolved
+    from settings. Pass a :class:`Storage` explicitly to override (e.g. tests).
+    """
 
-    def version_dir(self, template_id: str, version: int) -> Path:
-        return self.template_dir(template_id) / str(version)
+    def __init__(self, storage_or_dir: Storage | Path | str | None = None):
+        self.storage: Storage = (
+            storage_or_dir if isinstance(storage_or_dir, Storage) else get_storage()
+        )
 
-    def template_docx_path(self, template_id: str, version: int) -> Path:
-        return self.version_dir(template_id, version) / _TEMPLATE_DOCX
+    # ----- keys -----------------------------------------------------------
+    def _vkey(self, template_id: str, version: int, *parts: str) -> str:
+        return join_key(TEMPLATES, template_id, str(version), *parts)
 
     # ----- write ----------------------------------------------------------
     def save_version(
@@ -81,86 +76,108 @@ class TemplateRegistry:
         extracted_sources: dict[str, dict] | None = None,
         representative_extraction: dict | None = None,
         representative_docx: bytes | None = None,
-    ) -> Path:
+    ) -> str:
         """Write a complete, self-contained template version package."""
-        vdir = self.version_dir(template_id, version)
-        vdir.mkdir(parents=True, exist_ok=True)
-
-        (vdir / _TEMPLATE_DOCX).write_bytes(template_docx)
-        _write_json(vdir / _INTELLIGENCE, intelligence.model_dump(mode="json"))
-        _write_json(vdir / _FIELDS, [f.model_dump(mode="json") for f in fields])
-        _write_json(vdir / _RULES, [r.model_dump(mode="json") for r in rules])
-        _write_json(vdir / _MANIFEST, manifest.model_dump(mode="json"))
-        _write_json(vdir / _REVIEW, review.model_dump(mode="json"))
+        st = self.storage
+        st.put_bytes(self._vkey(template_id, version, _TEMPLATE_DOCX), template_docx)
+        st.put_json(self._vkey(template_id, version, _INTELLIGENCE), intelligence.model_dump(mode="json"))
+        st.put_json(self._vkey(template_id, version, _FIELDS), [f.model_dump(mode="json") for f in fields])
+        st.put_json(self._vkey(template_id, version, _RULES), [r.model_dump(mode="json") for r in rules])
+        st.put_json(self._vkey(template_id, version, _MANIFEST), manifest.model_dump(mode="json"))
+        st.put_json(self._vkey(template_id, version, _REVIEW), review.model_dump(mode="json"))
         if representative_extraction is not None:
-            _write_json(vdir / _REPRESENTATIVE, representative_extraction)
+            st.put_json(self._vkey(template_id, version, _REPRESENTATIVE), representative_extraction)
         if representative_docx is not None:
-            (vdir / _REPRESENTATIVE_DOCX).write_bytes(representative_docx)
+            st.put_bytes(self._vkey(template_id, version, _REPRESENTATIVE_DOCX), representative_docx)
 
-        sources_dir = vdir / _SOURCES
-        sources_dir.mkdir(exist_ok=True)
         for name, data in (source_examples or {}).items():
-            (sources_dir / _safe_name(name)).write_bytes(data)
-
-        extracted_dir = vdir / _EXTRACTED
-        extracted_dir.mkdir(exist_ok=True)
+            st.put_bytes(self._vkey(template_id, version, _SOURCES, _safe_name(name)), data)
         for name, data in (extracted_sources or {}).items():
-            _write_json(extracted_dir / (_safe_name(name) + ".json"), data)
+            st.put_json(self._vkey(template_id, version, _EXTRACTED, _safe_name(name) + ".json"), data)
 
-        return vdir
+        return join_key(TEMPLATES, template_id, str(version))
 
-    # ----- read -----------------------------------------------------------
+    # ----- read: JSON metadata -------------------------------------------
     def list_versions(self, template_id: str) -> list[int]:
-        tdir = self.template_dir(template_id)
-        if not tdir.exists():
-            return []
-        versions = []
-        for child in tdir.iterdir():
-            if child.is_dir() and child.name.isdigit():
-                versions.append(int(child.name))
+        prefix = join_key(TEMPLATES, template_id) + "/"
+        versions: set[int] = set()
+        for key in self.storage.list_prefix(prefix):
+            rest = key[len(prefix):]
+            seg = rest.split("/", 1)[0]
+            if seg.isdigit():
+                versions.add(int(seg))
         return sorted(versions)
 
+    def version_exists(self, template_id: str, version: int) -> bool:
+        return self.storage.exists(self._vkey(template_id, version, _MANIFEST))
+
     def load_manifest(self, template_id: str, version: int) -> TemplateManifest:
-        return TemplateManifest.model_validate(_read_json(self.version_dir(template_id, version) / _MANIFEST))
+        return TemplateManifest.model_validate(
+            self.storage.get_json(self._vkey(template_id, version, _MANIFEST))
+        )
 
     def load_intelligence(self, template_id: str, version: int) -> TemplateIntelligence:
         return TemplateIntelligence.model_validate(
-            _read_json(self.version_dir(template_id, version) / _INTELLIGENCE)
+            self.storage.get_json(self._vkey(template_id, version, _INTELLIGENCE))
         )
 
     def load_fields(self, template_id: str, version: int) -> list[FieldDefinition]:
-        raw = _read_json(self.version_dir(template_id, version) / _FIELDS)
+        raw = self.storage.get_json(self._vkey(template_id, version, _FIELDS))
         return [FieldDefinition.model_validate(x) for x in raw]
 
     def load_rules(self, template_id: str, version: int) -> list[ValidationRule]:
-        raw = _read_json(self.version_dir(template_id, version) / _RULES)
+        raw = self.storage.get_json(self._vkey(template_id, version, _RULES))
         return [ValidationRule.model_validate(x) for x in raw]
 
     def load_review(self, template_id: str, version: int) -> ReviewSnapshot:
-        return ReviewSnapshot.model_validate(_read_json(self.version_dir(template_id, version) / _REVIEW))
+        return ReviewSnapshot.model_validate(
+            self.storage.get_json(self._vkey(template_id, version, _REVIEW))
+        )
 
     def load_representative(self, template_id: str, version: int) -> dict | None:
         """The representative document's normalized extraction (or None)."""
-        path = self.version_dir(template_id, version) / _REPRESENTATIVE
-        return _read_json(path) if path.exists() else None
+        key = self._vkey(template_id, version, _REPRESENTATIVE)
+        return self.storage.get_json(key) if self.storage.exists(key) else None
 
-    def representative_docx_path(self, template_id: str, version: int) -> Path:
-        """Path to the original representative DOCX (used to rebuild on edit)."""
-        return self.version_dir(template_id, version) / _REPRESENTATIVE_DOCX
+    # ----- read: binary DOCX (bytes + local-path access) ------------------
+    def template_docx_bytes(self, template_id: str, version: int) -> bytes:
+        return self.storage.get_bytes(self._vkey(template_id, version, _TEMPLATE_DOCX))
 
+    def template_docx_localpath(self, template_id: str, version: int) -> AbstractContextManager[Path]:
+        return self.storage.local_path(self._vkey(template_id, version, _TEMPLATE_DOCX))
+
+    def representative_docx_exists(self, template_id: str, version: int) -> bool:
+        return self.storage.exists(self._vkey(template_id, version, _REPRESENTATIVE_DOCX))
+
+    def representative_docx_bytes(self, template_id: str, version: int) -> bytes:
+        return self.storage.get_bytes(self._vkey(template_id, version, _REPRESENTATIVE_DOCX))
+
+    def representative_docx_localpath(self, template_id: str, version: int) -> AbstractContextManager[Path]:
+        return self.storage.local_path(self._vkey(template_id, version, _REPRESENTATIVE_DOCX))
+
+    # ----- read: source examples / extractions ---------------------------
     def load_source_examples(self, template_id: str, version: int) -> dict[str, bytes]:
-        sdir = self.version_dir(template_id, version) / _SOURCES
-        return {p.name: p.read_bytes() for p in sdir.iterdir()} if sdir.exists() else {}
+        prefix = self._vkey(template_id, version, _SOURCES) + "/"
+        out: dict[str, bytes] = {}
+        for key in self.storage.list_prefix(prefix):
+            out[key.rsplit("/", 1)[-1]] = self.storage.get_bytes(key)
+        return out
 
     def load_extracted_sources(self, template_id: str, version: int) -> dict[str, dict]:
-        edir = self.version_dir(template_id, version) / _EXTRACTED
-        if not edir.exists():
-            return {}
-        return {p.stem: _read_json(p) for p in edir.iterdir() if p.suffix == ".json"}
+        prefix = self._vkey(template_id, version, _EXTRACTED) + "/"
+        out: dict[str, dict] = {}
+        for key in self.storage.list_prefix(prefix):
+            if key.endswith(".json"):
+                out[key.rsplit("/", 1)[-1][:-5]] = self.storage.get_json(key)
+        return out
 
     def source_example_names(self, template_id: str, version: int) -> list[str]:
-        sdir = self.version_dir(template_id, version) / _SOURCES
-        return sorted(p.name for p in sdir.iterdir()) if sdir.exists() else []
+        prefix = self._vkey(template_id, version, _SOURCES) + "/"
+        return sorted(key.rsplit("/", 1)[-1] for key in self.storage.list_prefix(prefix))
+
+    # ----- delete ---------------------------------------------------------
+    def delete_template(self, template_id: str) -> None:
+        self.storage.delete_prefix(join_key(TEMPLATES, template_id) + "/")
 
 
 def _safe_name(name: str) -> str:

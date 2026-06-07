@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 
 from docx import Document
@@ -10,7 +11,14 @@ from docforge.document_ingest import store_source_document
 from docforge.schemas.enums import GenerationMode, JobStatus, ValidationStatus
 from docforge.schemas.generation import GenerationInput
 from docforge.services import analyze_documents, generate_document, publish_template
+from docforge.storage import get_storage
 from docforge.template_registry import TemplateRegistry
+
+
+def _output_doc(gen) -> Document:
+    """Load a generated document from storage (output_path is a storage key)."""
+    assert gen.output_path and get_storage().exists(gen.output_path)
+    return Document(BytesIO(get_storage().get_bytes(gen.output_path)))
 
 
 def _ingest(db, docs):
@@ -31,7 +39,8 @@ def test_flow1_analyze_and_publish_creates_package(db_session, settings_tmp, pro
     assert job.field_definitions
     assert version.version == 1
 
-    vdir = registry.version_dir(template.id, 1)
+    assert registry.version_exists(template.id, 1)
+    base = f"templates/{template.id}/1"
     for artifact in (
         "template.docx",
         "manifest.json",
@@ -40,7 +49,7 @@ def test_flow1_analyze_and_publish_creates_package(db_session, settings_tmp, pro
         "template_intelligence.json",
         "review_snapshot.json",
     ):
-        assert (vdir / artifact).exists(), f"missing {artifact}"
+        assert registry.storage.exists(f"{base}/{artifact}"), f"missing {artifact}"
     assert registry.source_example_names(template.id, 1)  # source examples saved
 
 
@@ -60,10 +69,9 @@ def test_flow2_structured_generation(db_session, settings_tmp, project_docs):
         },
     )
     gen = generate_document(db_session, template, gen_input, settings=settings_tmp, registry=registry)
-    assert gen.output_path and Path(gen.output_path).exists()
     assert gen.validation["status"] == ValidationStatus.PASS.value
 
-    doc = Document(gen.output_path)
+    doc = _output_doc(gen)
     assert any("Project Name: Orion Platform" in p.text for p in doc.paragraphs)
     assert len(doc.tables[0].rows) == 3  # header + 2 rows
 
@@ -78,8 +86,7 @@ def test_flow3_unstructured_generation(db_session, settings_tmp, project_docs):
     )
     gen_input = GenerationInput(mode=GenerationMode.UNSTRUCTURED_TEXT, raw_text=raw)
     gen = generate_document(db_session, template, gen_input, settings=settings_tmp, registry=registry)
-    assert Path(gen.output_path).exists()
-    doc = Document(gen.output_path)
+    doc = _output_doc(gen)
     body = "\n".join(p.text for p in doc.paragraphs)
     assert "Project Name: Helios CRM" in body
     assert "Report Date: 2026-08-01" in body
@@ -100,4 +107,4 @@ def test_invoice_end_to_end(db_session, settings_tmp, invoice_docs):
         },
     )
     gen = generate_document(db_session, template, gen_input, settings=settings_tmp, registry=registry)
-    assert Path(gen.output_path).exists()
+    assert get_storage().exists(gen.output_path)

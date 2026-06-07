@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-import shutil
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from ...ai_router import route
@@ -54,6 +53,10 @@ router = APIRouter(tags=["templates"])
 logger = logging.getLogger("docforge.api.templates")
 
 DOCX_MEDIA = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def _attachment(filename: str) -> dict[str, str]:
+    return {"Content-Disposition": f'attachment; filename="{filename}"'}
 
 
 def _get_template(db: Session, template_id: str, user: CurrentUser) -> Template:
@@ -171,11 +174,9 @@ def delete_template(
     registry: TemplateRegistry = Depends(get_registry),
     user: CurrentUser = Depends(get_current_user),
 ) -> None:
-    """Delete a template: its on-disk package, versions and generation history."""
+    """Delete a template: its stored package, versions and generation history."""
     t = _get_template(db, template_id, user)
-    tdir = registry.template_dir(template_id)
-    if tdir.exists():
-        shutil.rmtree(tdir, ignore_errors=True)
+    registry.delete_template(template_id)
     db.query(GeneratedDocument).filter_by(template_id=template_id).delete()
     db.query(GenerationRequest).filter_by(template_id=template_id).delete()
     db.query(TemplateVersion).filter_by(template_id=template_id).delete()
@@ -268,12 +269,12 @@ def download_template_docx(
     db: Session = Depends(get_db),
     registry: TemplateRegistry = Depends(get_registry),
     user: CurrentUser = Depends(get_current_user),
-) -> FileResponse:
+) -> Response:
     _get_template(db, template_id, user)
-    path = registry.template_docx_path(template_id, version)
-    if not path.exists():
+    if not registry.version_exists(template_id, version):
         raise HTTPException(status_code=404, detail="template file not found")
-    return FileResponse(path, filename=f"template_v{version}.docx", media_type=DOCX_MEDIA)
+    data = registry.template_docx_bytes(template_id, version)
+    return Response(content=data, media_type=DOCX_MEDIA, headers=_attachment(f"template_v{version}.docx"))
 
 
 @router.get("/templates/{template_id}/versions/{version}/representative.docx")
@@ -283,17 +284,17 @@ def download_representative_docx(
     db: Session = Depends(get_db),
     registry: TemplateRegistry = Depends(get_registry),
     user: CurrentUser = Depends(get_current_user),
-) -> FileResponse:
+) -> Response:
     """The original example the template was built from — the 'expected' reference
     shown as the left side of the compliance side-by-side comparison."""
     _get_template(db, template_id, user)
-    path = registry.representative_docx_path(template_id, version)
-    if not path.exists():
+    if not registry.representative_docx_exists(template_id, version):
         raise HTTPException(
             status_code=404,
             detail="no stored example for this template version; re-publish to enable it",
         )
-    return FileResponse(path, filename=f"example_v{version}.docx", media_type=DOCX_MEDIA)
+    data = registry.representative_docx_bytes(template_id, version)
+    return Response(content=data, media_type=DOCX_MEDIA, headers=_attachment(f"example_v{version}.docx"))
 
 
 @router.post("/templates/{template_id}/generate")

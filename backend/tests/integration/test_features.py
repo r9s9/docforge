@@ -112,7 +112,7 @@ def test_republish_edit_fields_creates_v2(db_session, settings_tmp, project_docs
     assert template2.latest_version == 2
 
     # the rebuilt template uses the renamed placeholder
-    doc = Document(BytesIO(registry.template_docx_path(template.id, 2).read_bytes()))
+    doc = Document(BytesIO(registry.template_docx_bytes(template.id, 2)))
     body = "\n".join(p.text for p in doc.paragraphs)
     assert "{{ proj }}" in body
 

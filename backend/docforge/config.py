@@ -68,6 +68,17 @@ class Settings(BaseSettings):
     # Comma-separated allowed CORS origins (the deployed frontend). "*" allows all.
     cors_allow_origins: str = "*"
 
+    # --- File storage ---
+    # "local" keeps template packages / uploads / generated docs on the local
+    # filesystem (dev, and any host with a persistent disk). "supabase" stores
+    # them in a Supabase Storage bucket — required when the host has no
+    # persistent disk (e.g. Render's free tier), so files survive restarts.
+    storage_backend: str = "local"  # "local" | "supabase"
+    # Service-role key (server-side ONLY — never exposed to the browser). Used to
+    # read/write the storage bucket, bypassing RLS.
+    supabase_service_role_key: str = ""
+    supabase_storage_bucket: str = "docforge"
+
     # --- Logging ---
     log_level: str = "INFO"
     log_redact: bool = True

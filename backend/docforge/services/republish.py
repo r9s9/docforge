@@ -72,8 +72,7 @@ def republish_template(
     prev = template.latest_version
     if prev < 1:
         raise ValueError("template has no published version to edit")
-    rep_docx = registry.representative_docx_path(template.id, prev)
-    if not rep_docx.exists():
+    if not registry.representative_docx_exists(template.id, prev):
         raise ValueError(
             "This template predates editable versions — re-create it (upload examples) to enable editing."
         )
@@ -95,7 +94,11 @@ def republish_template(
     rules = derive_validation_rules(fields)
 
     version = prev + 1
-    template_bytes = build_template_docx(str(rep_docx), result, fields)
+    # The representative DOCX lives in storage; materialize a local path for the
+    # path-based builder and keep its bytes to copy into the new version package.
+    with registry.representative_docx_localpath(template.id, prev) as rep_path:
+        template_bytes = build_template_docx(str(rep_path), result, fields)
+        rep_bytes = rep_path.read_bytes()
 
     intelligence = TemplateIntelligence(
         template_id=template.id,
@@ -127,7 +130,7 @@ def republish_template(
         edited_by_user=True,
     )
 
-    registry.save_version(
+    package_path = registry.save_version(
         template.id,
         version,
         template_docx=template_bytes,
@@ -139,13 +142,13 @@ def republish_template(
         source_examples=registry.load_source_examples(template.id, prev),
         extracted_sources=registry.load_extracted_sources(template.id, prev),
         representative_extraction=registry.load_representative(template.id, prev),
-        representative_docx=rep_docx.read_bytes(),
+        representative_docx=rep_bytes,
     )
 
     tv = TemplateVersion(
         template_id=template.id,
         version=version,
-        package_path=str(registry.version_dir(template.id, version)),
+        package_path=package_path,
         renderer="docxtpl",
         model_used=prev_intel.model_used_for_analysis,
         n_fields=len(fields),

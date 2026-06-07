@@ -7,7 +7,6 @@ the user's adjustments from the review UI are what gets built and stored.
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -21,6 +20,7 @@ from ..schemas.template import (
     TemplateManifest,
     ValidationRule,
 )
+from ..storage import get_storage
 from ..structure_normalizer import build_extraction
 from ..template_builder import build_template_docx
 from ..template_registry import TemplateRegistry
@@ -86,8 +86,13 @@ def publish_template(
 
     # Build the template DOCX from the representative example, and capture its
     # normalized extraction (used by compliance checks + the element inspector).
-    template_bytes = build_template_docx(rep.stored_path, result, fields)
-    rep_extraction = build_extraction(rep.stored_path, rep.id, rep.filename).model_dump(mode="json")
+    # rep.stored_path is a storage key -> materialize a local path for the
+    # path-based builders, and keep the bytes to store in the package.
+    storage = get_storage()
+    with storage.local_path(rep.stored_path) as rep_path:
+        rep_bytes = rep_path.read_bytes()
+        template_bytes = build_template_docx(str(rep_path), result, fields)
+        rep_extraction = build_extraction(str(rep_path), rep.id, rep.filename).model_dump(mode="json")
 
     # Assemble package artifacts.
     intelligence = TemplateIntelligence(
@@ -105,8 +110,8 @@ def publish_template(
     source_file_names: list[str] = []
     for sid in job.source_document_ids or []:
         sd = db.get(SourceDocument, sid)
-        if sd and Path(sd.stored_path).exists():
-            source_examples[sd.filename] = Path(sd.stored_path).read_bytes()
+        if sd and storage.exists(sd.stored_path):
+            source_examples[sd.filename] = storage.get_bytes(sd.stored_path)
             source_file_names.append(sd.filename)
 
     extracted_sources: dict[str, dict] = {}
@@ -150,7 +155,7 @@ def publish_template(
         source_examples=source_examples,
         extracted_sources=extracted_sources,
         representative_extraction=rep_extraction,
-        representative_docx=Path(rep.stored_path).read_bytes(),
+        representative_docx=rep_bytes,
     )
 
     tv = TemplateVersion(

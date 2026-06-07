@@ -1,0 +1,83 @@
+# Render Blueprint — deploys DocForge as two free web services:
+#   - docforge-backend  (FastAPI, Docker)
+#   - docforge-frontend (Next.js, Node)
+#
+# Database + Auth + file Storage are provided by Supabase (separate, free).
+# After the first deploy you must fill in the values marked `sync: false`
+# (secrets / cross-service URLs) in the Render dashboard — see DEPLOY.md.
+#
+# Free-tier note: free web services sleep after ~15 min idle and cold-start on
+# the next request. That's fine for a demo. Because storage is Supabase (not a
+# local disk), nothing is lost when a service restarts.
+
+services:
+  # --- Backend: FastAPI + the storage/auth layer --------------------------
+  - type: web
+    name: docforge-backend
+    runtime: docker
+    repo: https://github.com/r9s9/docforge
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DOCFORGE_ENV
+        value: production
+      # Require Supabase JWTs and scope all data per-user.
+      - key: DOCFORGE_AUTH_REQUIRED
+        value: "true"
+      # Store template packages / uploads / generated docs in Supabase Storage
+      # (no local disk needed -> survives restarts on the free tier).
+      - key: DOCFORGE_STORAGE_BACKEND
+        value: supabase
+      - key: DOCFORGE_SUPABASE_STORAGE_BUCKET
+        value: docforge
+      # --- Secrets (set in the dashboard; never commit these) ---
+      # Supabase Postgres connection string. IMPORTANT: use the *Session pooler*
+      # URI (IPv4) from Supabase, e.g.
+      #   postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+      - key: DOCFORGE_DATABASE_URL
+        sync: false
+      - key: DOCFORGE_SUPABASE_URL          # https://<ref>.supabase.co
+        sync: false
+      - key: DOCFORGE_SUPABASE_JWT_SECRET   # Project Settings -> API -> JWT secret
+        sync: false
+      - key: DOCFORGE_SUPABASE_SERVICE_ROLE_KEY  # service_role key (server-side only)
+        sync: false
+      # The deployed frontend origin, for CORS, e.g. https://docforge-frontend.onrender.com
+      - key: DOCFORGE_CORS_ALLOW_ORIGINS
+        sync: false
+      # --- AI (optional) ---
+      # Leave disabled to run the offline heuristic engine. To enable a cloud
+      # LLM, set these in the dashboard (key is a secret):
+      - key: DOCFORGE_AI_ENABLED
+        value: "false"
+      # - key: DOCFORGE_AI_BASE_URL
+      #   value: https://api.openai.com/v1
+      # - key: DOCFORGE_AI_MODEL
+      #   value: gpt-4o-mini
+      # - key: DOCFORGE_AI_API_KEY
+      #   sync: false
+
+  # --- Frontend: Next.js app ---------------------------------------------
+  - type: web
+    name: docforge-frontend
+    runtime: node
+    repo: https://github.com/r9s9/docforge
+    rootDir: frontend
+    plan: free
+    buildCommand: npm ci && npm run build
+    # Listen on Render's injected $PORT (overrides the local -p 3000).
+    startCommand: npx next start -p $PORT
+    envVars:
+      # The browser calls the backend directly at this origin (Bearer token in a
+      # header -> CORS handles it). Set to the backend's URL after first deploy,
+      # e.g. https://docforge-backend.onrender.com
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      # Supabase project URL + anon (publishable) key — safe to expose; baked
+      # into the build, so they must be present at build time.
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false

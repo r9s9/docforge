@@ -15,6 +15,7 @@ from ..config import get_settings
 from ..db.base import new_uuid
 from ..db.models import ExtractedDocument, SourceDocument
 from ..ooxml_extractor.package import DocxError, DocxPackage, UnsafeDocxError
+from ..storage import UPLOADS, get_storage, join_key
 from ..structure_normalizer import build_extraction
 
 _ALLOWED_EXT = {".docx"}
@@ -83,18 +84,18 @@ def store_source_document(
     validate_upload(filename, len(data), None)
     validate_docx_bytes(data)  # raises on bad/unsafe input
 
-    settings = get_settings()
-    settings.ensure_dirs()
     doc_id = new_uuid()
-    dest = settings.uploads_dir / f"{doc_id}.docx"
-    dest.write_bytes(data)
+    # stored_path holds the STORAGE KEY (not a filesystem path) — readers fetch
+    # bytes / a local temp path through the storage layer.
+    key = join_key(UPLOADS, f"{doc_id}.docx")
+    get_storage().put_bytes(key, data, content_type=_DOCX_CONTENT_TYPE)
 
     rec = SourceDocument(
         id=doc_id,
         workspace_id=workspace_id,
         owner_id=owner_id,
         filename=filename,
-        stored_path=str(dest),
+        stored_path=key,
         size_bytes=len(data),
         content_type=_DOCX_CONTENT_TYPE,
         sha256=hashlib.sha256(data).hexdigest(),
@@ -109,9 +110,11 @@ def store_source_document(
 def extract_source_document(db: Session, source: SourceDocument) -> ExtractedDocument:
     """Run normalization on a stored source document and persist the result."""
     try:
-        extraction = build_extraction(
-            source.stored_path, document_id=source.id, filename=source.filename
-        )
+        # build_extraction needs a real on-disk path; materialize one from storage.
+        with get_storage().local_path(source.stored_path) as p:
+            extraction = build_extraction(
+                str(p), document_id=source.id, filename=source.filename
+            )
     except Exception as exc:  # extraction is best-effort; record the failure
         source.status = "failed"
         db.commit()

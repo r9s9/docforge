@@ -190,7 +190,6 @@ def _make_job(db, settings, docs, owner_id=TEST_USER_ID):
     from pathlib import Path
 
     from docforge.document_ingest import store_source_document
-
     from docforge.services import analyze_documents
 
     sources = [

@@ -24,11 +24,14 @@ from ..schemas.enums import GenerationMode, JobStatus
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.generation import GenerationInput
 from ..schemas.routing import RoutingResult
+from ..storage import GENERATED, get_storage, join_key
 from ..structure_normalizer import iter_block_items
 from ..template_registry import TemplateRegistry
 from .audit import record_decision
 
 logger = logging.getLogger("docforge.generation")
+
+_DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
 def _resolve_version(db: Session, template: Template, version: int | None) -> int:
@@ -163,9 +166,9 @@ def render_preview_docx(
     registry = registry or TemplateRegistry(settings.templates_dir)
     version = gen_input.version or template.latest_version
     fields = registry.load_fields(template.id, version)
-    template_docx = registry.template_docx_path(template.id, version)
+    template_bytes = registry.template_docx_bytes(template.id, version)
     routing = resolve_routing(template.id, version, gen_input, fields, settings)
-    return assemble(str(template_docx), routing.to_context(), fields)
+    return assemble(template_bytes, routing.to_context(), fields)
 
 
 def preview_document(
@@ -182,7 +185,7 @@ def preview_document(
     version = gen_input.version or template.latest_version
     fields = registry.load_fields(template.id, version)
     rules = registry.load_rules(template.id, version)
-    template_docx = registry.template_docx_path(template.id, version)
+    template_bytes = registry.template_docx_bytes(template.id, version)
 
     routing = resolve_routing(template.id, version, gen_input, fields, settings)
     context = routing.to_context()
@@ -190,7 +193,7 @@ def preview_document(
     from ..validator import validate
 
     report = None if gen_input.skip_validation else validate(context, fields, rules)
-    output_bytes = assemble(str(template_docx), context, fields)
+    output_bytes = assemble(template_bytes, context, fields)
     return {
         "blocks": _parse_docx_blocks(output_bytes),
         "validation": report.model_dump(mode="json") if report else None,
@@ -215,7 +218,7 @@ def generate_document(
     version = _resolve_version(db, template, gen_input.version)
     fields = registry.load_fields(template.id, version)
     rules = registry.load_rules(template.id, version)
-    template_docx = registry.template_docx_path(template.id, version)
+    template_bytes = registry.template_docx_bytes(template.id, version)
 
     req = GenerationRequest(
         template_id=template.id,
@@ -242,12 +245,12 @@ def generate_document(
             report = validate(context, fields, rules)
 
         # 3) Assemble the final DOCX deterministically.
-        output_bytes = assemble(str(template_docx), context, fields)
+        output_bytes = assemble(template_bytes, context, fields)
         out_name = f"{slugify_field(template.name, fallback='document')}-{req.id[:8]}.docx"
-        out_path = settings.generated_dir / out_name
-        out_path.write_bytes(output_bytes)
+        out_key = join_key(GENERATED, out_name)
+        get_storage().put_bytes(out_key, output_bytes, content_type=_DOCX_CONTENT_TYPE)
 
-        # Best-effort retention: keep the generated folder from growing forever.
+        # Best-effort retention: keep generated outputs from growing without bound.
         try:
             from .retention import prune_generated
 
@@ -260,7 +263,7 @@ def generate_document(
             template_id=template.id,
             version=version,
             owner_id=owner_id,
-            output_path=str(out_path),
+            output_path=out_key,  # storage key, not a filesystem path
             output_filename=out_name,
             validation=report.model_dump(mode="json") if report else None,
             status="generated",
