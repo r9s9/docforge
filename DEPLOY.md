@@ -22,14 +22,17 @@ on Render's disk), nothing is lost when a service restarts.
 
 1. Sign up at <https://supabase.com> → **New project**. Pick a region near you
    and set a database password (save it).
-2. When it's ready, open **Project Settings → API** and copy:
-   - **Project URL** → `https://<ref>.supabase.co`
-   - **anon public** key (safe for the browser)
-   - **service_role** key (⚠️ server-side secret — never in the frontend)
-   - **JWT secret** (under "JWT Settings")
-3. **Database connection string** — open **Project Settings → Database →
-   Connection string → URI**, and choose the **Session pooler** tab. It looks
-   like:
+2. Copy these (the dashboard splits them across pages — **Project Settings**,
+   then the **API Keys** and **Data API** sub-pages):
+   - **Project URL** → `https://<ref>.supabase.co` (Settings → **Data API**, or
+     the top of **API Keys**)
+   - **anon / publishable** key — browser-safe (Settings → **API Keys**)
+   - **service_role / secret** key — ⚠️ server-side only (Settings → **API Keys**)
+   - **JWT secret:** only needed for *legacy* projects. New projects use **JWT
+     Signing Keys** (Settings → **JWT Keys**, asymmetric) — nothing to copy; the
+     backend verifies those via the JWKS endpoint from the Project URL.
+3. **Database connection string** — click the green **Connect** button in the top
+   bar → **Session pooler** (NOT "Direct connection") → copy the URI:
    ```
    postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
    ```
@@ -65,7 +68,7 @@ The repo includes `render.yaml`, which defines both services.
    |---|---|
    | `DOCFORGE_DATABASE_URL` | the Session-pooler URI from step 1.3 |
    | `DOCFORGE_SUPABASE_URL` | `https://<ref>.supabase.co` |
-   | `DOCFORGE_SUPABASE_JWT_SECRET` | the JWT secret |
+   | `DOCFORGE_SUPABASE_JWT_SECRET` | *legacy projects only* — leave unset if you use JWT Signing Keys |
    | `DOCFORGE_SUPABASE_SERVICE_ROLE_KEY` | the **service_role** key |
    | `DOCFORGE_CORS_ALLOW_ORIGINS` | the frontend URL (fill after it deploys, e.g. `https://docforge-frontend.onrender.com`) |
 

@@ -40,7 +40,11 @@ services:
         sync: false
       - key: DOCFORGE_SUPABASE_URL          # https://<ref>.supabase.co
         sync: false
-      - key: DOCFORGE_SUPABASE_JWT_SECRET   # Project Settings -> API -> JWT secret
+      # JWT secret is ONLY for legacy projects that use a shared HS256 secret.
+      # Newer projects use asymmetric "JWT Signing Keys" — the backend verifies
+      # those via the JWKS endpoint derived from DOCFORGE_SUPABASE_URL, so you can
+      # leave this blank/unset on a new project.
+      - key: DOCFORGE_SUPABASE_JWT_SECRET   # optional (legacy HS256 only)
         sync: false
       - key: DOCFORGE_SUPABASE_SERVICE_ROLE_KEY  # service_role key (server-side only)
         sync: false

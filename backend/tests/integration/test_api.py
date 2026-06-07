@@ -319,3 +319,56 @@ def test_templates_scoped_per_user(auth_client, db_session, settings_tmp, projec
     dl = f"/api/templates/{tid}/versions/1/template.docx"
     assert auth_client.get(dl, headers=a).status_code == 200
     assert auth_client.get(dl, headers=b).status_code == 404
+
+
+# --------------------------------------------------------------------------- #
+# Asymmetric tokens (Supabase "JWT Signing Keys" — ES256 via JWKS)             #
+# --------------------------------------------------------------------------- #
+def _es256_keypair_and_jwk(kid="test-kid"):
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from jwt.algorithms import ECAlgorithm
+
+    priv = ec.generate_private_key(ec.SECP256R1())
+    jwk = ECAlgorithm(ECAlgorithm.SHA256).to_jwk(priv.public_key(), as_dict=True)
+    jwk.update({"kid": kid, "alg": "ES256", "use": "sig"})
+    return priv, jwk
+
+
+def test_auth_accepts_es256_via_jwks(auth_client, monkeypatch):
+    """A token signed with the project's asymmetric key verifies via JWKS."""
+    from docforge.api import auth as auth_mod
+    from docforge.config import get_settings
+
+    priv, jwk = _es256_keypair_and_jwk()
+    s = get_settings()
+    monkeypatch.setattr(s, "supabase_url", "https://proj.supabase.co")
+    monkeypatch.setattr(auth_mod, "_jwks_cache", {})
+    monkeypatch.setattr(auth_mod, "_fetch_jwks", lambda url: {"test-kid": jwk})
+
+    token = jwt.encode(
+        {"sub": USER_A, "email": "a@example.com", "aud": "authenticated"},
+        priv, algorithm="ES256", headers={"kid": "test-kid"},
+    )
+    r = auth_client.get("/api/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200, r.text
+    assert r.json() == {"id": USER_A, "email": "a@example.com"}
+
+
+def test_auth_rejects_es256_signed_by_wrong_key(auth_client, monkeypatch):
+    """A token signed by a key not in the JWKS is rejected."""
+    from docforge.api import auth as auth_mod
+    from docforge.config import get_settings
+
+    _good_priv, jwk = _es256_keypair_and_jwk()
+    attacker_priv, _ = _es256_keypair_and_jwk()  # different key, same kid claim
+    s = get_settings()
+    monkeypatch.setattr(s, "supabase_url", "https://proj.supabase.co")
+    monkeypatch.setattr(auth_mod, "_jwks_cache", {})
+    monkeypatch.setattr(auth_mod, "_fetch_jwks", lambda url: {"test-kid": jwk})
+
+    forged = jwt.encode(
+        {"sub": USER_A, "aud": "authenticated"},
+        attacker_priv, algorithm="ES256", headers={"kid": "test-kid"},
+    )
+    r = auth_client.get("/api/me", headers={"Authorization": f"Bearer {forged}"})
+    assert r.status_code == 401
