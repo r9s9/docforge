@@ -51,20 +51,21 @@ services:
       # The deployed frontend origin, for CORS, e.g. https://docforge-frontend.onrender.com
       - key: DOCFORGE_CORS_ALLOW_ORIGINS
         sync: false
-      # --- AI: cloud LLM (pay-per-token) ---
+      # --- AI: free OpenAI-compatible LLM (NVIDIA) ---
       # Configure AI via ENV (durable). The in-app Settings UI writes to a file
       # that is wiped on restart on the free tier, so it won't stick — use env.
       # Until DOCFORGE_AI_API_KEY is set, the app safely runs heuristic-only.
+      # NVIDIA's API catalog is OpenAI-compatible, so provider stays "openai".
       - key: DOCFORGE_AI_ENABLED
         value: "true"
       - key: DOCFORGE_AI_PROVIDER
-        value: openai            # or "anthropic"
+        value: openai                                  # OpenAI-style API (not literally OpenAI)
       - key: DOCFORGE_AI_BASE_URL
-        value: https://api.openai.com/v1
+        value: https://integrate.api.nvidia.com/v1
       - key: DOCFORGE_AI_MODEL
-        value: gpt-4o-mini       # cheap + capable; change as you like
+        value: meta/llama-3.3-70b-instruct             # any non-reasoning instruct model
       - key: DOCFORGE_AI_API_KEY
-        sync: false              # secret — set in the dashboard
+        sync: false                                    # secret — your nvapi-... key
 
   # --- Frontend: Next.js app ---------------------------------------------
   - type: web
