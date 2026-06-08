@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { ComplianceReport, Template } from "@/lib/types";
 import { ErrorBox, Spinner } from "@/components/ui";
+import { FileText, Sparkles } from "@/components/icons";
 import DocxPreview from "@/components/DocxPreview";
 
 const GRADE_COLOR: Record<string, string> = {
@@ -89,7 +90,13 @@ export default function CompliancePage() {
           </select>
         </label>
         <button className="btn secondary" onClick={() => inputRef.current?.click()}>
-          {file ? `📄 ${file.name}` : "Choose .docx"}
+          {file ? (
+            <>
+              <FileText size={15} strokeWidth={1.9} /> {file.name}
+            </>
+          ) : (
+            "Choose .docx"
+          )}
         </button>
         <input
           ref={inputRef}
@@ -189,7 +196,13 @@ function Report({
                 : "No fixed-text issues to repair"
             }
           >
-            {fixBusy ? <Spinner label="Fixing…" /> : "✦ Fix to match template"}
+            {fixBusy ? (
+              <Spinner label="Fixing…" />
+            ) : (
+              <>
+                <Sparkles size={14} strokeWidth={2} /> Fix to match template
+              </>
+            )}
           </button>
           <div className="muted" style={{ fontSize: 12, marginTop: 6, maxWidth: 220 }}>
             Restores boilerplate text; keeps your field values &amp; extra content.
@@ -224,7 +237,7 @@ function Report({
             <div className="cmp-docx-head">Differences ({report.differences.length})</div>
             {report.differences.length === 0 ? (
               <div className="card empty" style={{ padding: 18 }}>
-                Fully compliant — no differences. 🎉
+                Fully compliant — no differences.
               </div>
             ) : (
               <div className="cmp-diff-list">

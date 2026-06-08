@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Project } from "@/lib/types";
 import { ErrorBox, Spinner } from "@/components/ui";
+import { Trash2 } from "@/components/icons";
 
 export default function ProjectsList() {
   const router = useRouter();
@@ -110,12 +111,12 @@ export default function ProjectsList() {
                   <td>
                     <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
                       <button
-                        className="btn secondary small"
+                        className="btn secondary small icon"
                         onClick={() => remove(p)}
                         title="Delete project"
                         style={{ color: "var(--red)" }}
                       >
-                        🗑
+                        <Trash2 size={15} strokeWidth={1.9} />
                       </button>
                     </div>
                   </td>

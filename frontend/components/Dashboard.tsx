@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Health, Template } from "@/lib/types";
 import { ErrorBox, Spinner } from "@/components/ui";
+import { Plus, Trash2 } from "@/components/icons";
 
 export default function Dashboard() {
   const [templates, setTemplates] = useState<Template[] | null>(null);
@@ -64,7 +65,7 @@ export default function Dashboard() {
             Get started
           </div>
           <Link className="btn" href="/new">
-            ＋ New Template
+            <Plus size={15} strokeWidth={2} /> New Template
           </Link>
         </div>
       </div>
@@ -75,7 +76,7 @@ export default function Dashboard() {
             Templates
           </h2>
           <Link className="btn secondary small" href="/new">
-            ＋ New
+            <Plus size={14} strokeWidth={2} /> New
           </Link>
         </div>
         {!templates ? (
@@ -111,12 +112,12 @@ export default function Dashboard() {
                         Generate
                       </Link>
                       <button
-                        className="btn secondary small"
+                        className="btn secondary small icon"
                         onClick={() => remove(t)}
                         title="Delete template"
                         style={{ color: "var(--red)" }}
                       >
-                        🗑
+                        <Trash2 size={15} strokeWidth={1.9} />
                       </button>
                     </div>
                   </td>

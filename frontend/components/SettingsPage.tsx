@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { AISettings } from "@/lib/types";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { ErrorBox, Spinner } from "@/components/ui";
+import { Check } from "@/components/icons";
 
 type Tab = "appearance" | "ai";
 type UiProvider = "openai" | "anthropic" | "local";
@@ -61,15 +62,24 @@ export default function SettingsPage() {
                   textAlign: "left",
                   borderColor: theme === t ? "var(--accent)" : "var(--border)",
                   borderWidth: 2,
-                  background: t === "dark" ? "#262624" : "#faf9f5",
-                  color: t === "dark" ? "#ecebe7" : "#1f1e1c",
+                  background: t === "dark" ? "#0c0c0d" : "#ffffff",
+                  color: t === "dark" ? "#f4f4f5" : "#0a0a0b",
                 }}
               >
-                <div style={{ fontWeight: 700, marginBottom: 6, textTransform: "capitalize" }}>
-                  {t} mode {theme === t ? "✓" : ""}
+                <div
+                  style={{
+                    fontWeight: 700,
+                    marginBottom: 6,
+                    textTransform: "capitalize",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {t} mode {theme === t && <Check size={15} strokeWidth={2.4} />}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>
-                  {t === "dark" ? "Warm charcoal" : "Warm paper"}
+                  {t === "dark" ? "Charcoal" : "Paper"}
                 </div>
               </button>
             ))}
@@ -232,7 +242,11 @@ function AISettingsForm() {
         <button className="btn secondary" onClick={test} disabled={busy}>
           Test connection
         </button>
-        {saved && <span style={{ color: "var(--green)" }}>Saved ✓</span>}
+        {saved && (
+          <span style={{ color: "var(--green)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Check size={15} strokeWidth={2.4} /> Saved
+          </span>
+        )}
       </div>
 
       {testResult && (

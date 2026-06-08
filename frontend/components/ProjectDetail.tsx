@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { ProjectDetail as ProjectDetailT, Template } from "@/lib/types";
 import { ErrorBox, Spinner } from "@/components/ui";
+import { Plus, X } from "@/components/icons";
 
 type Row = { key: string; value: string };
 
@@ -158,10 +159,10 @@ export default function ProjectDetail({ id }: { id: string }) {
                 </td>
                 <td>
                   <button
-                    className="btn secondary small"
+                    className="btn secondary small icon"
                     onClick={() => setRows((prev) => prev.filter((_, j) => j !== i))}
                   >
-                    ✕
+                    <X size={14} strokeWidth={2} />
                   </button>
                 </td>
               </tr>
@@ -173,7 +174,7 @@ export default function ProjectDetail({ id }: { id: string }) {
             className="btn secondary small"
             onClick={() => setRows((prev) => [...prev, { key: "", value: "" }])}
           >
-            ＋ Add field
+            <Plus size={14} strokeWidth={2} /> Add field
           </button>
           <button className="btn" onClick={saveMeta} disabled={savingMeta}>
             {savingMeta ? "Saving…" : "Save metadata"}

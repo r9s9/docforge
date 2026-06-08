@@ -12,6 +12,7 @@ import type {
   TemplateVersion,
 } from "@/lib/types";
 import { ClassificationBadge, ErrorBox, Spinner } from "@/components/ui";
+import { PenLine, Trash2, X } from "@/components/icons";
 
 type Tab = "elements" | "fields" | "rules" | "sections" | "versions" | "sources";
 
@@ -136,7 +137,7 @@ export default function TemplateDetail({ id }: { id: string }) {
             Download template.docx
           </button>
           <button className="btn secondary" onClick={startEdit}>
-            ✎ Edit fields
+            <PenLine size={15} strokeWidth={1.9} /> Edit fields
           </button>
           <button className="btn secondary" onClick={rename}>
             Rename
@@ -146,7 +147,7 @@ export default function TemplateDetail({ id }: { id: string }) {
             onClick={remove}
             style={{ color: "var(--red)", borderColor: "var(--red)" }}
           >
-            🗑 Delete
+            <Trash2 size={15} strokeWidth={1.9} /> Delete
           </button>
         </div>
       </div>
@@ -285,11 +286,11 @@ export default function TemplateDetail({ id }: { id: string }) {
                   <td>
                     {f.field_type !== "boolean" && (
                       <button
-                        className="btn secondary small"
+                        className="btn secondary small icon"
                         title="Remove field (content becomes fixed)"
                         onClick={() => setEditFields(editFields.filter((_, idx) => idx !== i))}
                       >
-                        ✕
+                        <X size={14} strokeWidth={2} />
                       </button>
                     )}
                   </td>

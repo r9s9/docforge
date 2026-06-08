@@ -6,29 +6,27 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Health } from "@/lib/types";
+import {
+  FileText,
+  FolderKanban,
+  LayoutGrid,
+  PenLine,
+  Pin,
+  Plus,
+  Settings,
+  ShieldCheck,
+} from "@/components/icons";
 
 const NAV = [
-  { href: "/", label: "Dashboard", icon: "◧", exact: true },
-  { href: "/new", label: "New Template", icon: "＋" },
-  { href: "/projects", label: "Projects", icon: "▦" },
-  { href: "/generate", label: "Generate Document", icon: "✎" },
-  { href: "/compliance", label: "Compliance Check", icon: "✓" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
+  { href: "/", label: "Dashboard", Icon: LayoutGrid, exact: true },
+  { href: "/new", label: "New Template", Icon: Plus },
+  { href: "/projects", label: "Projects", Icon: FolderKanban },
+  { href: "/generate", label: "Generate Document", Icon: PenLine },
+  { href: "/compliance", label: "Compliance Check", Icon: ShieldCheck },
+  { href: "/settings", label: "Settings", Icon: Settings },
 ];
 
 const PIN_KEY = "docforge-sidebar-pinned";
-
-function PinIcon({ filled }: { filled: boolean }) {
-  // Simple pushpin: filled when pinned, outline when not.
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"
-      fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 4h6l-1 5 3 3v2H7v-2l3-3-1-5z" />
-      <line x1="12" y1="14" x2="12" y2="20" />
-    </svg>
-  );
-}
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -69,7 +67,9 @@ export default function Sidebar() {
   return (
     <aside className={`sidebar ${pinned ? "pinned" : ""}`}>
       <div className="brand">
-        <span className="mark">D</span>
+        <span className="mark">
+          <FileText size={16} strokeWidth={2} />
+        </span>
         <span className="brand-text">
           Doc<b>Forge</b>
         </span>
@@ -79,7 +79,7 @@ export default function Sidebar() {
           title={pinned ? "Unpin — collapse to icons" : "Pin sidebar open"}
           aria-pressed={pinned}
         >
-          <PinIcon filled={pinned} />
+          <Pin size={15} strokeWidth={1.9} fill={pinned ? "currentColor" : "none"} />
         </button>
       </div>
 
@@ -90,7 +90,9 @@ export default function Sidebar() {
           className={`nav-link ${isActive(n.href, n.exact) ? "active" : ""}`}
           title={n.label}
         >
-          <span className="ic">{n.icon}</span>
+          <span className="ic">
+            <n.Icon size={20} strokeWidth={1.75} />
+          </span>
           <span className="label">{n.label}</span>
         </Link>
       ))}

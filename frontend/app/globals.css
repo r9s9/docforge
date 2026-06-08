@@ -1,56 +1,62 @@
-/* DocForge — Claude-inspired theme: warm paper, clay accent, serif display. */
+/* DocForge — monochrome theme: white/black/grey, ink accent, glassy buttons.
+   Two functional accents only: red (errors/destructive) and green (success).
+   Amber is aliased to grey so warning UIs go neutral (paired with an icon). */
 
 :root {
-  --paper: #faf9f5; /* main content background */
-  --sidebar: #f0eee6; /* warm sidebar */
+  --paper: #ffffff; /* main content background */
+  --sidebar: #f6f6f6;
   --card: #ffffff;
-  --card-2: #f7f6f1;
-  --border: #e7e3d8;
-  --border-strong: #ddd8c9;
-  --text: #1f1e1c;
-  --muted: #75726a;
-  --faint: #9a978d;
-  --accent: #d97757; /* Claude clay / coral */
-  --accent-btn: #cf6a47;
-  --accent-press: #bb593a;
-  --accent-soft: #f6e7df;
-  --green: #5a8a5a;
-  --green-soft: #e6efe2;
-  --amber: #b5811f;
-  --amber-soft: #f6ecd4;
-  --red: #c0492f;
-  --red-soft: #f7e2dc;
+  --card-2: #f4f4f5;
+  --border: #e6e6e8;
+  --border-strong: #d6d6da;
+  --text: #0a0a0b;
+  --muted: #6b6b70;
+  --faint: #9a9aa0;
+  /* "ink" — the primary accent is near-black in light mode */
+  --accent: #0a0a0b;
+  --accent-btn: #18181b;
+  --accent-press: #000000;
+  --accent-soft: #f0f0f1;
+  --accent-ink: #ffffff; /* text/glyph color on an ink button */
+  --green: #1f8f4e;
+  --green-soft: #e8f5ec;
+  --amber: var(--muted); /* warning → neutral grey */
+  --amber-soft: var(--card-2);
+  --red: #d33a2c;
+  --red-soft: #fbe9e7;
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(40, 34, 24, 0.06), 0 2px 8px rgba(40, 34, 24, 0.04);
-  --shadow-lg: 0 4px 20px rgba(40, 34, 24, 0.08);
-  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  --font-serif: "Tiempos Headline", "Iowan Old Style", "Palatino Linotype", Georgia,
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-serif: var(--font-serif-loaded), "Iowan Old Style", "Palatino Linotype", Georgia,
     "Times New Roman", serif;
 }
 
-/* Dark mode — warm charcoal, same clay accent. */
+/* Dark mode — near-black surfaces, white ink accent. */
 :root[data-theme="dark"] {
-  --paper: #262624;
-  --sidebar: #1f1e1d;
-  --card: #302f2d;
-  --card-2: #272624;
-  --border: #3b3a37;
-  --border-strong: #4a4844;
-  --text: #ecebe7;
-  --muted: #a8a59d;
-  --faint: #757269;
-  --accent: #e08a6b;
-  --accent-btn: #d2724f;
-  --accent-press: #e08a6b;
-  --accent-soft: #3a2a22;
-  --green: #7fb37f;
-  --green-soft: #25342a;
-  --amber: #d6a44a;
-  --amber-soft: #352c1a;
-  --red: #e0735c;
-  --red-soft: #3a221d;
+  --paper: #0c0c0d;
+  --sidebar: #141416;
+  --card: #1a1a1c;
+  --card-2: #161618;
+  --border: #2a2a2e;
+  --border-strong: #3a3a40;
+  --text: #f4f4f5;
+  --muted: #a1a1a8;
+  --faint: #6b6b72;
+  /* ink is white in dark mode */
+  --accent: #f4f4f5;
+  --accent-btn: #ededf0;
+  --accent-press: #ffffff;
+  --accent-soft: #232327;
+  --accent-ink: #0a0a0b;
+  --green: #4ec77d;
+  --green-soft: #16271d;
+  --amber: var(--muted);
+  --amber-soft: var(--card-2);
+  --red: #ef6b5c;
+  --red-soft: #2a1714;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.45);
 }
@@ -142,7 +148,7 @@ a:hover {
   width: 26px;
   height: 26px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 999px;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
@@ -165,15 +171,14 @@ a:hover {
   margin: 4px 8px 22px;
 }
 .brand .mark {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
   background: var(--accent);
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--accent-ink);
   font-weight: 700;
-  font-family: var(--font-serif);
   box-shadow: var(--shadow);
 }
 .brand b {
@@ -182,14 +187,14 @@ a:hover {
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 9px;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 11px;
   color: var(--muted);
   font-weight: 500;
 }
 .nav-link:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--card-2);
   color: var(--text);
   text-decoration: none;
 }
@@ -197,11 +202,16 @@ a:hover {
   background: var(--card);
   color: var(--text);
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 .nav-link .ic {
-  width: 17px;
-  text-align: center;
-  opacity: 0.8;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  opacity: 0.95;
 }
 .sidebar-foot {
   margin-top: auto;
@@ -277,40 +287,69 @@ h2.section-h {
   margin-bottom: 2px;
 }
 
-/* ---- Buttons ---- */
+/* ---- Buttons — pill-shaped; primary solid "ink", secondary frosted glass ---- */
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   background: var(--accent-btn);
-  color: #fff;
+  color: var(--accent-ink);
   border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 9px 16px;
+  border-radius: 999px;
+  padding: 9px 18px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.12s ease;
+  box-shadow: var(--shadow);
+  transition: background 0.14s ease, box-shadow 0.14s ease, transform 0.04s ease;
 }
 .btn:hover {
   background: var(--accent-press);
+  box-shadow: var(--shadow-lg);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
+/* Frosted glass for secondary actions — an opaque-ish fill + strong edge keeps
+   it visible on a white background; backdrop-blur adds the glassy depth. */
 .btn.secondary {
-  background: var(--card);
+  background: color-mix(in srgb, var(--card) 62%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
   color: var(--text);
   border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
 }
 .btn.secondary:hover {
-  background: var(--card-2);
+  background: color-mix(in srgb, var(--card-2) 78%, transparent);
+  box-shadow: var(--shadow-lg);
 }
 .btn.small {
-  padding: 5px 11px;
+  padding: 5px 13px;
   font-size: 12.5px;
+}
+/* Circular icon-only buttons. */
+.btn.icon {
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  gap: 0;
+}
+.btn.small.icon {
+  width: 30px;
+  height: 30px;
 }
 
 /* ---- Forms ---- */
@@ -493,7 +532,7 @@ tr.low-conf td {
 .error-box {
   background: var(--red-soft);
   border: 1px solid var(--red);
-  color: #8c2f1c;
+  color: var(--red);
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
@@ -770,7 +809,7 @@ tr.low-conf td {
 }
 .seg-toggle button.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
 }
 
 /* ---- Real DOCX preview (docx-preview render) ---- */
@@ -1110,13 +1149,12 @@ tr.low-conf td {
 .auth-brand .mark {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: 9px;
   background: var(--accent);
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--accent-ink);
   font-weight: 700;
-  font-family: var(--font-serif);
 }
 .auth-title {
   font-size: 18px;
@@ -1153,11 +1191,11 @@ tr.low-conf td {
 .auth-splash .mark {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--accent);
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--accent-ink);
   font-weight: 700;
   font-size: 20px;
   font-family: var(--font-serif);

@@ -2,12 +2,13 @@
 
 import type { ReactNode } from "react";
 import { useHealth } from "@/lib/useHealth";
+import { AlertTriangle, Sparkles } from "@/components/icons";
 
 /** Small chip marking an AI-powered action. */
 export function AiBadge({ title }: { title?: string }) {
   return (
     <span className="ai-badge" title={title || "Enhanced by AI when a provider is connected"}>
-      ✦ AI
+      <Sparkles size={12} strokeWidth={2} /> AI
     </span>
   );
 }
@@ -26,9 +27,9 @@ export function AiStatusBanner() {
   }
   return (
     <div className="ai-status off">
-      <span className="dot off" /> AI is off — running the offline heuristic engine. Without a
-      connected provider, <strong>“Raw text”</strong> and <strong>“From document”</strong> mapping
-      use basic heuristics and field classification is less accurate.{" "}
+      <AlertTriangle size={15} strokeWidth={2} /> AI is off — running the offline heuristic engine.
+      Without a connected provider, <strong>“Raw text”</strong> and <strong>“From document”</strong>{" "}
+      mapping use basic heuristics and field classification is less accurate.{" "}
       <a href="/settings">Connect a provider →</a>
     </div>
   );

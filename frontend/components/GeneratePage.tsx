@@ -13,6 +13,7 @@ import type {
   TemplateDetail,
 } from "@/lib/types";
 import { AiBadge, AiStatusBanner, ErrorBox, Spinner, StatusBadge } from "@/components/ui";
+import { Download, FileText, Plus, RotateCw, Sparkles, X } from "@/components/icons";
 import DocBlocks from "@/components/DocBlocks";
 import DocxPreview from "@/components/DocxPreview";
 import ProgressBar from "@/components/ProgressBar";
@@ -63,10 +64,10 @@ function TableEditor({
               ))}
               <td>
                 <button
-                  className="btn secondary small"
+                  className="btn secondary small icon"
                   onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
                 >
-                  ✕
+                  <X size={14} strokeWidth={2} />
                 </button>
               </td>
             </tr>
@@ -74,7 +75,7 @@ function TableEditor({
         </tbody>
       </table>
       <button className="btn secondary small" style={{ marginTop: 10 }} onClick={addRow}>
-        ＋ Add row
+        <Plus size={14} strokeWidth={2} /> Add row
       </button>
     </div>
   );
@@ -315,7 +316,13 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
               </p>
               <div className="row">
                 <button className="btn secondary" onClick={() => docInputRef.current?.click()}>
-                  {docFile ? `📄 ${docFile.name}` : "Choose .docx"}
+                  {docFile ? (
+                    <>
+                      <FileText size={15} strokeWidth={1.9} /> {docFile.name}
+                    </>
+                  ) : (
+                    "Choose .docx"
+                  )}
                 </button>
                 <input
                   ref={docInputRef}
@@ -414,7 +421,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   <div className="review-head">
                     <h2 className="section-h">Document preview</h2>
                     <button className="btn secondary small" disabled={busy} onClick={refreshPreview}>
-                      ↻ Update preview
+                      <RotateCw size={14} strokeWidth={1.9} /> Update preview
                     </button>
                   </div>
                   <DocxPreview
@@ -561,7 +568,7 @@ function RoutedChip({ p }: { p: PlacementInstruction }) {
           : `AI-filled · ${pct}% confidence`
       }
     >
-      ✦ {pct}%{p.ambiguous ? " ?" : ""}
+      <Sparkles size={11} strokeWidth={2} /> {pct}%{p.ambiguous ? " ?" : ""}
     </span>
   );
 }
@@ -609,12 +616,12 @@ function ResultPanel({ result }: { result: GenerationResult }) {
             className="btn"
             onClick={() => api.download(result.download_url!, result.output_filename || undefined)}
           >
-            ⬇ Download {result.output_filename}
+            <Download size={15} strokeWidth={1.9} /> Download {result.output_filename}
           </button>
         )}
         {result.download_url && (
           <button className="btn secondary" onClick={downloadPdf}>
-            ⬇ Download PDF
+            <Download size={15} strokeWidth={1.9} /> Download PDF
           </button>
         )}
         {v && (
@@ -655,7 +662,7 @@ function ResultPanel({ result }: { result: GenerationResult }) {
           </tbody>
         </table>
       )}
-      {v && v.issues.length === 0 && <div className="muted">No validation issues. 🎉</div>}
+      {v && v.issues.length === 0 && <div className="muted">No validation issues.</div>}
     </div>
   );
 }

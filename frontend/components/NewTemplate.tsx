@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { AnalysisJob, FieldDefinition, Project } from "@/lib/types";
 import { AiBadge, AiStatusBanner, ErrorBox, Spinner } from "@/components/ui";
+import { RotateCw } from "@/components/icons";
 import ProgressBar from "@/components/ProgressBar";
 import DocxPreview from "@/components/DocxPreview";
 import FieldCards, { type EditableField } from "@/components/FieldCards";
@@ -370,7 +371,7 @@ export default function NewTemplate() {
                   Fields ({fields.filter((f) => f.include).length})
                 </h2>
                 <button className="btn secondary small" onClick={updatePreview}>
-                  ↻ Update preview
+                  <RotateCw size={14} strokeWidth={1.9} /> Update preview
                 </button>
               </div>
               <p className="muted" style={{ marginTop: 0 }}>
