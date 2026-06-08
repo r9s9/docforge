@@ -18,6 +18,7 @@ class PublishRequest(BaseModel):
     document_type: str | None = None
     notes: str = ""
     template_id: str | None = None  # set to publish a new version of an existing template
+    project_id: str | None = None  # optionally assign the new template to a project
     # Reviewed overrides from the UI (omit to use the analysis defaults).
     classifications: list[ElementClassification] | None = None
     fields: list[FieldDefinition] | None = None
@@ -29,6 +30,22 @@ class RenameRequest(BaseModel):
 
     name: str | None = None
     document_type: str | None = None
+
+
+class ProjectCreate(BaseModel):
+    """Create a project (free-form string->string metadata)."""
+
+    name: str
+    description: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class ProjectUpdate(BaseModel):
+    """Edit a project. ``metadata=None`` leaves it unchanged; ``{}`` clears it."""
+
+    name: str | None = None
+    description: str | None = None
+    metadata: dict[str, str] | None = None
 
 
 class RepublishRequest(BaseModel):

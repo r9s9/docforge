@@ -18,7 +18,7 @@ from ..ai_router import (
 from ..assembler import assemble
 from ..common.textutil import slugify_field
 from ..config import Settings, get_settings
-from ..db.models import GeneratedDocument, GenerationRequest, Template
+from ..db.models import GeneratedDocument, GenerationRequest, Project, Template
 from ..document_ingest import extract_source_document, store_source_document
 from ..schemas.enums import GenerationMode, JobStatus
 from ..schemas.extraction import DocumentExtraction
@@ -38,6 +38,27 @@ def _resolve_version(db: Session, template: Template, version: int | None) -> in
     if version is not None:
         return version
     return template.latest_version
+
+
+def _project_metadata(db: Session | None, template: Template) -> dict:
+    """The assigned project's metadata, or ``{}`` (no project / no db = no-op)."""
+    if db is None or not getattr(template, "project_id", None):
+        return {}
+    proj = db.get(Project, template.project_id)
+    return dict(proj.meta or {}) if proj else {}
+
+
+def _merge_with_project(base_meta: dict, context: dict) -> dict:
+    """Project metadata as defaults; explicit (non-None) per-document values win.
+
+    Keys matching a template field pre-fill that field; other keys flow through
+    as extra Jinja variables (build_render_context passes unknown keys through).
+    """
+    merged = dict(base_meta)
+    for k, v in context.items():
+        if v is not None:
+            merged[k] = v
+    return merged
 
 
 def resolve_routing(template_id, version, gen_input: GenerationInput, fields, settings) -> RoutingResult:
@@ -156,6 +177,7 @@ def render_preview_docx(
     *,
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
+    db: Session | None = None,
 ) -> bytes:
     """Assemble the filled template and return the DOCX bytes (no persistence).
 
@@ -168,7 +190,8 @@ def render_preview_docx(
     fields = registry.load_fields(template.id, version)
     template_bytes = registry.template_docx_bytes(template.id, version)
     routing = resolve_routing(template.id, version, gen_input, fields, settings)
-    return assemble(template_bytes, routing.to_context(), fields)
+    context = _merge_with_project(_project_metadata(db, template), routing.to_context())
+    return assemble(template_bytes, context, fields)
 
 
 def preview_document(
@@ -177,6 +200,7 @@ def preview_document(
     *,
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
+    db: Session | None = None,
 ) -> dict:
     """Render a template with the given input and return a structured preview
     (ordered blocks + validation) WITHOUT persisting anything."""
@@ -188,7 +212,7 @@ def preview_document(
     template_bytes = registry.template_docx_bytes(template.id, version)
 
     routing = resolve_routing(template.id, version, gen_input, fields, settings)
-    context = routing.to_context()
+    context = _merge_with_project(_project_metadata(db, template), routing.to_context())
 
     from ..validator import validate
 
@@ -232,9 +256,10 @@ def generate_document(
     db.flush()
 
     try:
-        # 1) Resolve a routing result -> render context.
+        # 1) Resolve a routing result -> render context, then overlay the
+        # project's inherited metadata (defaults; explicit values already win).
         routing = resolve_routing(template.id, version, gen_input, fields, settings)
-        context = routing.to_context()
+        context = _merge_with_project(_project_metadata(db, template), routing.to_context())
         req.routing = routing.model_dump(mode="json")
 
         # 2) Validate (unless explicitly skipped).

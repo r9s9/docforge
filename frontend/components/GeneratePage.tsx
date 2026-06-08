@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
@@ -127,7 +128,19 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       .then((d) => {
         setDetail(d);
         const init: FormValues = {};
-        d.latest?.fields.forEach((f) => (init[f.field_name] = blankValue(f)));
+        const meta = d.project_metadata || {};
+        d.latest?.fields.forEach((f) => {
+          init[f.field_name] = blankValue(f);
+          // Pre-fill scalar fields from the project's inherited metadata (the
+          // user can still override; the server re-applies defaults regardless).
+          if (
+            meta[f.field_name] !== undefined &&
+            f.field_type !== "table" &&
+            f.field_type !== "boolean"
+          ) {
+            init[f.field_name] = meta[f.field_name];
+          }
+        });
         setValues(init);
       })
       .catch((e) => setError(String(e.message || e)));
@@ -381,6 +394,20 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   anything, hit <strong>↻ Update preview</strong>, then <strong>Generate DOCX</strong>.
                 </div>
               )}
+
+              {detail?.project_id &&
+                detail.project_metadata &&
+                Object.keys(detail.project_metadata).length > 0 && (
+                  <div className="banner info section" role="status">
+                    Inherited from project{" "}
+                    <Link href={`/projects/${detail.project_id}`}>
+                      <strong>{detail.project_name}</strong>
+                    </Link>
+                    : {Object.keys(detail.project_metadata).join(", ")}. Matching fields are
+                    pre-filled below — editing a field overrides the project default for this
+                    document only.
+                  </div>
+                )}
 
               <div className="review-grid">
                 <div className="review-doc">

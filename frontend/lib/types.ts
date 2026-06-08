@@ -94,8 +94,25 @@ export interface Template {
   document_type: string | null;
   description: string | null;
   latest_version: number;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
+  // Only populated by getTemplate (the detail view), for the inheritance display.
+  project_name?: string;
+  project_metadata?: Record<string, string>;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  metadata: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectDetail extends Project {
+  templates: Template[];
 }
 
 export interface TemplateVersion {

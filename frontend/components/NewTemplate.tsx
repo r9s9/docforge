@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { AnalysisJob, FieldDefinition } from "@/lib/types";
+import type { AnalysisJob, FieldDefinition, Project } from "@/lib/types";
 import { AiBadge, AiStatusBanner, ErrorBox, Spinner } from "@/components/ui";
 import ProgressBar from "@/components/ProgressBar";
 import DocxPreview from "@/components/DocxPreview";
@@ -18,6 +18,8 @@ export default function NewTemplate() {
   const [error, setError] = useState("");
   const [job, setJob] = useState<AnalysisJob | null>(null);
   const [name, setName] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
   const [fields, setFields] = useState<EditableField[]>([]);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<string | null>(null);
@@ -43,6 +45,11 @@ export default function NewTemplate() {
         activeJobId.current = null;
       }
     };
+  }, []);
+
+  // Load the user's projects so a new template can be assigned to one on publish.
+  useEffect(() => {
+    api.listProjects().then(setProjects).catch(() => setProjects([]));
   }, []);
 
   // Re-render the Word preview from the user's current (included) edits.
@@ -159,6 +166,7 @@ export default function NewTemplate() {
         analysis_job_id: job.id,
         name,
         document_type: job.document_type_guess,
+        project_id: projectId || undefined,
         fields: fields.filter((e) => e.include).map((e) => e.field),
         classifications,
       };
@@ -283,6 +291,23 @@ export default function NewTemplate() {
           <label className="field" style={{ maxWidth: 440 }}>
             <span>Template name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+
+          <label className="field" style={{ maxWidth: 440 }}>
+            <span>Project (optional)</span>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="">No project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            {projectId && (
+              <span className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                This template will inherit the project’s metadata at generation.
+              </span>
+            )}
           </label>
 
           <div className="row section" style={{ gap: 8 }}>

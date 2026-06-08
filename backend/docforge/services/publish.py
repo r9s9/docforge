@@ -41,6 +41,7 @@ def publish_template(
     document_type: str | None = None,
     workspace_id: str | None = None,
     owner_id: str | None = None,
+    project_id: str | None = None,
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
 ) -> tuple[Template, TemplateVersion]:
@@ -79,6 +80,7 @@ def publish_template(
             document_type=result.document_type_guess,
             workspace_id=workspace_id,
             owner_id=owner_id,
+            project_id=project_id,
         )
         db.add(template)
         db.flush()

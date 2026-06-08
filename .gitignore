@@ -38,3 +38,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# TS build cache
+frontend/tsconfig.tsbuildinfo

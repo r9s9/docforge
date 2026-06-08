@@ -85,10 +85,30 @@ class AnalysisJob(Base, UUIDMixin, TimestampMixin):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class Project(Base, UUIDMixin, TimestampMixin):
+    """A user-owned grouping of templates with shared, inheritable metadata.
+
+    ``meta`` is a free-form string->string map; at generation time it pre-fills
+    the fields of the project's templates (explicit per-document values win) and
+    is exposed as extra Jinja variables. NB: the column is ``meta``, not
+    ``metadata`` — the latter collides with SQLAlchemy's declarative MetaData.
+    """
+
+    __tablename__ = "projects"
+    workspace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(300))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    meta: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
 class Template(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "templates"
     workspace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    project_id: Mapped[str | None] = mapped_column(
+        ForeignKey("projects.id"), index=True, nullable=True
+    )
     name: Mapped[str] = mapped_column(String(300))
     document_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -9,6 +9,7 @@ from ..db.models import (
     ExtractedDocument,
     GeneratedDocument,
     GenerationRequest,
+    Project,
     Template,
     TemplateVersion,
 )
@@ -83,16 +84,38 @@ def analysis_job_dto(job: AnalysisJob, db=None) -> dict[str, Any]:
     }
 
 
-def template_dto(t: Template) -> dict[str, Any]:
-    return {
+def template_dto(t: Template, project: Project | None = None) -> dict[str, Any]:
+    dto = {
         "id": t.id,
         "name": t.name,
         "document_type": t.document_type,
         "description": t.description,
         "latest_version": t.latest_version,
+        "project_id": t.project_id,
         "created_at": _iso(t.created_at),
         "updated_at": _iso(t.updated_at),
     }
+    # The detail view passes the assigned project so the UI can prominently show
+    # the inherited metadata (and pre-fill the generate form from it).
+    if project is not None:
+        dto["project_name"] = project.name
+        dto["project_metadata"] = project.meta or {}
+    return dto
+
+
+def project_dto(p: Project) -> dict[str, Any]:
+    return {
+        "id": p.id,
+        "name": p.name,
+        "description": p.description,
+        "metadata": p.meta or {},
+        "created_at": _iso(p.created_at),
+        "updated_at": _iso(p.updated_at),
+    }
+
+
+def project_detail_dto(p: Project, templates: list[Template]) -> dict[str, Any]:
+    return {**project_dto(p), "templates": [template_dto(t) for t in templates]}
 
 
 def version_dto(tv: TemplateVersion) -> dict[str, Any]:

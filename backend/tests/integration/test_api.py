@@ -372,3 +372,143 @@ def test_auth_rejects_es256_signed_by_wrong_key(auth_client, monkeypatch):
     )
     r = auth_client.get("/api/me", headers={"Authorization": f"Bearer {forged}"})
     assert r.status_code == 401
+
+
+# --------------------------------------------------------------------------- #
+# Projects + per-project metadata inheritance                                  #
+# --------------------------------------------------------------------------- #
+def test_project_crud(client):
+    r = client.post("/api/projects", json={"name": "Acme", "metadata": {"client": "Acme Inc"}})
+    assert r.status_code == 201, r.text
+    pid = r.json()["id"]
+    assert r.json()["metadata"] == {"client": "Acme Inc"}
+
+    assert any(p["id"] == pid for p in client.get("/api/projects").json())
+
+    detail = client.get(f"/api/projects/{pid}").json()
+    assert detail["templates"] == []
+    assert detail["metadata"] == {"client": "Acme Inc"}
+
+    r = client.patch(f"/api/projects/{pid}", json={"name": "Acme Corp", "metadata": {"client": "Acme Corp", "tier": "gold"}})
+    assert r.status_code == 200
+    assert r.json()["name"] == "Acme Corp"
+    assert r.json()["metadata"] == {"client": "Acme Corp", "tier": "gold"}
+
+    assert client.delete(f"/api/projects/{pid}").status_code == 204
+    assert client.get(f"/api/projects/{pid}").status_code == 404
+
+
+def test_project_owner_scoping(auth_client):
+    a = {"Authorization": f"Bearer {_make_token(TEST_JWT_SECRET, USER_A)}"}
+    b = {"Authorization": f"Bearer {_make_token(TEST_JWT_SECRET, USER_B)}"}
+    pid = auth_client.post("/api/projects", json={"name": "A's project"}, headers=a).json()["id"]
+
+    assert [p["id"] for p in auth_client.get("/api/projects", headers=a).json()] == [pid]
+    assert auth_client.get("/api/projects", headers=b).json() == []
+    assert auth_client.get(f"/api/projects/{pid}", headers=b).status_code == 404
+    # B can't assign one of their (nonexistent here) templates to A's project either.
+    assert auth_client.post(f"/api/projects/{pid}/templates/whatever", headers=b).status_code == 404
+
+
+def test_assign_unassign_template(client, db_session, settings_tmp, project_docs):
+    tid = _publish_via_services(db_session, settings_tmp, project_docs, "PR")
+    pid = client.post("/api/projects", json={"name": "Q3 Reports"}).json()["id"]
+
+    r = client.post(f"/api/projects/{pid}/templates/{tid}")
+    assert r.status_code == 200, r.text
+    assert r.json()["project_id"] == pid
+
+    detail = client.get(f"/api/projects/{pid}").json()
+    assert [t["id"] for t in detail["templates"]] == [tid]
+    tdetail = client.get(f"/api/templates/{tid}").json()
+    assert tdetail["project_id"] == pid
+    assert tdetail["project_name"] == "Q3 Reports"
+
+    assert client.delete(f"/api/projects/{pid}/templates/{tid}").status_code == 204
+    assert client.get(f"/api/templates/{tid}").json()["project_id"] is None
+
+
+def test_project_delete_unassigns_templates(client, db_session, settings_tmp, project_docs):
+    tid = _publish_via_services(db_session, settings_tmp, project_docs, "PR")
+    pid = client.post("/api/projects", json={"name": "Temp"}).json()["id"]
+    client.post(f"/api/projects/{pid}/templates/{tid}")
+
+    assert client.delete(f"/api/projects/{pid}").status_code == 204
+    # Template survives, just unassigned.
+    t = client.get(f"/api/templates/{tid}")
+    assert t.status_code == 200
+    assert t.json()["project_id"] is None
+
+
+def _gen_body(**overrides):
+    data = {
+        "project_name": "Orion",
+        "report_date": "2026-07-01",
+        "prepared_by": "Alice Brown",
+        "summary": "On track.",
+        "task_status": [
+            {"task": "Design", "owner": "M. Lee", "status": "Done", "due_date": "2026-07-01"},
+        ],
+    }
+    data.update(overrides)
+    return {"mode": "structured_json", "data": data}
+
+
+def test_generation_merges_project_metadata_with_override(client, db_session, settings_tmp, project_docs):
+    tid = _publish_via_services(db_session, settings_tmp, project_docs, "PR")
+    pid = client.post(
+        "/api/projects",
+        json={"name": "Defaults", "metadata": {
+            "prepared_by": "Project Default Author",
+            "report_date": "2099-12-31",
+            "company_motto": "Onward",  # not a template field -> flows through as a variable
+        }},
+    ).json()["id"]
+    client.post(f"/api/projects/{pid}/templates/{tid}")
+
+    # Omit prepared_by (inherit from project); override report_date explicitly.
+    body = _gen_body(report_date="2026-07-01")
+    body["data"].pop("prepared_by")
+    ctx = client.post(f"/api/templates/{tid}/generate", json=body).json()["context_used"]
+
+    assert ctx["prepared_by"] == "Project Default Author"   # inherited default
+    assert ctx["report_date"] == "2026-07-01"               # explicit value wins
+    assert ctx["company_motto"] == "Onward"                 # non-field key flows through
+
+
+def test_project_default_satisfies_required_field(client, db_session, settings_tmp, project_docs):
+    tid = _publish_via_services(db_session, settings_tmp, project_docs, "PR")
+    body = _gen_body()
+    body["data"].pop("prepared_by")
+
+    # Without a project, omitting prepared_by should not validate as a clean pass.
+    before = client.post(f"/api/templates/{tid}/generate", json=body).json()["validation"]["status"]
+
+    pid = client.post("/api/projects", json={"name": "P", "metadata": {"prepared_by": "Inherited"}}).json()["id"]
+    client.post(f"/api/projects/{pid}/templates/{tid}")
+    after = client.post(f"/api/templates/{tid}/generate", json=body).json()
+    assert after["context_used"]["prepared_by"] == "Inherited"
+    assert after["validation"]["status"] == "pass"
+    assert before != "pass"  # the project default is what flipped it to pass
+
+
+def test_publish_assigns_project(client, db_session, settings_tmp, project_docs):
+    pid = client.post("/api/projects", json={"name": "P", "metadata": {"prepared_by": "X"}}).json()["id"]
+    job = _make_job(db_session, settings_tmp, project_docs)
+    r = client.post("/api/templates", json={"analysis_job_id": job.id, "name": "T", "project_id": pid})
+    assert r.status_code == 201, r.text
+    tid = r.json()["template"]["id"]
+    assert r.json()["template"]["project_id"] == pid
+
+    detail = client.get(f"/api/templates/{tid}").json()
+    assert detail["project_id"] == pid
+    assert detail["project_name"] == "P"
+
+
+def test_publish_rejects_unknown_project(client, db_session, settings_tmp, project_docs):
+    job = _make_job(db_session, settings_tmp, project_docs)
+    r = client.post(
+        "/api/templates",
+        json={"analysis_job_id": job.id, "name": "T", "project_id": "nonexistent"},
+    )
+    assert r.status_code == 404

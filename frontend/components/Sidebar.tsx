@@ -10,6 +10,7 @@ import type { Health } from "@/lib/types";
 const NAV = [
   { href: "/", label: "Dashboard", icon: "◧", exact: true },
   { href: "/new", label: "New Template", icon: "＋" },
+  { href: "/projects", label: "Projects", icon: "▦" },
   { href: "/generate", label: "Generate Document", icon: "✎" },
   { href: "/compliance", label: "Compliance Check", icon: "✓" },
   { href: "/settings", label: "Settings", icon: "⚙" },

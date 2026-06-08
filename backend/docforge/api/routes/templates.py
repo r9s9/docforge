@@ -14,6 +14,7 @@ from ...db.models import (
     AnalysisJob,
     GeneratedDocument,
     GenerationRequest,
+    Project,
     Template,
     TemplateVersion,
 )
@@ -115,6 +116,11 @@ def create_template(
     job = db.get(AnalysisJob, req.analysis_job_id)
     if job is None or job.owner_id != user.id:
         raise HTTPException(status_code=404, detail="analysis job not found")
+    # Validate the chosen project belongs to this user (no-leak 404).
+    if req.project_id:
+        proj = db.get(Project, req.project_id)
+        if proj is None or proj.owner_id != user.id:
+            raise HTTPException(status_code=404, detail="project not found")
     try:
         template, tv = publish_template(
             db,
@@ -122,6 +128,7 @@ def create_template(
             name=req.name,
             notes=req.notes,
             template_id=req.template_id,
+            project_id=req.project_id,
             classifications=req.classifications,
             fields=req.fields,
             rules=req.rules,
@@ -192,7 +199,10 @@ def get_template(
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
     t = _get_template(db, template_id, user)
-    detail = template_dto(t)
+    # Include the assigned project (if any) so the detail view can show + pre-fill
+    # the inherited metadata.
+    project = db.get(Project, t.project_id) if t.project_id else None
+    detail = template_dto(t, project)
     versions = (
         db.query(TemplateVersion)
         .filter_by(template_id=template_id)
@@ -331,7 +341,7 @@ def preview(
     """Render a preview (ordered blocks + validation) without saving a file."""
     t = _get_template(db, template_id, user)
     try:
-        return preview_document(t, gen_input, settings=settings, registry=registry)
+        return preview_document(t, gen_input, settings=settings, registry=registry, db=db)
     except Exception as exc:
         logger.exception("preview failed for template %s", template_id)
         raise HTTPException(status_code=500, detail=f"preview failed: {exc}") from exc
@@ -349,7 +359,7 @@ def preview_docx(
     """Return the filled template as a real DOCX, for the live Word-page preview."""
     t = _get_template(db, template_id, user)
     try:
-        data = render_preview_docx(t, gen_input, settings=settings, registry=registry)
+        data = render_preview_docx(t, gen_input, settings=settings, registry=registry, db=db)
     except Exception as exc:
         logger.exception("preview.docx failed for template %s", template_id)
         raise HTTPException(status_code=500, detail=f"preview failed: {exc}") from exc

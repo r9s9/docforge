@@ -10,6 +10,8 @@ import type {
   GenerationResult,
   Health,
   PreviewResult,
+  Project,
+  ProjectDetail,
   RouteDocumentResult,
   RoutingResult,
   Template,
@@ -120,6 +122,40 @@ export const api = {
 
   deleteTemplate: async (id: string) => {
     const res = await authFetch(`/templates/${id}`, { method: "DELETE" });
+    if (!res.ok) await raiseForStatus(res);
+  },
+
+  // --- Projects ---
+  listProjects: () => request<Project[]>("/projects"),
+
+  getProject: (id: string) => request<ProjectDetail>(`/projects/${id}`),
+
+  createProject: (payload: { name: string; description?: string; metadata?: Record<string, string> }) =>
+    request<Project>("/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  updateProject: (id: string, patch: Record<string, unknown>) =>
+    request<Project>(`/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }),
+
+  deleteProject: async (id: string) => {
+    const res = await authFetch(`/projects/${id}`, { method: "DELETE" });
+    if (!res.ok) await raiseForStatus(res);
+  },
+
+  assignTemplate: (projectId: string, templateId: string) =>
+    request<Template>(`/projects/${projectId}/templates/${templateId}`, { method: "POST" }),
+
+  unassignTemplate: async (projectId: string, templateId: string) => {
+    const res = await authFetch(`/projects/${projectId}/templates/${templateId}`, {
+      method: "DELETE",
+    });
     if (!res.ok) await raiseForStatus(res);
   },
 

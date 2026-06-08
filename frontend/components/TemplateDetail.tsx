@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   FieldDefinition,
+  Project,
   TemplateDetail as TDetail,
   TemplateElement,
   TemplateVersion,
@@ -23,11 +24,35 @@ export default function TemplateDetail({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>("elements");
   const [editFields, setEditFields] = useState<FieldDefinition[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [pickProject, setPickProject] = useState("");
 
   useEffect(() => {
     if (!id) return;
     api.getTemplate(id).then(setDetail).catch((e) => setError(String(e.message || e)));
+    api.listProjects().then(setProjects).catch(() => setProjects([]));
   }, [id]);
+
+  async function assignToProject() {
+    if (!detail || !pickProject) return;
+    try {
+      await api.assignTemplate(pickProject, detail.id);
+      setPickProject("");
+      setDetail(await api.getTemplate(detail.id));
+    } catch (e: any) {
+      setError(String(e.message || e));
+    }
+  }
+
+  async function unassignFromProject() {
+    if (!detail || !detail.project_id) return;
+    try {
+      await api.unassignTemplate(detail.project_id, detail.id);
+      setDetail(await api.getTemplate(detail.id));
+    } catch (e: any) {
+      setError(String(e.message || e));
+    }
+  }
 
   async function rename() {
     if (!detail) return;
@@ -125,6 +150,60 @@ export default function TemplateDetail({ id }: { id: string }) {
           </button>
         </div>
       </div>
+
+      {detail.project_id ? (
+        <div className="banner info section" role="status">
+          <div className="spread" style={{ alignItems: "center" }}>
+            <span>
+              Part of project{" "}
+              <Link href={`/projects/${detail.project_id}`}>
+                <strong>{detail.project_name}</strong>
+              </Link>
+            </span>
+            <button className="btn secondary small" onClick={unassignFromProject}>
+              Unassign
+            </button>
+          </div>
+          {detail.project_metadata && Object.keys(detail.project_metadata).length > 0 && (
+            <>
+              <p style={{ margin: "10px 0 6px", fontSize: 13 }}>
+                Inherited defaults — these pre-fill this template’s fields at generation (you can
+                override any value per document):
+              </p>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                {Object.entries(detail.project_metadata).map(([k, v]) => (
+                  <li key={k}>
+                    <span className="mono">{k}</span> = {v}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      ) : (
+        projects.length > 0 && (
+          <div className="banner info section" role="status">
+            <div className="row" style={{ gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 13 }}>Assign to a project to inherit shared metadata:</span>
+              <select
+                value={pickProject}
+                onChange={(e) => setPickProject(e.target.value)}
+                style={{ maxWidth: 280 }}
+              >
+                <option value="">Choose a project…</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button className="btn secondary small" onClick={assignToProject} disabled={!pickProject}>
+                Assign
+              </button>
+            </div>
+          </div>
+        )
+      )}
 
       <div className="tabs">
         {(["elements", "fields", "rules", "sections", "versions", "sources"] as Tab[]).map((t) => (

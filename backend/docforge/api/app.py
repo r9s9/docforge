@@ -21,6 +21,7 @@ from .routes import (
     compliance,
     generations,
     health,
+    projects,
     templates,
 )
 from .routes import settings as settings_routes
@@ -88,7 +89,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    for module in (health, templates, analyses, generations, compliance, settings_routes):
+    for module in (health, templates, projects, analyses, generations, compliance, settings_routes):
         app.include_router(module.router, prefix="/api")
 
     # Optionally serve a built frontend (Docker/production). Mounted last so it
