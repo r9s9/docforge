@@ -113,6 +113,8 @@ def route_document(
 
     Returns the routing result + the extracted content (for review/preview).
     """
+    from ..ai_quota import increment_free_use, plan_ai_for_owner, use_ai_plan
+
     settings = settings or get_settings()
     registry = registry or TemplateRegistry(settings.templates_dir)
     version = version or template.latest_version
@@ -122,36 +124,42 @@ def route_document(
     extracted = extract_source_document(db, source)
     doc = DocumentExtraction.model_validate(extracted.extraction)
 
+    plan = plan_ai_for_owner(owner_id)
+
     # Prefer STRUCTURAL mapping: if the upload shares the template's structure
     # (same kind of document, incl. the original source), align it to the
     # template's representative and read each field's exact value. Only fall back
     # to fuzzy AI text-routing when structural alignment covers little (truly
     # different document).
     routing = None
-    rep_raw = registry.load_representative(template.id, version)
-    if rep_raw:
-        try:
-            from ..ai_router.document import route_document_structural
+    with use_ai_plan(plan):
+        rep_raw = registry.load_representative(template.id, version)
+        if rep_raw:
+            try:
+                from ..ai_router.document import route_document_structural
 
-            rep = DocumentExtraction.model_validate(rep_raw)
-            classifications = registry.load_intelligence(template.id, version).classifications
-            structural = route_document_structural(
-                rep, classifications, fields, doc, template_id=template.id, version=version
-            )
-            mappable = max(1, len([f for f in fields if f.field_type.value != "boolean"]))
-            coverage = len(structural.placements) / mappable
-            logger.info(
-                "structural document mapping covered %d/%d fields (%.0f%%)",
-                len(structural.placements), mappable, coverage * 100,
-            )
-            if coverage >= 0.4:  # the document clearly matches this template
-                routing = structural
-        except Exception:
-            logger.exception("structural document mapping failed; trying AI routing")
+                rep = DocumentExtraction.model_validate(rep_raw)
+                classifications = registry.load_intelligence(template.id, version).classifications
+                structural = route_document_structural(
+                    rep, classifications, fields, doc, template_id=template.id, version=version
+                )
+                mappable = max(1, len([f for f in fields if f.field_type.value != "boolean"]))
+                coverage = len(structural.placements) / mappable
+                logger.info(
+                    "structural document mapping covered %d/%d fields (%.0f%%)",
+                    len(structural.placements), mappable, coverage * 100,
+                )
+                if coverage >= 0.4:  # the document clearly matches this template
+                    routing = structural
+            except Exception:
+                logger.exception("structural document mapping failed; trying AI routing")
 
-    if routing is None:
-        content = document_content(doc)
-        routing = route_document_content(fields, content, template_id=template.id, version=version)
+        if routing is None:
+            content = document_content(doc)
+            routing = route_document_content(fields, content, template_id=template.id, version=version)
+
+    if plan.counts_against_free and routing.source == "llm":
+        increment_free_use(owner_id)
 
     if routing.source == "llm":
         record_decision(
@@ -178,18 +186,24 @@ def render_preview_docx(
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
     db: Session | None = None,
+    owner_id: str | None = None,
 ) -> bytes:
     """Assemble the filled template and return the DOCX bytes (no persistence).
 
     Used for the live Word-page preview in the Generate UI. Callers pass
     structured data, so routing is deterministic (no LLM) and this is fast.
     """
+    from ..ai_quota import plan_ai_for_owner, use_ai_plan
+
     settings = settings or get_settings()
     registry = registry or TemplateRegistry(settings.templates_dir)
     version = gen_input.version or template.latest_version
     fields = registry.load_fields(template.id, version)
     template_bytes = registry.template_docx_bytes(template.id, version)
-    routing = resolve_routing(template.id, version, gen_input, fields, settings)
+    # Previews never spend a free-tier credit (allow_free=False): own-key users
+    # get full AI routing, free-tier users get the deterministic heuristic.
+    with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
+        routing = resolve_routing(template.id, version, gen_input, fields, settings)
     context = _merge_with_project(_project_metadata(db, template), routing.to_context())
     return assemble(template_bytes, context, fields)
 
@@ -201,9 +215,12 @@ def preview_document(
     settings: Settings | None = None,
     registry: TemplateRegistry | None = None,
     db: Session | None = None,
+    owner_id: str | None = None,
 ) -> dict:
     """Render a template with the given input and return a structured preview
     (ordered blocks + validation) WITHOUT persisting anything."""
+    from ..ai_quota import plan_ai_for_owner, use_ai_plan
+
     settings = settings or get_settings()
     registry = registry or TemplateRegistry(settings.templates_dir)
     version = gen_input.version or template.latest_version
@@ -211,7 +228,9 @@ def preview_document(
     rules = registry.load_rules(template.id, version)
     template_bytes = registry.template_docx_bytes(template.id, version)
 
-    routing = resolve_routing(template.id, version, gen_input, fields, settings)
+    # Previews never spend a free-tier credit (see render_preview_docx).
+    with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
+        routing = resolve_routing(template.id, version, gen_input, fields, settings)
     context = _merge_with_project(_project_metadata(db, template), routing.to_context())
 
     from ..validator import validate
@@ -235,9 +254,12 @@ def generate_document(
     registry: TemplateRegistry | None = None,
     owner_id: str | None = None,
 ) -> GeneratedDocument:
+    from ..ai_quota import increment_free_use, plan_ai_for_owner, use_ai_plan
+
     settings = settings or get_settings()
     registry = registry or TemplateRegistry(settings.templates_dir)
     settings.ensure_dirs()
+    plan = plan_ai_for_owner(owner_id)
 
     version = _resolve_version(db, template, gen_input.version)
     fields = registry.load_fields(template.id, version)
@@ -258,7 +280,9 @@ def generate_document(
     try:
         # 1) Resolve a routing result -> render context, then overlay the
         # project's inherited metadata (defaults; explicit values already win).
-        routing = resolve_routing(template.id, version, gen_input, fields, settings)
+        # Unstructured routing may hit the model under this user's AI plan.
+        with use_ai_plan(plan):
+            routing = resolve_routing(template.id, version, gen_input, fields, settings)
         context = _merge_with_project(_project_metadata(db, template), routing.to_context())
         req.routing = routing.model_dump(mode="json")
 
@@ -317,4 +341,6 @@ def generate_document(
 
     db.commit()
     db.refresh(gen_doc)
+    if plan.counts_against_free and routing.source == "llm":
+        increment_free_use(owner_id)
     return gen_doc

@@ -18,4 +18,16 @@ export {
   ArrowRight,
   Check,
   AlertTriangle,
+  GripVertical,
+  Pencil,
+  Plug,
+  Cloud,
+  HardDrive,
+  Boxes,
+  MessageSquare,
+  StickyNote,
+  Share2,
+  Users,
 } from "lucide-react";
+
+export type { LucideIcon } from "lucide-react";

@@ -16,7 +16,7 @@ Promoting any of these to first-class tables later is a localized change.
 
 from __future__ import annotations
 
-from sqlalchemy import JSON, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin, UUIDMixin
@@ -33,6 +33,26 @@ class User(Base, UUIDMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200), default="local")
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     role: Mapped[str] = mapped_column(String(50), default="owner")
+
+
+class UserAIConfig(Base, TimestampMixin):
+    """Per-user AI provider settings + free-tier usage counter.
+
+    Keyed by ``owner_id`` (the Supabase user UUID, or ``"local"``). The API key
+    is stored server-side ONLY and is never returned to the client (the settings
+    endpoint exposes a ``has_key`` boolean instead). ``free_used`` counts how many
+    free-tier AI actions this user has spent against the shared platform key.
+    """
+
+    __tablename__ = "user_ai_configs"
+    owner_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    base_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    api_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # server-side only
+    model: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    no_think: Mapped[bool] = mapped_column(Boolean, default=False)
+    free_used: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class SourceDocument(Base, UUIDMixin, TimestampMixin):

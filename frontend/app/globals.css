@@ -232,6 +232,138 @@ a:hover {
   background: var(--faint);
 }
 
+/* ---- Grouped, editable navigation ---- */
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-section + .nav-section {
+  margin-top: 14px;
+}
+.nav-section-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.nav-edit-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.nav-edit-btn:hover {
+  background: var(--card-2);
+  color: var(--text);
+}
+.badge.soon {
+  background: var(--card-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Connections page ---- */
+.conn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+.conn-card {
+  display: flex;
+  flex-direction: column;
+}
+.conn-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.conn-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.conn-name {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.conn-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  flex: 1;
+}
+/* Edit mode: draggable, renameable rows. */
+.nav-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border-radius: 11px;
+  border: 1px dashed var(--border);
+  background: var(--card);
+  cursor: grab;
+}
+.nav-edit-row.dragging {
+  opacity: 0.5;
+  box-shadow: var(--shadow);
+}
+.nav-grip {
+  display: inline-flex;
+  color: var(--faint);
+  cursor: grab;
+}
+.nav-edit-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  padding: 2px 0;
+  outline: none;
+  border-bottom: 1px solid transparent;
+}
+.nav-edit-input:focus {
+  border-bottom-color: var(--accent);
+}
+.nav-reset {
+  margin: 4px 0 0 8px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.nav-reset:hover {
+  color: var(--text);
+}
+
 .main {
   flex: 1;
   min-width: 0;
@@ -861,7 +993,16 @@ tr.low-conf td {
   margin-bottom: 8px;
 }
 .cmp-hl-key {
-  background: var(--red-soft);
+  background: rgba(250, 204, 21, 0.32);
+  color: #92700a;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+[data-theme="dark"] .cmp-hl-key {
+  color: #fde68a;
+}
+.cmp-hl-sel {
+  background: rgba(214, 78, 62, 0.22);
   color: var(--red);
   padding: 0 6px;
   border-radius: 4px;
@@ -905,6 +1046,11 @@ tr.low-conf td {
   background: var(--accent-soft);
   box-shadow: var(--shadow);
 }
+.cmp-diff-item.active {
+  background: var(--red-soft);
+  border-color: var(--red);
+  box-shadow: var(--shadow);
+}
 .cmp-diff-item.sev-error {
   border-left-color: var(--red);
 }
@@ -938,11 +1084,19 @@ tr.low-conf td {
   word-break: break-word;
 }
 
-/* Highlighted differing paragraphs inside the rendered Word pages (light red). */
+/* Differing paragraphs inside the rendered Word pages: yellow by default; the
+   paragraph for the currently-selected difference card turns mellow red. The
+   ".docx-hl-selected" rule is declared after ".docx-hl" so it wins. */
 .docx-host .docx p.docx-hl {
-  background: rgba(214, 78, 62, 0.18) !important;
+  background: rgba(250, 204, 21, 0.32) !important;
+  box-shadow: inset 3px 0 0 #eab308;
+  border-radius: 2px;
+}
+.docx-host .docx p.docx-hl-selected {
+  background: rgba(214, 78, 62, 0.24) !important;
   box-shadow: inset 3px 0 0 var(--red);
   border-radius: 2px;
+  transition: background 0.2s ease;
 }
 .docx-host .docx p.docx-hl-flash {
   background: rgba(214, 78, 62, 0.42) !important;

@@ -2,18 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { AISettings } from "@/lib/types";
+import type { AISettings, AIUsage } from "@/lib/types";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { ErrorBox, Spinner } from "@/components/ui";
-import { Check } from "@/components/icons";
+import { Check, Sparkles } from "@/components/icons";
 
 type Tab = "appearance" | "ai";
 type UiProvider = "openai" | "anthropic" | "local";
 
 const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }> = {
   openai: { base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
-  anthropic: { base_url: "https://api.anthropic.com", model: "claude-3-5-sonnet-latest" },
+  anthropic: { base_url: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
   local: { base_url: "http://localhost:11434/v1", model: "llama3.1" },
+};
+
+// Selectable models per cloud provider (the user picks one instead of typing it).
+// Local servers expose arbitrary model names, so that path keeps a free-text box.
+const MODEL_OPTIONS: Record<"openai" | "anthropic", string[]> = {
+  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
+  anthropic: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
 };
 
 function deriveUiProvider(s: AISettings): UiProvider {
@@ -92,6 +99,57 @@ export default function SettingsPage() {
   );
 }
 
+function FreeTierBanner({ usage }: { usage: AIUsage }) {
+  // Nothing to show when the platform free tier isn't offered.
+  if (!usage.free_enabled) return null;
+
+  // Once the user has their own key, the free allowance no longer applies.
+  if (usage.has_own_key) {
+    return (
+      <div className="notice section" style={{ borderColor: "var(--green)", marginTop: 0 }}>
+        <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Check size={15} strokeWidth={2.4} /> Using your own API key
+        </strong>{" "}
+        — unlimited AI. The free allowance no longer applies.
+      </div>
+    );
+  }
+
+  const { free_remaining, free_limit, free_used } = usage;
+  const out = free_remaining <= 0;
+  return (
+    <div
+      className="notice section"
+      style={{ borderColor: out ? "var(--amber)" : "var(--accent)", marginTop: 0 }}
+    >
+      <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={15} strokeWidth={2} />
+        {out
+          ? "You've used all your free AI actions"
+          : `${free_remaining} of ${free_limit} free AI actions left`}
+      </strong>
+      <div className="muted" style={{ marginTop: 6 }}>
+        {out ? (
+          <>
+            Add your own API key below to keep using AI. Without one, DocForge
+            switches to its offline heuristic engine (no AI). Used {free_used}/
+            {free_limit}.
+          </>
+        ) : (
+          <>
+            Every account gets {free_limit} free AI actions (template analysis and
+            document generation), powered by the platform. After that, add your own
+            API key below for unlimited use.
+          </>
+        )}
+      </div>
+      <div className="conf-bar" style={{ marginTop: 10, maxWidth: 320 }}>
+        <i style={{ width: `${Math.min(100, (free_used / Math.max(1, free_limit)) * 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function AISettingsForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -105,17 +163,19 @@ function AISettingsForm() {
   const [busy, setBusy] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saved, setSaved] = useState(false);
+  const [usage, setUsage] = useState<AIUsage | null>(null);
 
   useEffect(() => {
     api
       .getAISettings()
-      .then(({ ai }) => {
+      .then(({ ai, usage }) => {
         setProvider(deriveUiProvider(ai));
         setBaseUrl(ai.base_url);
         setModel(ai.model);
         setEnabled(ai.enabled);
         setNoThink(ai.no_think ?? false);
         setHasKey(ai.has_key);
+        setUsage(usage);
       })
       .catch((e) => setError(String(e.message || e)))
       .finally(() => setLoading(false));
@@ -124,9 +184,15 @@ function AISettingsForm() {
   function changeProvider(p: UiProvider) {
     setProvider(p);
     setBaseUrl(PROVIDER_DEFAULTS[p].base_url);
-    setModel(PROVIDER_DEFAULTS[p].model);
+    // Default to the first selectable model for cloud providers.
+    setModel(p === "local" ? PROVIDER_DEFAULTS.local.model : MODEL_OPTIONS[p][0]);
     setTestResult(null);
   }
+
+  // Model dropdown options for the current cloud provider, always including the
+  // currently-stored model so an existing/custom value still shows up.
+  const modelChoices =
+    provider === "local" ? [] : Array.from(new Set([...MODEL_OPTIONS[provider], model].filter(Boolean)));
 
   function payload() {
     const body: Record<string, unknown> = {
@@ -157,8 +223,9 @@ function AISettingsForm() {
     setSaved(false);
     setError("");
     try {
-      const { ai } = await api.updateAISettings(payload());
+      const { ai, usage } = await api.updateAISettings(payload());
       setHasKey(ai.has_key);
+      setUsage(usage);
       setApiKey("");
       setSaved(true);
     } catch (e: any) {
@@ -173,10 +240,12 @@ function AISettingsForm() {
   return (
     <div className="section" style={{ maxWidth: 560 }}>
       {error && <ErrorBox message={error} />}
-      <h2 className="section-h">AI Provider</h2>
+      {usage && <FreeTierBanner usage={usage} />}
+      <h2 className="section-h">Your AI Provider</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Leave disabled to use the offline heuristic engine. The API key is stored
-        server-side and never returned.
+        Pick a provider and paste your API key — that&apos;s all you need. Leave
+        disabled to use the free allowance (if any) or the offline heuristic
+        engine. Your key is stored server-side and never returned.
       </p>
 
       <label className="field">
@@ -189,24 +258,48 @@ function AISettingsForm() {
       </label>
 
       <label className="field">
-        <span>Base URL</span>
-        <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
-      </label>
-
-      <label className="field">
-        <span>Model</span>
-        <input value={model} onChange={(e) => setModel(e.target.value)} />
-      </label>
-
-      <label className="field">
-        <span>API Key {hasKey && <span className="muted">(stored — leave blank to keep)</span>}</span>
+        <span>
+          API Key {hasKey && <span className="muted">(stored — leave blank to keep)</span>}
+        </span>
         <input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={hasKey ? "••••••••" : "sk-…  (or 'ollama' for local)"}
+          placeholder={
+            hasKey
+              ? "••••••••"
+              : provider === "anthropic"
+                ? "sk-ant-…"
+                : provider === "local"
+                  ? "ollama"
+                  : "sk-…"
+          }
         />
       </label>
+
+      {provider === "local" ? (
+        <>
+          <label className="field">
+            <span>Base URL</span>
+            <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>Model</span>
+            <input value={model} onChange={(e) => setModel(e.target.value)} />
+          </label>
+        </>
+      ) : (
+        <label className="field">
+          <span>Model</span>
+          <select value={model} onChange={(e) => setModel(e.target.value)}>
+            {modelChoices.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="field" style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <input
@@ -218,22 +311,24 @@ function AISettingsForm() {
         <span style={{ margin: 0 }}>Enable AI (use the model instead of heuristics)</span>
       </label>
 
-      <label className="field" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <input
-          type="checkbox"
-          style={{ width: "auto" }}
-          checked={noThink}
-          onChange={(e) => setNoThink(e.target.checked)}
-        />
-        <span style={{ margin: 0 }}>
-          Disable thinking{" "}
-          <span className="muted">
-            — prepends <span className="mono">/no_think</span> for Qwen3 and strips{" "}
-            <span className="mono">&lt;think&gt;</span> blocks from all models.
-            Recommended for Qwen3.
+      {provider === "local" && (
+        <label className="field" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <input
+            type="checkbox"
+            style={{ width: "auto" }}
+            checked={noThink}
+            onChange={(e) => setNoThink(e.target.checked)}
+          />
+          <span style={{ margin: 0 }}>
+            Disable thinking{" "}
+            <span className="muted">
+              — prepends <span className="mono">/no_think</span> for Qwen3 and strips{" "}
+              <span className="mono">&lt;think&gt;</span> blocks from all models.
+              Recommended for Qwen3.
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       <div className="row">
         <button className="btn" onClick={save} disabled={busy}>

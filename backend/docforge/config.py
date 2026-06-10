@@ -58,6 +58,20 @@ class Settings(BaseSettings):
     ai_max_retries: int = 2
     ai_max_output_tokens: int = 6000
 
+    # --- Free-tier AI (shared, server-side key; never exposed to users) ---
+    # A small allowance of AI actions every signed-in user gets for free, served
+    # by a shared key the platform owner pays for (e.g. a cheap Claude Haiku key).
+    # Users never see this key. Once a user spends ``free_ai_limit`` actions they
+    # must add their OWN key (Settings -> AI) to keep using AI; otherwise the app
+    # falls back to the offline heuristic engine. When ``free_ai_enabled`` is on,
+    # the free tier supersedes the global ``ai_*`` key for users without their own.
+    free_ai_enabled: bool = False
+    free_ai_provider: str = "anthropic"  # "openai" | "anthropic"
+    free_ai_base_url: str = "https://api.anthropic.com"
+    free_ai_model: str = "claude-haiku-4-5-20251001"
+    free_ai_api_key: str = ""
+    free_ai_limit: int = 10  # free AI actions per user
+
     # --- Auth (Supabase) ---
     # When auth_required, API data routes require a valid Supabase JWT (verified
     # locally with the project's JWT secret) and scope all data to that user.

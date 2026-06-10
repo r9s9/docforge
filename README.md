@@ -33,7 +33,7 @@ before anything is finalized.
 
 It’s **privacy-aware**: with no AI key configured it runs a fully deterministic
 heuristic engine — no external calls. Point it at any **OpenAI-compatible** API
-(OpenAI, NVIDIA, Groq, Gemini, Mistral, Ollama, LM Studio…) to enable the LLM.
+(OpenAI, Gemini, Mistral, Ollama, LM Studio…) or **Anthropic** to enable the LLM.
 
 ---
 

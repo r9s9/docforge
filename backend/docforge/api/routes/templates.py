@@ -341,7 +341,9 @@ def preview(
     """Render a preview (ordered blocks + validation) without saving a file."""
     t = _get_template(db, template_id, user)
     try:
-        return preview_document(t, gen_input, settings=settings, registry=registry, db=db)
+        return preview_document(
+            t, gen_input, settings=settings, registry=registry, db=db, owner_id=user.id
+        )
     except Exception as exc:
         logger.exception("preview failed for template %s", template_id)
         raise HTTPException(status_code=500, detail=f"preview failed: {exc}") from exc
@@ -359,7 +361,9 @@ def preview_docx(
     """Return the filled template as a real DOCX, for the live Word-page preview."""
     t = _get_template(db, template_id, user)
     try:
-        data = render_preview_docx(t, gen_input, settings=settings, registry=registry, db=db)
+        data = render_preview_docx(
+            t, gen_input, settings=settings, registry=registry, db=db, owner_id=user.id
+        )
     except Exception as exc:
         logger.exception("preview.docx failed for template %s", template_id)
         raise HTTPException(status_code=500, detail=f"preview failed: {exc}") from exc
@@ -404,14 +408,19 @@ def route_content(
     t = _get_template(db, template_id, user)
     version = req.version or t.latest_version
     fields = registry.load_fields(template_id, version)
-    result = route(
-        fields,
-        template_id=template_id,
-        version=version,
-        raw_text=req.raw_text,
-        data=req.data,
-        settings=settings,
-    )
+    # Routing preview: own-key users get AI; free-tier users get the heuristic
+    # (no free credit spent — credits are only spent on the actual generate).
+    from ...ai_quota import plan_ai_for_owner, use_ai_plan
+
+    with use_ai_plan(plan_ai_for_owner(user.id, allow_free=False)):
+        result = route(
+            fields,
+            template_id=template_id,
+            version=version,
+            raw_text=req.raw_text,
+            data=req.data,
+            settings=settings,
+        )
     return result.model_dump(mode="json")
 
 

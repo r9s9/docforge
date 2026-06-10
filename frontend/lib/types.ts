@@ -226,6 +226,20 @@ export interface AISettings {
   active: boolean;
 }
 
+// Free-tier AI allowance for the signed-in user. The shared key is never exposed.
+export interface AIUsage {
+  free_enabled: boolean;
+  free_limit: number;
+  free_used: number;
+  free_remaining: number;
+  has_own_key: boolean;
+}
+
+export interface AISettingsResponse {
+  ai: AISettings;
+  usage: AIUsage;
+}
+
 export interface ComplianceDifference {
   kind: string;
   node_id: string | null;

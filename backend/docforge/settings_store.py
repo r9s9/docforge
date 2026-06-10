@@ -62,7 +62,22 @@ def save_overrides(data: dict) -> None:
 
 
 def get_ai_config() -> AIConfig:
-    """Effective AI config = env defaults overlaid with the JSON overrides."""
+    """Effective AI config for the current action.
+
+    When an AI *plan* is in scope (set by ``ai_quota.use_ai_plan`` for a per-user
+    request/job), that wins — so every ``LLMClient`` built deep in the pipeline
+    transparently uses the right per-user / free-tier key. Otherwise fall back to
+    the process-wide global config (env defaults + JSON overrides)."""
+    from .ai_quota import planned_ai_config  # local import avoids an import cycle
+
+    planned = planned_ai_config()
+    if planned is not None:
+        return planned
+    return global_ai_config()
+
+
+def global_ai_config() -> AIConfig:
+    """Process-wide AI config = env defaults overlaid with the JSON overrides."""
     s = get_settings()
     cfg = AIConfig(
         provider=s.ai_provider,

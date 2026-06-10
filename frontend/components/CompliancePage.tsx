@@ -140,6 +140,7 @@ function Report({
   fixMsg: string;
 }) {
   const color = GRADE_COLOR[report.grade] || "var(--muted)";
+  const [selected, setSelected] = useState<string | null>(null);
   // Keyed (by template node id) highlights so clicking a difference can scroll
   // the matching paragraph in either Word page into view.
   const actionable = report.alignment.filter(
@@ -154,10 +155,16 @@ function Report({
 
   function jumpTo(nodeId: string | null) {
     if (!nodeId) return;
-    document.querySelectorAll<HTMLElement>(`[data-hl="${nodeId}"]`).forEach((el) => {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("docx-hl-flash");
-      setTimeout(() => el.classList.remove("docx-hl-flash"), 1400);
+    setSelected(nodeId);
+    // Clear the previously-selected paragraphs (back to the default yellow), then
+    // mark the chosen difference's paragraphs mellow red on both pages.
+    document
+      .querySelectorAll<HTMLElement>(".docx-hl-selected")
+      .forEach((el) => el.classList.remove("docx-hl-selected"));
+    const matches = document.querySelectorAll<HTMLElement>(`[data-hl="${nodeId}"]`);
+    matches.forEach((el, i) => {
+      el.classList.add("docx-hl-selected");
+      if (i === 0) el.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
 
@@ -220,8 +227,9 @@ function Report({
         <h2 className="section-h">Side-by-side comparison</h2>
         <p className="muted" style={{ marginTop: 0 }}>
           The template&apos;s example (left) and your document (right) as full A4 pages, with the
-          differences listed between them. Click a difference to jump straight to it — changed
-          lines are highlighted in <span className="cmp-hl-key">light red</span>.
+          differences listed between them. All differing lines are highlighted in{" "}
+          <span className="cmp-hl-key">yellow</span>; click a difference to jump to it and mark that
+          line in <span className="cmp-hl-sel">red</span>.
         </p>
         <div className="cmp-3col">
           <div className="cmp-doc-col">
@@ -244,7 +252,9 @@ function Report({
                 {report.differences.map((d, i) => (
                   <button
                     key={i}
-                    className={`cmp-diff-item sev-${d.severity}`}
+                    className={`cmp-diff-item sev-${d.severity} ${
+                      selected && d.node_id === selected ? "active" : ""
+                    }`}
                     onClick={() => jumpTo(d.node_id)}
                     title="Jump to this difference in the documents"
                   >

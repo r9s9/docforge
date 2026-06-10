@@ -238,7 +238,16 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
         sources = [
             s for sid in (job.source_document_ids or []) if (s := db.get(SourceDocument, sid))
         ]
-        _execute_analysis(db, job, sources, settings, report=report, cancel_event=cancel_event)
+        # Resolve which AI key this user's action uses (own / free / global /
+        # none) and run the whole pipeline under that plan so every LLM call
+        # picks it up. Spend a free-tier credit only if the model actually ran.
+        from ..ai_quota import increment_free_use, plan_ai_for_owner, use_ai_plan
+
+        plan = plan_ai_for_owner(job.owner_id)
+        with use_ai_plan(plan):
+            _execute_analysis(db, job, sources, settings, report=report, cancel_event=cancel_event)
+        if plan.counts_against_free and (job.classification or {}).get("source") == "llm":
+            increment_free_use(job.owner_id)
         job.progress = 100
         job.stage = "Done"
         db.commit()

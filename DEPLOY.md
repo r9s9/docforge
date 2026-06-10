@@ -84,30 +84,35 @@ The repo includes `render.yaml`, which defines both services.
    (frontend), then **trigger a redeploy** of both (the frontend must rebuild
    because `NEXT_PUBLIC_*` is baked in at build time).
 
-## 5. Enable the LLM (free — NVIDIA API catalog)
+## 5. Enable the LLM (free tier + per-user keys)
 
-`render.yaml` already enables AI and points at NVIDIA's OpenAI-compatible
-endpoint; you just add the **API key** secret. Get one at
-<https://build.nvidia.com> → sign in → **Get API key** (`nvapi-...`).
+DocForge serves AI two ways, decided per user:
 
-On **docforge-backend** the relevant env vars are:
-```
-DOCFORGE_AI_ENABLED=true
-DOCFORGE_AI_PROVIDER=openai                          # OpenAI-style API, not literally OpenAI
-DOCFORGE_AI_BASE_URL=https://integrate.api.nvidia.com/v1
-DOCFORGE_AI_MODEL=meta/llama-3.3-70b-instruct        # any non-reasoning instruct model
-DOCFORGE_AI_API_KEY=nvapi-...                         # ← set this secret in the dashboard
-```
+1. **Free tier (shared key you pay for).** Give every signed-in user a small
+   allowance (default **10 actions**) on one shared key — e.g. a cheap **Claude
+   Haiku** key. Users never see the key. `render.yaml` already wires this up; you
+   just add the **API key** secret on **docforge-backend**:
+   ```
+   DOCFORGE_FREE_AI_ENABLED=true
+   DOCFORGE_FREE_AI_PROVIDER=anthropic
+   DOCFORGE_FREE_AI_BASE_URL=https://api.anthropic.com
+   DOCFORGE_FREE_AI_MODEL=claude-haiku-4-5-20251001
+   DOCFORGE_FREE_AI_LIMIT=10
+   DOCFORGE_FREE_AI_API_KEY=sk-ant-...                  # ← set this secret in the dashboard
+   ```
+
+2. **Each user's own key.** Once a user spends their free allowance, they add
+   their own provider + API key in **Settings → AI** (stored per-user,
+   server-side, never returned). This works with any **OpenAI-compatible** API or
+   **Anthropic**.
+
 Notes:
-- **Set AI via env, not the in-app Settings page.** The UI writes a file under
-  the data dir that is wiped when a free service restarts; env vars are durable.
-- Until the API key is present, the app safely falls back to the **offline
-  heuristic engine** (no external calls) — so a missing key never breaks the
-  demo, it just reduces AI quality.
-- NVIDIA's free tier is **rate-limited**; fine for a demo. Document text is sent
-  to NVIDIA for processing. Swap providers anytime by changing these env vars
-  (any OpenAI-compatible endpoint works — e.g. Groq at
-  `https://api.groq.com/openai/v1`).
+- Until a key is present (free-tier or the user's own), DocForge safely falls back
+  to the **offline heuristic engine** (no external calls) — so a missing key
+  never breaks the app, it just reduces AI quality.
+- A legacy single global key (`DOCFORGE_AI_*`) still exists for one-shared-key
+  setups; it's **disabled by default** and superseded by the free tier when that
+  is enabled.
 - Avoid "reasoning" models (DeepSeek-R1 etc.) — their thinking tokens make
   DocForge slower and noisier.
 

@@ -4,7 +4,7 @@
 // For a split deployment set NEXT_PUBLIC_API_BASE_URL to the backend origin and
 // the browser will call it directly.
 import type {
-  AISettings,
+  AISettingsResponse,
   AnalysisJob,
   ComplianceReport,
   GenerationResult,
@@ -241,10 +241,10 @@ export const api = {
     return { blob: await res.blob(), fixed, filename };
   },
 
-  getAISettings: () => request<{ ai: AISettings }>("/settings"),
+  getAISettings: () => request<AISettingsResponse>("/settings"),
 
   updateAISettings: (patch: Record<string, unknown>) =>
-    request<{ ai: AISettings }>("/settings", {
+    request<AISettingsResponse>("/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
