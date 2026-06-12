@@ -46,12 +46,6 @@ export default function Dashboard() {
           <div className="stat">{templates ? templates.length : "—"}</div>
         </div>
         <div className="card">
-          <div className="stat-label">Total versions</div>
-          <div className="stat">
-            {templates ? templates.reduce((n, t) => n + t.latest_version, 0) : "—"}
-          </div>
-        </div>
-        <div className="card">
           <div className="stat-label">Analysis engine</div>
           <div className="stat" style={{ fontSize: 19, marginTop: 10 }}>
             {health ? (health.ai_active ? health.ai_model : "Heuristic") : "—"}

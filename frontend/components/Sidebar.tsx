@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import type { AISettings, AIUsage, Health } from "@/lib/types";
 import {
   Check,
@@ -13,6 +14,7 @@ import {
   GripVertical,
   LayoutGrid,
   type LucideIcon,
+  Moon,
   PenLine,
   Pencil,
   Pin,
@@ -20,6 +22,7 @@ import {
   Plus,
   Settings,
   ShieldCheck,
+  Sun,
 } from "@/components/icons";
 
 type NavId =
@@ -115,12 +118,21 @@ export default function Sidebar() {
   const [editing, setEditing] = useState(false);
   const [dragId, setDragId] = useState<NavId | null>(null);
 
+  // Light/dark theme (rendered as a small switch at the foot of the nav).
+  const [theme, setTheme] = useState<Theme>("light");
+  function toggleTheme() {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    applyTheme(next);
+  }
+
   async function handleSignOut() {
     await signOut();
     router.replace("/login");
   }
 
   useEffect(() => {
+    setTheme(getStoredTheme());
     api.health().then(setHealth).catch(() => setHealth(null));
     api
       .getAISettings()
@@ -297,6 +309,26 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-foot">
+        <button
+          className="theme-switch"
+          onClick={toggleTheme}
+          role="switch"
+          aria-checked={theme === "dark"}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+        >
+          <span className={`theme-switch-track ${theme === "dark" ? "on" : ""}`}>
+            <span className="theme-switch-thumb">
+              {theme === "dark" ? (
+                <Moon size={11} strokeWidth={2} />
+              ) : (
+                <Sun size={11} strokeWidth={2} />
+              )}
+            </span>
+          </span>
+          <span className="label">{theme === "dark" ? "Dark" : "Light"}</span>
+        </button>
+
         {health ? (
           <>
             <Link href="/settings" style={{ color: "inherit", textDecoration: "none" }}>

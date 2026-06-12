@@ -257,6 +257,13 @@ export const api = {
       body: JSON.stringify(patch),
     }),
 
+  // Permanently delete the account: all templates, projects, documents, files,
+  // and the auth user. Irreversible.
+  deleteAccount: () =>
+    request<{ deleted: boolean; summary: Record<string, unknown> }>("/settings/account", {
+      method: "DELETE",
+    }),
+
   templateDownloadUrl: (id: string, version: number) =>
     `${BASE}/templates/${id}/versions/${version}/template.docx`,
 

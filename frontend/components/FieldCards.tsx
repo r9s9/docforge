@@ -19,9 +19,9 @@ export interface EditableField {
   include: boolean;
 }
 
-/** Plain-language explanation of what a field is and what the user does with it. */
+/** Type-based help: what this kind of field is and how the user fills it.
+ * (Intentionally ignores the editable `description` — that's shown separately.) */
 function describeField(f: FieldDefinition): string {
-  if (f.description && f.description.trim().length > 4) return f.description;
   const cls = f.classification || "";
   if (f.field_type === "table" || cls === "REPEATABLE_TABLE") {
     const cols = f.columns?.map((c) => c.label || c.field_name).join(", ");
@@ -102,6 +102,20 @@ export default function FieldCards({
             </div>
 
             <p className="field-card-desc">{describeField(f)}</p>
+
+            <label className="fc-desc-edit">
+              <span>
+                Description{" "}
+                <span className="fc-desc-hint">— guides the AI when generating from notes</span>
+              </span>
+              <textarea
+                value={f.description || ""}
+                onChange={(e) => onUpdate(i, { description: e.target.value })}
+                disabled={!ef.include}
+                rows={2}
+                placeholder="e.g. Client's full legal entity name, as registered. Used on the cover page."
+              />
+            </label>
 
             <div className="field-card-controls">
               <label className="fc-ctl">

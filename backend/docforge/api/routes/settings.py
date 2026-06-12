@@ -67,6 +67,18 @@ def get_settings_api(
     return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id)}
 
 
+@router.delete("/settings/account")
+def delete_account_api(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """Permanently delete the signed-in user's account and ALL their data/files."""
+    from ...services.account import delete_account
+
+    summary = delete_account(db, user.id)
+    return {"deleted": True, "summary": summary}
+
+
 @router.put("/settings")
 def put_settings_api(
     body: AISettingsIn,

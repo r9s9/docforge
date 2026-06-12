@@ -28,6 +28,9 @@ export {
   StickyNote,
   Share2,
   Users,
+  Sun,
+  Moon,
+  KeyRound,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

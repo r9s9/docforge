@@ -239,12 +239,17 @@ export default function TemplateDetail({ id }: { id: string }) {
           <div className="notice" style={{ marginBottom: 14 }}>
             Editing fields → will publish <strong>v{detail.latest_version + 1}</strong>. The layout
             is rebuilt from the original document; renamed/removed fields update the placeholders.
+            <div className="muted" style={{ marginTop: 6 }}>
+              A field’s <strong>description</strong> guides the AI when generating a document from
+              plain notes — keep it specific (what the value is, its format, where it appears).
+            </div>
           </div>
           <table>
             <thead>
               <tr>
                 <th>Field name</th>
                 <th>Label</th>
+                <th>Description</th>
                 <th>Type</th>
                 <th>Req</th>
                 <th></th>
@@ -262,6 +267,15 @@ export default function TemplateDetail({ id }: { id: string }) {
                   </td>
                   <td>
                     <input value={f.label} onChange={(e) => patchEditField(i, { label: e.target.value })} />
+                  </td>
+                  <td>
+                    <textarea
+                      value={f.description || ""}
+                      rows={2}
+                      placeholder="What this value is — guides the AI"
+                      onChange={(e) => patchEditField(i, { description: e.target.value })}
+                      style={{ minWidth: 220 }}
+                    />
                   </td>
                   <td>
                     <select
@@ -315,6 +329,7 @@ export default function TemplateDetail({ id }: { id: string }) {
             <tr>
               <th>Field</th>
               <th>Label</th>
+              <th>Description</th>
               <th>Type</th>
               <th>Required</th>
               <th>Classification</th>
@@ -325,6 +340,9 @@ export default function TemplateDetail({ id }: { id: string }) {
               <tr key={f.field_name}>
                 <td className="mono">{f.field_name}</td>
                 <td>{f.label}</td>
+                <td className="muted" style={{ fontSize: 12, maxWidth: 280 }}>
+                  {f.description || "—"}
+                </td>
                 <td>
                   {f.field_type}
                   {f.columns.length > 0 && (

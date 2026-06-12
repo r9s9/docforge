@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import type { AISettings, AIUsage } from "@/lib/types";
-import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { ErrorBox, Spinner } from "@/components/ui";
-import { Check, Sparkles } from "@/components/icons";
+import { AlertTriangle, Check, KeyRound, Sparkles, Trash2 } from "@/components/icons";
 
-type Tab = "appearance" | "ai";
+type Tab = "ai" | "profile";
 type UiProvider = "openai" | "anthropic" | "local";
 
 const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }> = {
@@ -30,71 +32,168 @@ function deriveUiProvider(s: AISettings): UiProvider {
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>("appearance");
-  const [theme, setTheme] = useState<Theme>("light");
-
-  useEffect(() => setTheme(getStoredTheme()), []);
-
-  function chooseTheme(t: Theme) {
-    setTheme(t);
-    applyTheme(t);
-  }
+  const [tab, setTab] = useState<Tab>("ai");
 
   return (
     <div>
       <h1 className="page-title">Settings</h1>
-      <p className="page-sub">Appearance and AI provider configuration.</p>
+      <p className="page-sub">AI provider and account management.</p>
 
       <div className="tabs">
-        <div className={`tab ${tab === "appearance" ? "active" : ""}`} onClick={() => setTab("appearance")}>
-          Appearance
-        </div>
         <div className={`tab ${tab === "ai" ? "active" : ""}`} onClick={() => setTab("ai")}>
-          AI Provider
+          LLM Settings
+        </div>
+        <div className={`tab ${tab === "profile" ? "active" : ""}`} onClick={() => setTab("profile")}>
+          Profile
         </div>
       </div>
 
-      {tab === "appearance" && (
-        <div className="section">
-          <h2 className="section-h">Theme</h2>
-          <div className="row" style={{ gap: 14 }}>
-            {(["light", "dark"] as Theme[]).map((t) => (
-              <button
-                key={t}
-                className={`card ${theme === t ? "" : "secondary"}`}
-                onClick={() => chooseTheme(t)}
-                style={{
-                  cursor: "pointer",
-                  width: 180,
-                  textAlign: "left",
-                  borderColor: theme === t ? "var(--accent)" : "var(--border)",
-                  borderWidth: 2,
-                  background: t === "dark" ? "#0c0c0d" : "#ffffff",
-                  color: t === "dark" ? "#f4f4f5" : "#0a0a0b",
-                }}
-              >
-                <div
+      {tab === "ai" && <AISettingsForm />}
+      {tab === "profile" && <ProfileSettings />}
+    </div>
+  );
+}
+
+function ProfileSettings() {
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+
+  // change password
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // delete account
+  const [confirm, setConfirm] = useState("");
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState("");
+
+  async function changePassword() {
+    setPwMsg(null);
+    if (pw.length < 8) {
+      setPwMsg({ ok: false, text: "Password must be at least 8 characters." });
+      return;
+    }
+    if (pw !== pw2) {
+      setPwMsg({ ok: false, text: "The two passwords don't match." });
+      return;
+    }
+    setPwBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pw });
+      if (error) throw new Error(error.message);
+      setPw("");
+      setPw2("");
+      setPwMsg({ ok: true, text: "Password updated." });
+    } catch (e: any) {
+      setPwMsg({ ok: false, text: String(e.message || e) });
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
+  async function deleteAccount() {
+    setDelErr("");
+    setDelBusy(true);
+    try {
+      await api.deleteAccount();
+      await signOut();
+      router.replace("/login");
+    } catch (e: any) {
+      setDelErr(String(e.message || e));
+      setDelBusy(false);
+    }
+  }
+
+  return (
+    <div className="section" style={{ maxWidth: 560 }}>
+      <h2 className="section-h">Account</h2>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Signed in as <strong>{user?.email || "this device (local mode)"}</strong>.
+      </p>
+
+      {/* Change password */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <h3 style={{ margin: "0 0 4px", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <KeyRound size={16} strokeWidth={1.9} /> Change password
+        </h3>
+        {!user ? (
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Password management is handled by your identity provider in local mode.
+          </p>
+        ) : (
+          <>
+            <label className="field">
+              <span>New password</span>
+              <input
+                type="password"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="field">
+              <span>Confirm new password</span>
+              <input
+                type="password"
+                value={pw2}
+                onChange={(e) => setPw2(e.target.value)}
+                autoComplete="new-password"
+              />
+            </label>
+            <div className="row">
+              <button className="btn" onClick={changePassword} disabled={pwBusy}>
+                {pwBusy ? <Spinner /> : "Update password"}
+              </button>
+              {pwMsg && (
+                <span
                   style={{
-                    fontWeight: 700,
-                    marginBottom: 6,
-                    textTransform: "capitalize",
+                    color: pwMsg.ok ? "var(--green)" : "var(--red)",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 4,
                   }}
                 >
-                  {t} mode {theme === t && <Check size={15} strokeWidth={2.4} />}
-                </div>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>
-                  {t === "dark" ? "Charcoal" : "Paper"}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+                  {pwMsg.ok && <Check size={15} strokeWidth={2.4} />} {pwMsg.text}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
-      {tab === "ai" && <AISettingsForm />}
+      {/* Danger zone */}
+      <div className="card" style={{ marginTop: 16, borderColor: "var(--red)" }}>
+        <h3 style={{ margin: "0 0 4px", color: "var(--red)", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <AlertTriangle size={16} strokeWidth={2} /> Delete account
+        </h3>
+        <p className="muted" style={{ marginTop: 4 }}>
+          Permanently deletes your account and <strong>everything</strong> in it — all
+          templates, projects, generated documents, and uploaded files. This cannot be
+          undone.
+        </p>
+        {delErr && <ErrorBox message={delErr} />}
+        <label className="field">
+          <span>
+            Type <span className="mono">DELETE</span> to confirm
+          </span>
+          <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" />
+        </label>
+        <button
+          className="btn"
+          onClick={deleteAccount}
+          disabled={delBusy || confirm.trim() !== "DELETE"}
+          style={{ background: "var(--red)", borderColor: "var(--red)", color: "#fff" }}
+        >
+          {delBusy ? <Spinner label="Deleting…" /> : (
+            <>
+              <Trash2 size={15} strokeWidth={1.9} /> Delete my account &amp; all files
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

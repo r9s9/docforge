@@ -71,6 +71,13 @@ body {
   padding: 0;
 }
 
+/* Render the whole app ~15% smaller for more breathing room and easier
+   navigation. Applied at the root so viewport units (the 100vh sidebar) and
+   fixed positioning scale uniformly — i.e. exactly like native browser zoom. */
+html {
+  zoom: 0.93;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--paper);
@@ -102,7 +109,7 @@ a:hover {
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  bottom: 0; /* span the full viewport (reliable under root zoom; 100vh is not) */
   width: 66px;
   z-index: 50;
   background: var(--sidebar);
@@ -214,11 +221,65 @@ a:hover {
   opacity: 0.95;
 }
 .sidebar-foot {
-  margin-top: auto;
+  flex: 0 0 auto;
+  margin-top: 8px;
   font-size: 12px;
   color: var(--faint);
   padding: 10px 12px;
   border-top: 1px solid var(--border);
+}
+
+/* Compact light/dark switch at the foot of the nav (above the AI status). */
+.theme-switch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.theme-switch:hover {
+  color: var(--text);
+}
+.theme-switch-track {
+  flex: 0 0 auto;
+  position: relative;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--card-2);
+  border: 1px solid var(--border-strong);
+  transition: background 0.16s ease;
+}
+.theme-switch-track.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.theme-switch-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.16s ease;
+}
+.theme-switch-track.on .theme-switch-thumb {
+  transform: translateX(15px);
+  background: var(--accent-ink);
+  color: var(--accent);
 }
 .dot {
   display: inline-block;
@@ -237,6 +298,16 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* Take the space between the brand and the footer, and scroll internally if
+     the menu is taller than the viewport — so the footer is never clipped. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+}
+.nav-section::-webkit-scrollbar {
+  display: none; /* WebKit — keep the collapsed rail clean */
 }
 .nav-section + .nav-section {
   margin-top: 14px;
@@ -1229,6 +1300,27 @@ tr.low-conf td {
   color: var(--text);
   font-size: 13.5px;
   line-height: 1.5;
+}
+/* Editable per-field description — read by the AI at generation & compliance. */
+.fc-desc-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.fc-desc-edit > span {
+  color: var(--muted);
+}
+.fc-desc-hint {
+  color: var(--faint);
+  font-weight: 400;
+}
+.fc-desc-edit textarea {
+  font-size: 13px;
+  padding: 6px 8px;
+  resize: vertical;
+  min-height: 38px;
 }
 .field-card-controls {
   display: grid;

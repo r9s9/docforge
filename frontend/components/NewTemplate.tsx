@@ -378,6 +378,12 @@ export default function NewTemplate() {
                 Each card is one fillable field. Edit its name or type, or untick it to keep
                 that text fixed. Then refresh the preview to see your changes.
               </p>
+              <div className="banner info" style={{ marginBottom: 14 }}>
+                <strong>Tip — write a description for each field.</strong> A clear description
+                (e.g. “Invoice total in EUR, numbers only”) is read by the AI when generating a
+                document from plain notes, so the more specific you are, the more accurately your
+                content is mapped to the right field.
+              </div>
               <FieldCards
                 items={fields}
                 onUpdate={updateField}
