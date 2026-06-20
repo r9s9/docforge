@@ -1046,6 +1046,46 @@ tr.low-conf td {
   z-index: 2;
 }
 
+/* A rendered Word document is always shown on light "paper", regardless of the
+   app's light/dark theme — documents are black-on-white. Two parts:
+   (1) pin the theme variables to light values inside the preview, so any
+       var-based styling resolves light; and
+   (2) stop the app's global table/text chrome from leaking into docx-preview's
+       real <table>/<td>/<th> markup — that leak made cells render near-black in
+       dark mode. We neutralize it so docx-preview's own document styles win. */
+.docx-canvas {
+  --paper: #ffffff;
+  --card: #ffffff;
+  --card-2: #f4f4f5;
+  --border: #e6e6e8;
+  --border-strong: #d6d6da;
+  --text: #0a0a0b;
+  --muted: #6b6b70;
+  --faint: #9a9aa0;
+  --accent-soft: #eef1f6;
+  color: #0a0a0b;
+}
+.docx-host .docx table {
+  width: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+}
+.docx-host .docx td,
+.docx-host .docx th {
+  background: transparent;
+  color: inherit;
+  border-bottom: none;
+  padding: revert;
+  text-align: inherit;
+  vertical-align: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 /* ---- Compliance: two Word files + differences in the middle ---- */
 .cmp-3col {
   display: grid;
@@ -1278,6 +1318,70 @@ tr.low-conf td {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+.field-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.fc-jump {
+  border: 1px solid var(--border);
+  background: var(--card-2);
+  color: var(--muted);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.fc-jump:hover {
+  color: var(--accent-press);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Promote-to-field panel (turn fixed document text into a fillable field). */
+.promote-box {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 12px 14px;
+}
+.promote-box > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.promote-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow: auto;
+}
+.promote-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-2);
+}
+.promote-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
 }
 .field-card-toggle {
   display: flex;

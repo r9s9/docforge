@@ -96,6 +96,9 @@ class Settings(BaseSettings):
     # --- Logging ---
     log_level: str = "INFO"
     log_redact: bool = True
+    # Optional path to also write logs to a file (rotating). Empty = console only.
+    # Handy for troubleshooting a deployed instance: set DOCFORGE_LOG_FILE=/tmp/docforge.log
+    log_file: str = ""
 
     # --- Derived paths (computed, not from env) ---
     @property

@@ -59,6 +59,12 @@ export default function DocxPreview({
           ignoreWidth: false,
           ignoreHeight: false,
           breakPages: true,
+          // Process mc:AlternateContent / DrawingML so floating text boxes and
+          // anchored shapes (e.g. a cover-page logo box) are placed closer to how
+          // Word renders them, instead of spilling inline.
+          experimental: true,
+          renderHeaders: true,
+          renderFooters: true,
         });
         if (cancelled) return;
 

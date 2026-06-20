@@ -10,6 +10,24 @@ import ProgressBar from "@/components/ProgressBar";
 import DocxPreview from "@/components/DocxPreview";
 import FieldCards, { type EditableField } from "@/components/FieldCards";
 
+/** Mirror of the backend slugify so promoted-field names look consistent. */
+function slugify(s: string): string {
+  return (
+    (s || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40) || "field"
+  );
+}
+
+function uniqueName(base: string, used: Set<string>): string {
+  if (!used.has(base)) return base;
+  let i = 2;
+  while (used.has(`${base}_${i}`)) i += 1;
+  return `${base}_${i}`;
+}
+
 export default function NewTemplate() {
   const router = useRouter();
   const [step, setStep] = useState<"upload" | "review">("upload");
@@ -144,6 +162,45 @@ export default function NewTemplate() {
     setFields((prev) => prev.map((ef, idx) => (idx === i ? { ...ef, include: !ef.include } : ef)));
   }
 
+  // Promote a fixed document element into a fillable field. Its whole paragraph
+  // becomes the field value at generation; on publish we send a DYNAMIC_TEXT
+  // classification override for that node so the builder templatizes it.
+  function promoteToField(el: { node_id: string; text: string }) {
+    setFields((prev) => {
+      const used = new Set(prev.map((e) => e.field.field_name));
+      const name = uniqueName(slugify(el.text), used);
+      const fd: FieldDefinition = {
+        field_name: name,
+        label: el.text.trim().slice(0, 48) || name,
+        field_type: "text",
+        classification: "DYNAMIC_TEXT",
+        description: "",
+        required: true,
+        enum_values: [],
+        default: null,
+        node_ids: [el.node_id],
+        section_key: null,
+        columns: [],
+        confidence: 1,
+      };
+      return [...prev, { field: fd, include: true }];
+    });
+    // Reflect the new field in the Word preview immediately.
+    setTimeout(updatePreview, 0);
+  }
+
+  // Click a field card → highlight + scroll to its element in the Word preview.
+  function jumpTo(fieldName: string) {
+    document
+      .querySelectorAll<HTMLElement>(".docx-hl-selected")
+      .forEach((el) => el.classList.remove("docx-hl-selected"));
+    const matches = document.querySelectorAll<HTMLElement>(`[data-hl="${fieldName}"]`);
+    matches.forEach((el, i) => {
+      el.classList.add("docx-hl-selected");
+      if (i === 0) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   async function publish() {
     if (!job) return;
     setBusy(true);
@@ -159,7 +216,15 @@ export default function NewTemplate() {
         if (excluded.has(c.node_id)) return { ...c, classification: "FIXED", field_name: null };
         const f = includedByNode.get(c.node_id);
         if (f)
-          return { ...c, field_name: f.field_name, field_type: f.field_type, required: f.required };
+          // Carry the field's classification too, so a promoted FIXED element
+          // actually becomes dynamic (and the builder templatizes its node).
+          return {
+            ...c,
+            classification: f.classification,
+            field_name: f.field_name,
+            field_type: f.field_type,
+            required: f.required,
+          };
         return c;
       });
 
@@ -362,6 +427,11 @@ export default function NewTemplate() {
               <DocxPreview
                 load={() => api.analysisPreviewDocx(job.id, previewMode, previewFields)}
                 refreshKey={previewKey}
+                markPersistent={false}
+                highlights={previewFields.flatMap((f) => [
+                  { key: f.field_name, text: f.field_name },
+                  { key: f.field_name, text: f.label },
+                ])}
               />
             </div>
 
@@ -388,8 +458,48 @@ export default function NewTemplate() {
                 items={fields}
                 onUpdate={updateField}
                 onToggle={toggleInclude}
+                onJump={jumpTo}
                 selected={selectedField}
               />
+
+              {(() => {
+                const usedNodes = new Set(fields.flatMap((e) => e.field.node_ids));
+                const candidates = (job.elements || []).filter(
+                  (el) =>
+                    el.classification === "FIXED" &&
+                    (el.type === "paragraph" || el.type === "heading") &&
+                    !el.headers &&
+                    (el.text || "").trim().length > 1 &&
+                    !usedNodes.has(el.node_id),
+                );
+                if (candidates.length === 0) return null;
+                return (
+                  <details className="promote-box section">
+                    <summary>
+                      Missing a field? Make one from fixed text ({candidates.length})
+                    </summary>
+                    <p className="muted" style={{ fontSize: 12.5, margin: "8px 0 10px" }}>
+                      Anything DocForge kept as fixed is listed here. Click{" "}
+                      <strong>Make field</strong> to turn that text into a fillable field.
+                    </p>
+                    <div className="promote-list">
+                      {candidates.map((el) => (
+                        <div className="promote-row" key={el.node_id}>
+                          <span className="promote-text" title={el.text}>
+                            {el.text.trim().slice(0, 90)}
+                          </span>
+                          <button
+                            className="btn secondary small"
+                            onClick={() => promoteToField(el)}
+                          >
+                            Make field
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                );
+              })()}
             </div>
           </div>
 

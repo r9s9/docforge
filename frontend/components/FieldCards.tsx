@@ -64,11 +64,13 @@ export default function FieldCards({
   items,
   onUpdate,
   onToggle,
+  onJump,
   selected,
 }: {
   items: EditableField[];
   onUpdate: (i: number, patch: Partial<FieldDefinition>) => void;
   onToggle: (i: number) => void;
+  onJump?: (fieldName: string) => void;
   selected: string | null;
 }) {
   return (
@@ -98,7 +100,19 @@ export default function FieldCards({
                   disabled={!ef.include}
                 />
               </label>
-              <ClassificationBadge value={f.classification} />
+              <div className="field-card-actions">
+                {onJump && ef.include && (
+                  <button
+                    type="button"
+                    className="fc-jump"
+                    title="Find this field in the document preview"
+                    onClick={() => onJump(f.field_name)}
+                  >
+                    ⌖ Find
+                  </button>
+                )}
+                <ClassificationBadge value={f.classification} />
+              </div>
             </div>
 
             <p className="field-card-desc">{describeField(f)}</p>

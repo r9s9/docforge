@@ -24,6 +24,7 @@ from fastapi import Depends, Header, HTTPException
 from jwt import PyJWK
 
 from ..config import Settings
+from ..logging_setup import update_request_context
 from .deps import get_settings_dep
 
 logger = logging.getLogger("docforge.api.auth")
@@ -97,6 +98,7 @@ def get_current_user(
     fixed ``local`` user is returned so the app still works without Supabase.
     """
     if not settings.auth_required:
+        update_request_context(user="local")
         return CurrentUser(id="local", email=None)
 
     # Need a way to verify: either a shared secret (HS256) or the project URL
@@ -119,4 +121,5 @@ def get_current_user(
     sub = claims.get("sub")
     if not sub:
         raise _unauthorized("Token has no subject")
+    update_request_context(user=str(sub))
     return CurrentUser(id=str(sub), email=claims.get("email"))

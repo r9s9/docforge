@@ -29,6 +29,8 @@ from ..structure_normalizer import iter_block_items
 from ..template_registry import TemplateRegistry
 from .audit import record_decision
 
+from ..logging_setup import log_event
+
 logger = logging.getLogger("docforge.generation")
 
 _DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -265,6 +267,10 @@ def generate_document(
     fields = registry.load_fields(template.id, version)
     rules = registry.load_rules(template.id, version)
     template_bytes = registry.template_docx_bytes(template.id, version)
+    log_event(
+        logger, "generate.start", template=template.id, version=version,
+        mode=gen_input.mode.value, ai_plan=plan.mode, fields=len(fields),
+    )
 
     req = GenerationRequest(
         template_id=template.id,
@@ -334,11 +340,19 @@ def generate_document(
             )
     except Exception as exc:
         logger.exception("Generation failed")
+        log_event(logger, "generate.failed", level=logging.ERROR, template=template.id,
+                  version=version, error=f"{type(exc).__name__}: {str(exc)[:200]}")
         req.status = JobStatus.FAILED.value
         req.error = str(exc)
         db.commit()
         raise
 
+    log_event(
+        logger, "generate.done", template=template.id, version=version,
+        mode=gen_input.mode.value, routing=routing.source,
+        placed=len(routing.placements), missing=len(routing.missing_required),
+        validation=(report.status if report else None),
+    )
     db.commit()
     db.refresh(gen_doc)
     if plan.counts_against_free and routing.source == "llm":

@@ -14,14 +14,29 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import TypeVar
+from urllib.parse import urlparse
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
+from ..logging_setup import log_event
 from ..settings_store import AIConfig, get_ai_config
 
 logger = logging.getLogger("docforge.ai")
+
+
+def _host(url: str) -> str:
+    """Host of a base URL (no path/creds) — safe to log."""
+    try:
+        return urlparse(url).netloc or url
+    except ValueError:
+        return "?"
+
+
+def _msg_chars(messages: list[dict]) -> int:
+    return sum(len(str(m.get("content") or "")) for m in messages)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -350,6 +365,11 @@ class LLMClient:
         if use_json:
             payload["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.config.api_key}"}
+        log_event(
+            logger, "ai.call", provider="openai", host=_host(base), model=self.config.model,
+            messages=len(messages), prompt_chars=_msg_chars(messages), json_mode=use_json,
+        )
+        t0 = time.perf_counter()
         try:
             with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
                 resp = client.post("chat/completions", json=payload, headers=headers)
@@ -358,12 +378,30 @@ class LLMClient:
                 if resp.status_code == 400 and use_json:
                     _JSON_MODE_UNSUPPORTED.add(base)
                     payload.pop("response_format", None)
+                    log_event(logger, "ai.json_mode_unsupported", level=logging.WARNING, host=_host(base))
                     resp = client.post("chat/completions", json=payload, headers=headers)
                 if resp.status_code >= 400:
                     raise LLMError(_explain_http_error(resp))
                 data = resp.json()
-            return data["choices"][0]["message"]["content"] or ""
+            text = data["choices"][0]["message"]["content"] or ""
+            usage = data.get("usage") or {}
+            finish = (data.get("choices") or [{}])[0].get("finish_reason")
+            log_event(
+                logger, "ai.done", provider="openai", model=self.config.model,
+                ms=round((time.perf_counter() - t0) * 1000, 1), resp_chars=len(text),
+                finish=finish, prompt_tokens=usage.get("prompt_tokens"),
+                completion_tokens=usage.get("completion_tokens"),
+            )
+            return text
+        except LLMError as exc:
+            log_event(logger, "ai.error", level=logging.ERROR, provider="openai",
+                      model=self.config.model, ms=round((time.perf_counter() - t0) * 1000, 1),
+                      error=str(exc)[:200])
+            raise
         except (httpx.HTTPError, KeyError, IndexError) as exc:
+            log_event(logger, "ai.error", level=logging.ERROR, provider="openai",
+                      model=self.config.model, ms=round((time.perf_counter() - t0) * 1000, 1),
+                      error=f"{type(exc).__name__}: {str(exc)[:160]}")
             raise LLMError(f"OpenAI-compatible request failed: {exc}") from exc
 
     def _complete_anthropic(self, messages: list[dict], temperature: float) -> str:
@@ -382,13 +420,29 @@ class LLMClient:
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
         }
+        log_event(
+            logger, "ai.call", provider="anthropic", host=_host(base), model=self.config.model,
+            messages=len(messages), prompt_chars=_msg_chars(messages),
+        )
+        t0 = time.perf_counter()
         try:
             with httpx.Client(timeout=self.config.timeout_seconds) as client:
                 resp = client.post(f"{base}/v1/messages", json=payload, headers=headers)
                 resp.raise_for_status()
                 data = resp.json()
-            return "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+            text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+            usage = data.get("usage") or {}
+            log_event(
+                logger, "ai.done", provider="anthropic", model=self.config.model,
+                ms=round((time.perf_counter() - t0) * 1000, 1), resp_chars=len(text),
+                finish=data.get("stop_reason"), prompt_tokens=usage.get("input_tokens"),
+                completion_tokens=usage.get("output_tokens"),
+            )
+            return text
         except (httpx.HTTPError, KeyError, IndexError) as exc:
+            log_event(logger, "ai.error", level=logging.ERROR, provider="anthropic",
+                      model=self.config.model, ms=round((time.perf_counter() - t0) * 1000, 1),
+                      error=f"{type(exc).__name__}: {str(exc)[:160]}")
             raise LLMError(f"Anthropic request failed: {exc}") from exc
 
     # ----- validated JSON -------------------------------------------------
@@ -412,16 +466,23 @@ class LLMClient:
             return self.complete(msgs)
 
         last_error = "unknown error"
-        for _ in range(self.config.max_retries + 1):
+        for attempt in range(self.config.max_retries + 1):
             raw = _raw(messages)
             data = _extract_json(raw)
             if data is not None:
                 try:
-                    return schema.model_validate(data)
+                    result = schema.model_validate(data)
+                    if attempt:
+                        log_event(logger, "ai.json_ok_after_retry", schema=schema.__name__, attempt=attempt + 1)
+                    return result
                 except ValidationError as exc:
                     last_error = f"schema validation failed: {exc.errors()[:3]}"
             else:
                 last_error = "response was not valid JSON"
+            log_event(
+                logger, "ai.json_retry", level=logging.WARNING, schema=schema.__name__,
+                attempt=attempt + 1, of=self.config.max_retries + 1, reason=str(last_error)[:120],
+            )
             messages += [
                 {"role": "assistant", "content": raw},
                 {
@@ -433,4 +494,5 @@ class LLMClient:
                     ),
                 },
             ]
+        log_event(logger, "ai.json_failed", level=logging.ERROR, schema=schema.__name__, reason=str(last_error)[:160])
         raise LLMError(f"LLM did not return valid JSON after retries: {last_error}")

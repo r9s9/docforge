@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import logging
 import os
+import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -15,7 +17,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from .. import __version__
 from ..config import get_settings
 from ..db.session import init_db
-from ..logging_setup import configure_logging
+from ..logging_setup import (
+    configure_logging,
+    log_event,
+    reset_request_context,
+    set_request_context,
+)
 from .routes import (
     analyses,
     compliance,
@@ -27,6 +34,7 @@ from .routes import (
 from .routes import settings as settings_routes
 
 logger = logging.getLogger("docforge.api")
+req_logger = logging.getLogger("docforge.request")
 
 
 class SPAStaticFiles(StaticFiles):
@@ -88,6 +96,47 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Request logging: stamp a short correlation id on every request and log its
+    # method/path/status/duration. Downstream logs (services, AI calls) inherit
+    # the same `rid`, so one request can be traced end to end. Health checks are
+    # logged at DEBUG to avoid flooding the log on a poller.
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        rid = uuid.uuid4().hex[:8]
+        path = request.url.path
+        token = set_request_context(rid=rid, method=request.method, path=path)
+        is_health = path.endswith("/health")
+        start = time.perf_counter()
+        level = logging.DEBUG if is_health else logging.INFO
+        log_event(
+            req_logger, "request.start", level=level,
+            method=request.method, path=path,
+            client=request.client.host if request.client else "?",
+        )
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        except Exception as exc:  # log, then let FastAPI's handlers produce the 500
+            log_event(
+                req_logger, "request.error", level=logging.ERROR,
+                method=request.method, path=path,
+                error=type(exc).__name__, detail=str(exc)[:200],
+                ms=round((time.perf_counter() - start) * 1000, 1),
+            )
+            raise
+        finally:
+            log_event(
+                req_logger, "request.done",
+                level=logging.DEBUG if is_health else (
+                    logging.WARNING if status >= 500 else logging.INFO
+                ),
+                method=request.method, path=path, status=status,
+                ms=round((time.perf_counter() - start) * 1000, 1),
+            )
+            reset_request_context(token)
 
     for module in (health, templates, projects, analyses, generations, compliance, settings_routes):
         app.include_router(module.router, prefix="/api")

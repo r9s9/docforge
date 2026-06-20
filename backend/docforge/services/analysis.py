@@ -27,6 +27,7 @@ from ..db.session import SessionLocal, engine
 from ..document_ingest import extract_source_document
 from ..jobs import clear_cancel, register_cancel
 from ..multi_doc_differ import diff_documents, pick_representative
+from ..logging_setup import log_event
 from ..schemas.enums import JobStatus
 from ..schemas.extraction import DocumentExtraction
 from .audit import record_decision
@@ -50,11 +51,18 @@ def _execute_analysis(
         if report:
             report(pct, stage, force)
 
+    log_event(logger, "analysis.start", job=job.id, files=len(sources))
     rp(5, f"Extracting {len(sources)} document(s)…", True)
     extractions: list[DocumentExtraction] = []
     for i, sd in enumerate(sources):
         rec = extract_source_document(db, sd)
-        extractions.append(DocumentExtraction.model_validate(rec.extraction))
+        ex = DocumentExtraction.model_validate(rec.extraction)
+        extractions.append(ex)
+        log_event(
+            logger, "analysis.extracted", job=job.id, file=sd.filename,
+            elements=len(ex.elements), top_level=len(ex.top_level_elements()),
+            pages=ex.page_count,
+        )
         rp(5 + int(20 * (i + 1) / max(1, len(sources))), force=True)
 
     rp(28, "Comparing documents…", True)
@@ -108,9 +116,25 @@ def _execute_analysis(
         stop.set()
         hb.join(timeout=2)
 
+    # Count how the document broke down by classification — the key signal when
+    # debugging "fields not recognized": how many nodes ended up fixed vs dynamic.
+    from collections import Counter
+
+    cls_counts = dict(Counter(c.classification.value for c in result.classifications))
+    log_event(
+        logger, "analysis.classified", job=job.id, engine=result.source,
+        model=result.model_used or "heuristic", nodes=len(result.classifications),
+        breakdown=";".join(f"{k}:{v}" for k, v in sorted(cls_counts.items())),
+        ai_warning=bool(result.ai_warning),
+    )
+
     rp(88, "Deriving fields & rules…", True)
     fields = derive_field_definitions(rep, result)
     rules = derive_validation_rules(fields)
+    log_event(
+        logger, "analysis.done", job=job.id, doc_type=result.document_type_guess,
+        fields=len(fields), rules=len(rules),
+    )
 
     job.representative_document_id = rep.document_id
     job.diff = diff.model_dump(mode="json") if diff else None
@@ -252,7 +276,7 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
         job.stage = "Done"
         db.commit()
     except LLMCancelled:
-        logger.info("Analysis job %s cancelled by user", job_id)
+        log_event(logger, "analysis.cancelled", job=job_id)
         try:
             job = db.get(AnalysisJob, job_id)
             if job is not None:
@@ -263,6 +287,8 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
             pass
     except Exception as exc:
         logger.exception("Background analysis failed")
+        log_event(logger, "analysis.failed", level=logging.ERROR, job=job_id,
+                  error=f"{type(exc).__name__}: {str(exc)[:200]}")
         try:
             job = db.get(AnalysisJob, job_id)
             if job is not None:
