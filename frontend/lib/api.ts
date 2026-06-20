@@ -287,6 +287,22 @@ export const api = {
     URL.revokeObjectURL(href);
   },
 
+  // Render DOCX bytes to a pixel-faithful PDF via the server (LibreOffice) — the
+  // "Faithful view" preview. Throws on 501 when LibreOffice isn't installed.
+  renderPdf: async (docx: ArrayBuffer): Promise<Blob> => {
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([docx], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      }),
+      "preview.docx",
+    );
+    const res = await authFetch("/render/pdf", { method: "POST", body: form });
+    if (!res.ok) await raiseForStatus(res);
+    return res.blob();
+  },
+
   // The template's stored example (left side of the compliance comparison).
   representativeDocx: async (id: string, version: number): Promise<ArrayBuffer> => {
     const res = await authFetch(`/templates/${id}/versions/${version}/representative.docx`);

@@ -5,11 +5,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Optional: install LibreOffice so PDF export works (DOCX->PDF). It's large and
-# memory-hungry, so it's OFF by default to fit small/free hosts — the app
-# degrades gracefully (PDF endpoint returns a clear 501 when it's absent).
-# Enable with:  --build-arg INSTALL_LIBREOFFICE=true
-ARG INSTALL_LIBREOFFICE=false
+# LibreOffice powers DOCX->PDF: the "Faithful view" preview (exact Word layout,
+# incl. floating text boxes) and PDF export. It's large (~hundreds of MB) and
+# memory-hungry, but enabled by default so the faithful preview works in the
+# deployed image. Set --build-arg INSTALL_LIBREOFFICE=false for a slim build
+# (the app still runs; the PDF endpoint returns a clear 501 and the UI falls
+# back to the in-browser preview).
+ARG INSTALL_LIBREOFFICE=true
 RUN if [ "$INSTALL_LIBREOFFICE" = "true" ]; then \
         apt-get update && \
         apt-get install -y --no-install-recommends libreoffice-writer fonts-dejavu && \

@@ -56,3 +56,19 @@ def docx_to_pdf(docx_path: str | Path, out_dir: str | Path) -> Path:
     if not pdf_path.exists():
         raise PdfError("PDF was not produced by LibreOffice")
     return pdf_path
+
+
+def docx_bytes_to_pdf_bytes(data: bytes) -> bytes:
+    """Convert in-memory DOCX bytes to PDF bytes (temp files, cleaned up).
+
+    Used by the live "Faithful view" preview, which renders the exact Word
+    layout (floating text boxes, anchored shapes) that the in-browser renderer
+    can't reproduce.
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="docforge-pdf-") as tmp:
+        src = Path(tmp) / "preview.docx"
+        src.write_bytes(data)
+        pdf_path = docx_to_pdf(src, tmp)
+        return pdf_path.read_bytes()
