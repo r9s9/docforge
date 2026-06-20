@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import logging
 import logging.handlers
+import time
+from collections import deque
 from contextvars import ContextVar
 
 from .config import get_settings
@@ -84,6 +86,50 @@ def log_event(logger: logging.Logger, event: str, *, level: int = logging.INFO, 
     logger.log(level, " ".join(parts))
 
 
+# --- In-app log buffer (per-user, for the Logs page) ----------------------
+# A bounded in-memory ring of recent records, each tagged with the rid/user that
+# was active when it was emitted, so the app can show each user their own logs.
+# Process-local and ephemeral (cleared on restart) — a troubleshooting aid, not
+# an audit store.
+_LOG_BUFFER: deque[dict] = deque(maxlen=4000)
+
+
+class _ContextFilter(logging.Filter):
+    """Attach the current request rid/user to every record."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        ctx = _request_ctx.get()
+        record.rid = ctx.get("rid")  # type: ignore[attr-defined]
+        record.user = ctx.get("user")  # type: ignore[attr-defined]
+        return True
+
+
+class _BufferHandler(logging.Handler):
+    """Store rendered records in the ring buffer for the in-app Logs page."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            _LOG_BUFFER.append(
+                {
+                    "ts": record.created,
+                    "time": time.strftime("%H:%M:%S", time.localtime(record.created)),
+                    "level": record.levelname,
+                    "logger": record.name,
+                    "rid": getattr(record, "rid", None),
+                    "user": getattr(record, "user", None),
+                    "message": record.getMessage(),
+                }
+            )
+        except Exception:  # logging must never raise
+            pass
+
+
+def recent_logs(user_id: str | None, *, limit: int = 300) -> list[dict]:
+    """Recent log entries attributed to ``user_id`` (newest last)."""
+    items = [e for e in _LOG_BUFFER if e.get("user") == user_id]
+    return items[-limit:]
+
+
 def configure_logging() -> None:
     global _configured
     if _configured:
@@ -99,10 +145,18 @@ def configure_logging() -> None:
     for h in list(root.handlers):
         root.removeHandler(h)
 
+    ctx_filter = _ContextFilter()
     formatter = logging.Formatter(fmt, datefmt=datefmt)
     console = logging.StreamHandler()
     console.setFormatter(formatter)
+    console.addFilter(ctx_filter)
     root.addHandler(console)
+
+    # In-app per-user log buffer (powers the Logs page).
+    buffer = _BufferHandler()
+    buffer.addFilter(ctx_filter)
+    buffer.setLevel(logging.INFO)
+    root.addHandler(buffer)
 
     if settings.log_file:
         try:

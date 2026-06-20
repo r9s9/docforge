@@ -20,6 +20,7 @@ import {
   Pin,
   Plug,
   Plus,
+  ScrollText,
   Settings,
   ShieldCheck,
   Sun,
@@ -32,6 +33,7 @@ type NavId =
   | "generate"
   | "compliance"
   | "connections"
+  | "logs"
   | "settings";
 
 interface NavDef {
@@ -50,6 +52,7 @@ const NAV_REGISTRY: Record<NavId, NavDef> = {
   generate: { id: "generate", href: "/generate", label: "Generate Document", Icon: PenLine },
   compliance: { id: "compliance", href: "/compliance", label: "Compliance Check", Icon: ShieldCheck },
   connections: { id: "connections", href: "/connections", label: "Connections", Icon: Plug },
+  logs: { id: "logs", href: "/logs", label: "Logs", Icon: ScrollText },
   settings: { id: "settings", href: "/settings", label: "Settings", Icon: Settings },
 };
 
@@ -60,6 +63,7 @@ const DEFAULT_ORDER: NavId[] = [
   "generate",
   "compliance",
   "connections",
+  "logs",
   "settings",
 ];
 

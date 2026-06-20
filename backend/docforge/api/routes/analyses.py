@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -87,4 +89,9 @@ def preview_analysis_docx(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # e.g. a Jinja TemplateSyntaxError from a bad field name
+        logging.getLogger("docforge.api.analyses").exception("preview.docx build failed")
+        raise HTTPException(
+            status_code=500, detail=f"Preview build failed: {type(exc).__name__}: {exc}"
+        ) from exc
     return Response(content=data, media_type=DOCX_MEDIA)

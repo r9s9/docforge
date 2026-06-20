@@ -13,6 +13,8 @@ When in-place run rewriting cannot express a case cleanly, the OOXML fallback in
 
 from __future__ import annotations
 
+import logging
+import re
 from io import BytesIO
 
 from docx import Document
@@ -30,8 +32,20 @@ from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition
 from ..structure_normalizer import build_extraction, walk_document
 
+logger = logging.getLogger("docforge.template_builder")
+
 # Jinja loop variable used inside repeatable tables/sections.
 _LOOP_VAR = "item"
+
+# A field name must be a valid Jinja/Python identifier to become a placeholder
+# ({{ name }}); anything else (spaces, dots, a leading digit) makes docxtpl fail
+# to compile the whole template. Names are sanitized upstream, but this is the
+# last-line guard so one stray name can never crash a build/preview.
+_VALID_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _safe_ident(name: str | None) -> str | None:
+    return name if name and _VALID_IDENT.match(name) else None
 
 
 def _marker_paragraph_xml(text: str):
@@ -218,8 +232,11 @@ def build_template_docx(
         # Repeatable table.
         if cls.classification == ClassificationType.REPEATABLE_TABLE and wn.kind == "table":
             fd = fd_by_node.get(wn.node_id)
-            if fd:
-                _templatize_table(wn.obj, fd.field_name, fd.columns)
+            name = _safe_ident(fd.field_name) if fd else None
+            if name:
+                _templatize_table(wn.obj, name, fd.columns)
+            elif fd:
+                logger.warning("skipping table field with unsafe name %r", fd.field_name)
             continue
 
         if wn.kind != "paragraph":
@@ -228,17 +245,22 @@ def build_template_docx(
         para = wn.obj
         fd = fd_by_node.get(wn.node_id)
         # Compute the optional toggle name from the ORIGINAL text (before edits).
-        include_name = include_field_name(cls, para) if cls.optional else None
+        include_name = _safe_ident(include_field_name(cls, para)) if cls.optional else None
 
         if cls.classification == ClassificationType.REPEATABLE_SECTION:
-            name = fd.field_name if fd else cls.field_name
+            name = _safe_ident(fd.field_name if fd else cls.field_name)
             if name:
                 _templatize_repeatable_paragraph(para, name)
         elif is_dynamic(cls.classification):
-            name = fd.field_name if fd else cls.field_name
+            name = _safe_ident(fd.field_name if fd else cls.field_name)
             if name:
                 _templatize_paragraph(
                     para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or ""
+                )
+            elif (fd and fd.field_name) or cls.field_name:
+                logger.warning(
+                    "skipping field with unsafe name %r (left as fixed text)",
+                    (fd.field_name if fd else cls.field_name),
                 )
 
         if include_name:

@@ -31,6 +31,7 @@ export {
   Sun,
   Moon,
   KeyRound,
+  ScrollText,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

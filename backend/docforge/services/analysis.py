@@ -27,7 +27,7 @@ from ..db.session import SessionLocal, engine
 from ..document_ingest import extract_source_document
 from ..jobs import clear_cancel, register_cancel
 from ..multi_doc_differ import diff_documents, pick_representative
-from ..logging_setup import log_event
+from ..logging_setup import log_event, reset_request_context, set_request_context
 from ..schemas.enums import JobStatus
 from ..schemas.extraction import DocumentExtraction
 from .audit import record_decision
@@ -233,10 +233,14 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
     settings = settings or get_settings()
     cancel_event = register_cancel(job_id)
     db = SessionLocal()
+    # Attribute this background job's logs to the owning user + job, so they show
+    # on that user's in-app Logs page (the request context doesn't cross threads).
+    ctx_token = set_request_context(rid=f"job-{job_id[:8]}", user=None)
     try:
         job = db.get(AnalysisJob, job_id)
         if job is None:
             return
+        set_request_context(rid=f"job-{job_id[:8]}", user=job.owner_id)
         # Cancelled while still queued -> stop before doing any work.
         if cancel_event.is_set():
             job.status = JobStatus.CANCELLED.value
@@ -300,3 +304,4 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
     finally:
         clear_cancel(job_id)
         db.close()
+        reset_request_context(ctx_token)

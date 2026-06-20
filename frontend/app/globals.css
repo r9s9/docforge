@@ -1258,6 +1258,70 @@ tr.low-conf td {
   transition: background 0.25s ease;
 }
 
+/* ---- Logs page ---- */
+.logs-toolbar {
+  margin-bottom: 12px;
+}
+.logs-search {
+  flex: 1;
+  min-width: 160px;
+  max-width: 320px;
+}
+.logs-view {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-2);
+  max-height: 70vh;
+  overflow: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.log-line {
+  display: flex;
+  gap: 10px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.log-line:last-child {
+  border-bottom: none;
+}
+.log-line.lvl-error {
+  background: var(--red-soft);
+}
+.log-line.lvl-warning {
+  background: var(--amber-soft);
+}
+.log-time {
+  color: var(--faint);
+  flex: 0 0 auto;
+}
+.log-level {
+  flex: 0 0 64px;
+  font-weight: 700;
+  font-size: 11px;
+}
+.log-level.lvl-info {
+  color: var(--muted);
+}
+.log-level.lvl-warning {
+  color: var(--amber);
+}
+.log-level.lvl-error {
+  color: var(--red);
+}
+.log-logger {
+  flex: 0 0 auto;
+  color: var(--accent-press);
+  opacity: 0.8;
+}
+.log-msg {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ---- Field cards ---- */
 .field-cards {
   display: flex;

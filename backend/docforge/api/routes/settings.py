@@ -79,6 +79,18 @@ def delete_account_api(
     return {"deleted": True, "summary": summary}
 
 
+@router.get("/logs")
+def get_logs_api(
+    limit: int = 300,
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """Recent server-side log entries for the signed-in user (their actions + AI
+    calls + errors). Powers the in-app Logs page; ephemeral, process-local."""
+    from ...logging_setup import recent_logs
+
+    return {"entries": recent_logs(user.id, limit=max(1, min(limit, 1000)))}
+
+
 @router.put("/settings")
 def put_settings_api(
     body: AISettingsIn,

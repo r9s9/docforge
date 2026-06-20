@@ -240,6 +240,17 @@ export interface AISettingsResponse {
   usage: AIUsage;
 }
 
+// A server-side log line for the in-app Logs page (scoped to the current user).
+export interface LogEntry {
+  ts: number;
+  time: string;
+  level: string;
+  logger: string;
+  rid: string | null;
+  user: string | null;
+  message: string;
+}
+
 export interface ComplianceDifference {
   kind: string;
   node_id: string | null;

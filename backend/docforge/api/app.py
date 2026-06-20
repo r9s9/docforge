@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -35,6 +36,28 @@ from .routes import settings as settings_routes
 
 logger = logging.getLogger("docforge.api")
 req_logger = logging.getLogger("docforge.request")
+
+
+def _log_user(request: Request) -> str | None:
+    """Best-effort user label for logging (NOT auth): the JWT 'sub', or 'local'.
+
+    Decoded without signature verification — it only tags log lines so a user can
+    see their own activity. Access control stays with get_current_user.
+    """
+    settings = get_settings()
+    if not settings.auth_required:
+        return "local"
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    try:
+        import jwt
+
+        claims = jwt.decode(auth.split(" ", 1)[1].strip(), options={"verify_signature": False})
+        sub = claims.get("sub")
+        return str(sub) if sub else None
+    except Exception:
+        return None
 
 
 class SPAStaticFiles(StaticFiles):
@@ -105,7 +128,14 @@ def create_app() -> FastAPI:
     async def log_requests(request: Request, call_next):
         rid = uuid.uuid4().hex[:8]
         path = request.url.path
-        token = set_request_context(rid=rid, method=request.method, path=path)
+        # Resolve the user up front (cheap, unverified token decode) so EVERY log
+        # for this request — including these request.* lines — is attributed to
+        # them. (BaseHTTPMiddleware runs the route in a child context, so a user
+        # set inside the auth dependency would not flow back here.) Real auth is
+        # still enforced by get_current_user; this label is for logging only.
+        token = set_request_context(
+            rid=rid, method=request.method, path=path, user=_log_user(request)
+        )
         is_health = path.endswith("/health")
         start = time.perf_counter()
         level = logging.DEBUG if is_health else logging.INFO
@@ -137,6 +167,22 @@ def create_app() -> FastAPI:
                 ms=round((time.perf_counter() - start) * 1000, 1),
             )
             reset_request_context(token)
+
+    # Turn any unhandled exception into a JSON 500 *handled by the app*, so it
+    # flows back through CORSMiddleware and carries Access-Control-Allow-Origin.
+    # Without this, a raw 500 reaches the browser with no CORS headers and shows
+    # up as an opaque "NetworkError" instead of the real error.
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception):
+        log_event(
+            req_logger, "request.unhandled", level=logging.ERROR,
+            method=request.method, path=request.url.path,
+            error=type(exc).__name__, detail=str(exc)[:300],
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"{type(exc).__name__}: {exc}"},
+        )
 
     for module in (health, templates, projects, analyses, generations, compliance, settings_routes):
         app.include_router(module.router, prefix="/api")

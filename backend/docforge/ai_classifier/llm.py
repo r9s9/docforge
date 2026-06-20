@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from ..ai.client import LLMCancelled, LLMClient, _extract_json
 from ..ai.prompts import LLMClassifyResponse, build_classify_prompt
+from ..common.textutil import slugify_field
 from ..schemas.classification import (
     ClassificationResult,
     ElementClassification,
@@ -61,7 +62,10 @@ def map_response(extraction: DocumentExtraction, resp: LLMClassifyResponse, mode
             continue
         field_name = c.field_name or None
         if field_name:
-            field_name = _unique(field_name, used_names)
+            # The model may return a label-ish name ("1.1.1 Header 3", "Total (USD)")
+            # that isn't a valid Jinja identifier; slugify so the placeholder it
+            # becomes ({{ name }}) always compiles.
+            field_name = _unique(slugify_field(field_name), used_names)
             used_names.add(field_name)
         classifications.append(
             ElementClassification(

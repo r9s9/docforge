@@ -6,6 +6,7 @@
 import type {
   AISettingsResponse,
   AnalysisJob,
+  LogEntry,
   ComplianceReport,
   GenerationResult,
   Health,
@@ -242,6 +243,9 @@ export const api = {
   },
 
   getAISettings: () => request<AISettingsResponse>("/settings"),
+
+  // Recent server-side log entries for the signed-in user (in-app Logs page).
+  getLogs: (limit = 300) => request<{ entries: LogEntry[] }>(`/logs?limit=${limit}`),
 
   updateAISettings: (patch: Record<string, unknown>) =>
     request<AISettingsResponse>("/settings", {
