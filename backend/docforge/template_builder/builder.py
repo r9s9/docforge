@@ -48,6 +48,35 @@ def _safe_ident(name: str | None) -> str | None:
     return name if name and _VALID_IDENT.match(name) else None
 
 
+# An uploaded example may itself contain literal Jinja-like delimiters in its
+# text (e.g. a Word template that already uses "{{ Client }}" markers). docxtpl
+# parses the WHOLE document, so those stray tokens would crash rendering. We make
+# them inert by slipping a zero-width space between the braces — invisible to the
+# reader, but no longer a tag to Jinja. Our own placeholders are written AFTER
+# this pass, so they stay intact.
+_ZWSP = "​"
+_STRAY = (("{{", "{" + _ZWSP + "{"), ("}}", "}" + _ZWSP + "}"),
+          ("{%", "{" + _ZWSP + "%"), ("%}", "%" + _ZWSP + "}"))
+
+
+def _neutralize_run(text: str) -> str:
+    for a, b in _STRAY:
+        if a in text:
+            text = text.replace(a, b)
+    return text
+
+
+def _neutralize_stray_tags(doc) -> None:
+    """Neutralize literal Jinja delimiters in all of the document's own text."""
+    for wn in walk_document(doc):
+        if wn.kind != "paragraph":
+            continue
+        for run in wn.obj.runs:
+            t = run.text
+            if t and ("{" in t or "%}" in t):
+                run.text = _neutralize_run(t)
+
+
 def _marker_paragraph_xml(text: str):
     """A bare <w:p> carrying a docxtpl control tag (e.g. {%p if x %})."""
     p = OxmlElement("w:p")
@@ -212,6 +241,9 @@ def build_template_docx(
 ) -> bytes:
     """Produce the template.docx bytes for a representative document."""
     doc = Document(str(representative_docx_path))
+    # Make any literal {{…}}/{%…%} already present in the example inert BEFORE we
+    # insert our own placeholders, so docxtpl only ever parses our tags.
+    _neutralize_stray_tags(doc)
     nodes = walk_document(doc)
 
     cls_by_node = {c.node_id: c for c in result.classifications}

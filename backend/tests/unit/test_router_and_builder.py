@@ -11,6 +11,7 @@ from docforge.assembler import assemble
 from docforge.schemas.enums import FieldType
 from docforge.schemas.template import FieldDefinition
 from docforge.template_builder import build_template_from_examples
+from docforge.template_builder.builder import _neutralize_run, _neutralize_stray_tags
 
 
 def _fields():
@@ -54,3 +55,29 @@ def test_build_then_assemble_roundtrip(project_docs):
     assert "Report Date: 2026-07-01" in texts
     # header + exactly one rendered data row
     assert len(doc.tables[0].rows) == 2
+
+
+def test_neutralize_run_disarms_literal_jinja():
+    # A run that already contains "{{ Client }}" must no longer read as a tag,
+    # but must stay visually identical (only a zero-width space is inserted).
+    out = _neutralize_run("Dear {{ Client }}, see {% if x %}note{% endif %}.")
+    assert "{{" not in out and "}}" not in out
+    assert "{%" not in out and "%}" not in out
+    assert out.replace("​", "") == "Dear {{ Client }}, see {% if x %}note{% endif %}."
+
+
+def test_build_assemble_ignores_stray_template_markers():
+    # Simulate an uploaded example that is itself an ILF-style template carrying
+    # its own literal "{{ ... }}" markers. The build must neutralize them so
+    # docxtpl renders without a TemplateSyntaxError.
+    src = Document()
+    src.add_paragraph("Header: {{1Headers3}} and {% weird %} text")
+    _neutralize_stray_tags(src)
+    bio = BytesIO()
+    src.save(bio)
+    # The saved doc, treated as a template, renders cleanly with an empty context.
+    out = assemble(bio.getvalue(), {}, [])
+    rendered = Document(BytesIO(out))
+    text = "\n".join(p.text for p in rendered.paragraphs)
+    # Original markers survive visually (sans the invisible zero-width space).
+    assert "{{1Headers3}}" in text.replace("​", "")
