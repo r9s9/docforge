@@ -67,14 +67,19 @@ def _neutralize_run(text: str) -> str:
 
 
 def _neutralize_stray_tags(doc) -> None:
-    """Neutralize literal Jinja delimiters in all of the document's own text."""
+    """Neutralize literal Jinja delimiters anywhere in the document's own text.
+
+    Walks every paragraph the builder knows about (body, tables, headers/footers)
+    and rewrites EVERY ``<w:t>`` it contains — including runs nested inside
+    hyperlinks or text boxes, which ``paragraph.runs`` silently skips — so no
+    stray "{{ … }}" / "{% … %}" from the example survives to confuse docxtpl.
+    """
     for wn in walk_document(doc):
         if wn.kind != "paragraph":
             continue
-        for run in wn.obj.runs:
-            t = run.text
-            if t and ("{" in t or "%}" in t):
-                run.text = _neutralize_run(t)
+        for t in wn.obj._p.iter(qn("w:t")):
+            if t.text and ("{" in t.text or "%}" in t.text):
+                t.text = _neutralize_run(t.text)
 
 
 def _marker_paragraph_xml(text: str):

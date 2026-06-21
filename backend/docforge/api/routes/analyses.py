@@ -90,7 +90,13 @@ def preview_analysis_docx(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # e.g. a Jinja TemplateSyntaxError from a bad field name
-        logging.getLogger("docforge.api.analyses").exception("preview.docx build failed")
+        # Put the real error TYPE + MESSAGE in the log line itself so it shows on
+        # the in-app Logs page (which lists messages, not tracebacks), then keep
+        # exc_info for the full traceback in the console/file logs.
+        logging.getLogger("docforge.api.analyses").error(
+            "preview.docx build failed (mode=%s): %s: %s",
+            mode, type(exc).__name__, exc, exc_info=True,
+        )
         raise HTTPException(
             status_code=500, detail=f"Preview build failed: {type(exc).__name__}: {exc}"
         ) from exc
