@@ -32,6 +32,10 @@ export {
   Moon,
   KeyRound,
   ScrollText,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

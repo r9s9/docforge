@@ -370,41 +370,6 @@ def preview_docx(
     return Response(content=data, media_type=DOCX_MEDIA)
 
 
-@router.post("/render/pdf")
-def render_pdf(
-    file: UploadFile = File(...),
-    settings: Settings = Depends(get_settings_dep),
-    user: CurrentUser = Depends(get_current_user),
-) -> Response:
-    """Render an uploaded DOCX to PDF via LibreOffice (the "Faithful view").
-
-    Stateless and document-agnostic: the frontend hands over whatever DOCX it is
-    already previewing (template draft, generated preview, representative, or a
-    compliance candidate) and gets back a pixel-faithful PDF. Returns 501 when
-    LibreOffice isn't installed on the server, so the UI can fall back cleanly.
-    """
-    from ...logging_setup import log_event
-    from ...services.pdf import PdfError, docx_bytes_to_pdf_bytes, pdf_available
-
-    if not pdf_available():
-        raise HTTPException(
-            status_code=501,
-            detail="Faithful (PDF) view isn't available — the server has no LibreOffice installed.",
-        )
-    data = file.file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="empty file")
-    if len(data) > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail="file too large")
-    log_event(logger, "render.pdf", bytes=len(data), filename=file.filename or "preview.docx")
-    try:
-        pdf = docx_bytes_to_pdf_bytes(data)
-    except PdfError as exc:
-        log_event(logger, "render.pdf_failed", level=logging.ERROR, error=str(exc)[:200])
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return Response(content=pdf, media_type="application/pdf")
-
-
 @router.post("/templates/{template_id}/route-document")
 def route_document_endpoint(
     template_id: str,

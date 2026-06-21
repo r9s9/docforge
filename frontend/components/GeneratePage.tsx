@@ -13,7 +13,18 @@ import type {
   TemplateDetail,
 } from "@/lib/types";
 import { AiBadge, AiStatusBanner, ErrorBox, Spinner, StatusBadge } from "@/components/ui";
-import { Download, FileText, Plus, RotateCw, Sparkles, X } from "@/components/icons";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Download,
+  FileText,
+  Plus,
+  RotateCw,
+  Sparkles,
+  X,
+} from "@/components/icons";
 import DocBlocks from "@/components/DocBlocks";
 import DocxPreview from "@/components/DocxPreview";
 import ProgressBar from "@/components/ProgressBar";
@@ -97,6 +108,8 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   const [extracted, setExtracted] = useState<PreviewBlock[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Which value cards are expanded (compact list by default; chevron opens one).
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [aiElapsed, setAiElapsed] = useState<number | null>(null);
   const [aiStage, setAiStage] = useState("");
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -203,9 +216,51 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     setPreviewKey((k) => k + 1);
   }
 
+  // --- value-card density (compact list + per-card expand, like FieldCards) ---
+  function toggleField(name: string) {
+    setExpandedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+  const allFieldsExpanded = fields.length > 0 && expandedFields.size >= fields.length;
+  function setAllFields(on: boolean) {
+    setExpandedFields(on ? new Set(fields.map((f) => f.field_name)) : new Set());
+    try {
+      localStorage.setItem("docforge-fieldcards-expanded", on ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
+  // Restore the shared density preference once templates/fields are present.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("docforge-fieldcards-expanded") === "1" && fields.length) {
+        setExpandedFields(new Set(fields.map((f) => f.field_name)));
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail]);
+
+  // A short, human-readable preview of a field's current value for compact cards.
+  function valuePreview(f: FieldDefinition): string {
+    const v = values[f.field_name];
+    if (f.field_type === "table") {
+      return Array.isArray(v) && v.length ? `${v.length} row(s)` : "no rows yet";
+    }
+    if (f.field_type === "boolean") return v === false ? "excluded" : "included";
+    const s = typeof v === "string" ? v.trim() : v != null ? String(v) : "";
+    return s || "—";
+  }
+
   // Scroll the Word preview to where a field landed (and flash it). Falls back to
   // flashing the field card when the field has no anchor in the document yet.
   function jumpToField(fieldName: string) {
+    setExpandedFields((prev) => (prev.has(fieldName) ? prev : new Set(prev).add(fieldName)));
     const targets = document.querySelectorAll<HTMLElement>(`.review-doc [data-hl="${fieldName}"]`);
     if (targets.length === 0) {
       const card = document.getElementById(`genfield-${fieldName}`);
@@ -451,17 +506,54 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                     )}
                   </p>
                   <div className="field-cards">
+                    <div className="field-cards-toolbar">
+                      <span className="fc-density-hint">
+                        Compact list — click a card’s arrow to fill it in.
+                      </span>
+                      <button
+                        type="button"
+                        className="fc-expand-all"
+                        onClick={() => setAllFields(!allFieldsExpanded)}
+                        title={allFieldsExpanded ? "Collapse every card" : "Expand every card"}
+                      >
+                        {allFieldsExpanded ? (
+                          <>
+                            <ChevronsDownUp size={14} strokeWidth={2} /> Collapse all
+                          </>
+                        ) : (
+                          <>
+                            <ChevronsUpDown size={14} strokeWidth={2} /> Expand all
+                          </>
+                        )}
+                      </button>
+                    </div>
                     {fields.map((f) => {
                       const placement =
                         routing?.placements.find((p) => p.field_name === f.field_name) || null;
                       const missing = routing?.missing_required.includes(f.field_name);
+                      const open = expandedFields.has(f.field_name);
                       return (
                         <div
-                          className={`field-card ${missing ? "needs-value" : ""}`}
+                          className={`field-card ${open ? "" : "compact"} ${
+                            missing ? "needs-value" : ""
+                          }`}
                           id={`genfield-${f.field_name}`}
                           key={f.field_name}
                         >
                           <div className="field-card-head">
+                            <button
+                              type="button"
+                              className="field-card-chevron"
+                              aria-expanded={open}
+                              onClick={() => toggleField(f.field_name)}
+                              title={open ? "Show less" : "Fill in this field"}
+                            >
+                              {open ? (
+                                <ChevronDown size={16} strokeWidth={2.2} />
+                              ) : (
+                                <ChevronRight size={16} strokeWidth={2.2} />
+                              )}
+                            </button>
                             <button
                               type="button"
                               className="field-card-name fc-jump"
@@ -476,44 +568,66 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                             </span>
                             {placement && <RoutedChip p={placement} />}
                           </div>
-                          <div style={{ marginTop: 8 }}>
-                            {f.field_type === "table" ? (
-                              <TableEditor
-                                field={f}
-                                rows={values[f.field_name] || []}
-                                onChange={(rows) => setValues({ ...values, [f.field_name]: rows })}
-                              />
-                            ) : f.field_type === "boolean" ? (
-                              <label className="row" style={{ gap: 8, fontWeight: 400 }}>
-                                <input
-                                  type="checkbox"
-                                  style={{ width: "auto" }}
-                                  checked={values[f.field_name] ?? true}
-                                  onChange={(e) =>
-                                    setValues({ ...values, [f.field_name]: e.target.checked })
+                          {open ? (
+                            <div style={{ marginTop: 8 }}>
+                              {f.field_type === "table" ? (
+                                <TableEditor
+                                  field={f}
+                                  rows={values[f.field_name] || []}
+                                  onChange={(rows) =>
+                                    setValues({ ...values, [f.field_name]: rows })
                                   }
                                 />
-                                <span className="muted">Include this content</span>
-                              </label>
-                            ) : f.field_type === "multiline_text" ? (
-                              <textarea
-                                value={values[f.field_name] || ""}
-                                onChange={(e) =>
-                                  setValues({ ...values, [f.field_name]: e.target.value })
-                                }
-                                placeholder={
-                                  f.classification === "REPEATABLE_SECTION" ? "One item per line…" : ""
-                                }
-                              />
-                            ) : (
-                              <input
-                                value={values[f.field_name] || ""}
-                                onChange={(e) =>
-                                  setValues({ ...values, [f.field_name]: e.target.value })
-                                }
-                              />
-                            )}
-                          </div>
+                              ) : f.field_type === "boolean" ? (
+                                <label className="row" style={{ gap: 8, fontWeight: 400 }}>
+                                  <input
+                                    type="checkbox"
+                                    style={{ width: "auto" }}
+                                    checked={values[f.field_name] ?? true}
+                                    onChange={(e) =>
+                                      setValues({ ...values, [f.field_name]: e.target.checked })
+                                    }
+                                  />
+                                  <span className="muted">Include this content</span>
+                                </label>
+                              ) : f.field_type === "multiline_text" ? (
+                                <textarea
+                                  value={values[f.field_name] || ""}
+                                  onChange={(e) =>
+                                    setValues({ ...values, [f.field_name]: e.target.value })
+                                  }
+                                  placeholder={
+                                    f.classification === "REPEATABLE_SECTION"
+                                      ? "One item per line…"
+                                      : ""
+                                  }
+                                />
+                              ) : (
+                                <input
+                                  value={values[f.field_name] || ""}
+                                  onChange={(e) =>
+                                    setValues({ ...values, [f.field_name]: e.target.value })
+                                  }
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="field-card-summary"
+                              onClick={() => toggleField(f.field_name)}
+                              title="Fill in this field"
+                            >
+                              <span
+                                className={`fc-sum-value ${
+                                  valuePreview(f) === "—" ? "empty" : ""
+                                }`}
+                              >
+                                {valuePreview(f)}
+                              </span>
+                              {missing && <span className="fc-sum-req">· needs a value</span>}
+                            </button>
+                          )}
                         </div>
                       );
                     })}

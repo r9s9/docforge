@@ -1046,50 +1046,6 @@ tr.low-conf td {
   z-index: 2;
 }
 
-/* Live / Faithful preview switch — pinned top-right, overlays the page below. */
-.docx-modes {
-  position: sticky;
-  top: 6px;
-  z-index: 3;
-  width: max-content;
-  margin: 0 6px -34px auto;
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--card);
-  box-shadow: var(--shadow);
-}
-.docx-modes button {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 5px 13px;
-  cursor: pointer;
-}
-.docx-modes button.active {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-.docx-canvas.is-pdf {
-  padding: 0;
-  background: var(--card-2);
-  overflow: hidden;
-}
-.docx-pdf {
-  width: 100%;
-  height: 78vh;
-  border: 0;
-  display: block;
-  background: #fff;
-}
-.docx-canvas.fit.is-pdf .docx-pdf {
-  height: 82vh;
-}
-
 /* A rendered Word document is always shown on light "paper", regardless of the
    app's light/dark theme — documents are black-on-white. Two parts:
    (1) pin the theme variables to light values inside the preview, so any
@@ -1575,6 +1531,126 @@ tr.low-conf td {
 .field-card-conf.low {
   color: var(--red);
   font-weight: 600;
+}
+
+/* --- Field-card density: compact list + per-card expand ------------------- */
+/* Toolbar above the list: a hint + an expand-all / collapse-all toggle. */
+.field-cards-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.fc-density-hint {
+  font-size: 12px;
+  color: var(--faint);
+}
+.fc-expand-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: var(--card-2);
+  color: var(--muted);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.fc-expand-all:hover {
+  color: var(--accent-press);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+/* The chevron is the "make it bigger/smaller" control on each card. */
+.field-card-chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.field-card-chevron:hover {
+  color: var(--accent-press);
+  background: var(--accent-soft);
+}
+/* Compact cards are tighter and lose the heavy accent rail to read as a list. */
+.field-card.compact {
+  padding: 8px 12px;
+}
+/* One-line summary shown only when the card is collapsed. */
+.field-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 0 0 0 30px; /* align under the name, past the chevron */
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.fc-sum-label {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+}
+.fc-sum-sep,
+.fc-sum-type {
+  color: var(--faint);
+  white-space: nowrap;
+}
+.fc-sum-req {
+  color: var(--amber);
+  white-space: nowrap;
+}
+/* Current value preview in compact value-cards (Generate). */
+.fc-sum-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.fc-sum-value.empty {
+  color: var(--faint);
+}
+/* Confidence dot — color-coded at-a-glance signal on collapsed review cards. */
+.fc-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-left: auto;
+  background: var(--muted);
+}
+.fc-dot.high {
+  background: var(--green);
+}
+.fc-dot.med {
+  background: var(--amber);
+}
+.fc-dot.low {
+  background: var(--red);
 }
 
 /* --- Auth (login / splash) --- */
