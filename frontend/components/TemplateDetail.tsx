@@ -12,18 +12,23 @@ import type {
   TemplateVersion,
 } from "@/lib/types";
 import { ClassificationBadge, ErrorBox, Spinner } from "@/components/ui";
-import { PenLine, Trash2, X } from "@/components/icons";
+import { PenLine, RotateCw, Trash2 } from "@/components/icons";
+import FieldCards, { type EditableField } from "@/components/FieldCards";
+import DocxPreview from "@/components/DocxPreview";
 
 type Tab = "elements" | "fields" | "rules" | "sections" | "versions" | "sources";
-
-const FIELD_TYPES = ["text", "multiline_text", "date", "person", "number", "enum", "table", "boolean"];
 
 export default function TemplateDetail({ id }: { id: string }) {
   const router = useRouter();
   const [detail, setDetail] = useState<TDetail | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("elements");
-  const [editFields, setEditFields] = useState<FieldDefinition[] | null>(null);
+  // Edit mode mirrors the creation review: editable cards + a live Word preview.
+  const [editFields, setEditFields] = useState<EditableField[] | null>(null);
+  const [previewFields, setPreviewFields] = useState<FieldDefinition[]>([]);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [previewMode, setPreviewMode] = useState<"filled" | "tags">("filled");
+  const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [pickProject, setPickProject] = useState("");
@@ -81,12 +86,43 @@ export default function TemplateDetail({ id }: { id: string }) {
 
   function startEdit() {
     if (!detail?.latest) return;
-    setEditFields(detail.latest.fields.map((f) => ({ ...f })));
+    const items = detail.latest.fields.map((f) => ({ field: { ...f }, include: true }));
+    setEditFields(items);
+    setPreviewFields(items.map((e) => ({ ...e.field })));
+    setPreviewKey((k) => k + 1);
     setTab("fields");
   }
 
-  function patchEditField(i: number, patch: Partial<FieldDefinition>) {
-    setEditFields((prev) => (prev ? prev.map((f, idx) => (idx === i ? { ...f, ...patch } : f)) : prev));
+  function updateField(i: number, patch: Partial<FieldDefinition>) {
+    setEditFields((prev) =>
+      prev ? prev.map((ef, idx) => (idx === i ? { ...ef, field: { ...ef.field, ...patch } } : ef)) : prev,
+    );
+  }
+
+  function toggleInclude(i: number) {
+    setEditFields((prev) =>
+      prev ? prev.map((ef, idx) => (idx === i ? { ...ef, include: !ef.include } : ef)) : prev,
+    );
+  }
+
+  // Re-render the Word preview from the current (included) edits.
+  function updatePreview() {
+    if (!editFields) return;
+    setPreviewFields(editFields.filter((e) => e.include).map((e) => ({ ...e.field })));
+    setPreviewKey((k) => k + 1);
+  }
+
+  // Click a field card → highlight + scroll to its element in the Word preview.
+  function jumpTo(fieldName: string) {
+    setSelectedField(fieldName);
+    document
+      .querySelectorAll<HTMLElement>(".docx-hl-selected")
+      .forEach((el) => el.classList.remove("docx-hl-selected"));
+    const matches = document.querySelectorAll<HTMLElement>(`[data-hl="${fieldName}"]`);
+    matches.forEach((el, i) => {
+      el.classList.add("docx-hl-selected");
+      if (i === 0) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
 
   async function saveVersion() {
@@ -94,10 +130,14 @@ export default function TemplateDetail({ id }: { id: string }) {
     setSaving(true);
     setError("");
     try {
-      await api.createVersion(detail.id, editFields);
+      await api.createVersion(
+        detail.id,
+        editFields.filter((e) => e.include).map((e) => e.field),
+      );
       const fresh = await api.getTemplate(detail.id);
       setDetail(fresh);
       setEditFields(null);
+      setTab("fields");
     } catch (e: any) {
       setError(String(e.message || e));
     } finally {
@@ -239,86 +279,77 @@ export default function TemplateDetail({ id }: { id: string }) {
           <div className="notice" style={{ marginBottom: 14 }}>
             Editing fields → will publish <strong>v{detail.latest_version + 1}</strong>. The layout
             is rebuilt from the original document; renamed/removed fields update the placeholders.
-            <div className="muted" style={{ marginTop: 6 }}>
-              A field’s <strong>description</strong> guides the AI when generating a document from
-              plain notes — keep it specific (what the value is, its format, where it appears).
-            </div>
+            Untick a card to keep that text fixed — for an <strong>image</strong> field, untick to
+            always keep the original picture.
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Field name</th>
-                <th>Label</th>
-                <th>Description</th>
-                <th>Type</th>
-                <th>Req</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {editFields.map((f, i) => (
-                <tr key={i}>
-                  <td>
-                    <input
-                      className="mono"
-                      value={f.field_name}
-                      onChange={(e) => patchEditField(i, { field_name: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input value={f.label} onChange={(e) => patchEditField(i, { label: e.target.value })} />
-                  </td>
-                  <td>
-                    <textarea
-                      value={f.description || ""}
-                      rows={2}
-                      placeholder="What this value is — guides the AI"
-                      onChange={(e) => patchEditField(i, { description: e.target.value })}
-                      style={{ minWidth: 220 }}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={f.field_type}
-                      onChange={(e) => patchEditField(i, { field_type: e.target.value })}
-                    >
-                      {FIELD_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      style={{ width: "auto" }}
-                      checked={f.required}
-                      onChange={(e) => patchEditField(i, { required: e.target.checked })}
-                    />
-                  </td>
-                  <td>
-                    {f.field_type !== "boolean" && (
-                      <button
-                        className="btn secondary small icon"
-                        title="Remove field (content becomes fixed)"
-                        onClick={() => setEditFields(editFields.filter((_, idx) => idx !== i))}
-                      >
-                        <X size={14} strokeWidth={2} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="row" style={{ marginTop: 16 }}>
-            <button className="btn" onClick={saveVersion} disabled={saving}>
-              {saving ? <Spinner label="Saving…" /> : `Save as v${detail.latest_version + 1}`}
-            </button>
-            <button className="btn secondary" onClick={() => setEditFields(null)} disabled={saving}>
-              Cancel
-            </button>
+          <div className="review-grid">
+            <div className="review-doc">
+              <div className="review-head">
+                <h2 className="section-h">Document preview</h2>
+                <div className="seg-toggle" role="tablist" aria-label="Preview mode">
+                  <button
+                    className={previewMode === "filled" ? "active" : ""}
+                    onClick={() => {
+                      setPreviewMode("filled");
+                      setPreviewKey((k) => k + 1);
+                    }}
+                  >
+                    Sample-filled
+                  </button>
+                  <button
+                    className={previewMode === "tags" ? "active" : ""}
+                    onClick={() => {
+                      setPreviewMode("tags");
+                      setPreviewKey((k) => k + 1);
+                    }}
+                  >
+                    Template tags
+                  </button>
+                </div>
+              </div>
+              <p className="muted" style={{ marginTop: 0 }}>
+                {previewMode === "filled"
+                  ? "A real Word page with each variable shown as «Label». This is how the document is structured."
+                  : "The raw template with {{ placeholders }} and loop tags — what the engine fills in."}
+              </p>
+              <DocxPreview
+                load={() => api.templateEditPreviewDocx(detail.id, previewMode, previewFields)}
+                refreshKey={previewKey}
+                markPersistent={false}
+                highlights={previewFields.flatMap((f) => [
+                  { key: f.field_name, text: f.field_name },
+                  { key: f.field_name, text: f.label },
+                ])}
+              />
+            </div>
+
+            <div className="review-fields">
+              <div className="review-head">
+                <h2 className="section-h">Fields ({editFields.filter((e) => e.include).length})</h2>
+                <button className="btn secondary small" onClick={updatePreview}>
+                  <RotateCw size={14} strokeWidth={1.9} /> Update preview
+                </button>
+              </div>
+              <p className="muted" style={{ marginTop: 0 }}>
+                Edit a field’s name, type, or description, then refresh the preview. A clear
+                description guides the AI when generating from plain notes.
+              </p>
+              <FieldCards
+                items={editFields}
+                onUpdate={updateField}
+                onToggle={toggleInclude}
+                onJump={jumpTo}
+                selected={selectedField}
+              />
+              <div className="row" style={{ marginTop: 16 }}>
+                <button className="btn" onClick={saveVersion} disabled={saving}>
+                  {saving ? <Spinner label="Saving…" /> : `Save as v${detail.latest_version + 1}`}
+                </button>
+                <button className="btn secondary" onClick={() => setEditFields(null)} disabled={saving}>
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

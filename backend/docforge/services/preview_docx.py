@@ -12,12 +12,14 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from ..assembler import assemble
-from ..db.models import AnalysisJob, SourceDocument
+from ..config import Settings, get_settings
+from ..db.models import AnalysisJob, SourceDocument, Template
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
 from ..storage import get_storage
 from ..template_builder import build_template_docx
+from ..template_registry import TemplateRegistry
 
 
 def _sample_value(field: FieldDefinition) -> object:
@@ -71,6 +73,55 @@ def build_job_preview_docx(
 
     # rep.stored_path is a storage key -> materialize a local path for the builder.
     with get_storage().local_path(rep.stored_path) as rep_path:
+        template_bytes = build_template_docx(str(rep_path), result, fields)
+    if mode == "tags":
+        return template_bytes
+    return assemble(template_bytes, _sample_context(fields), fields)
+
+
+def build_template_edit_preview_docx(
+    template: Template,
+    *,
+    mode: str = "filled",
+    fields: list[FieldDefinition],
+    classifications: list[ElementClassification] | None = None,
+    settings: Settings | None = None,
+    registry: TemplateRegistry | None = None,
+) -> bytes:
+    """Preview an *already-published* template with in-progress field edits.
+
+    Rebuilds template.docx from the version's stored representative DOCX using the
+    edited ``fields`` (exactly what ``republish_template`` would save), so the
+    live preview reflects renames/removals/added-or-image fields before the user
+    commits a new version. ``mode="tags"`` shows raw ``{{ placeholders }}``;
+    ``mode="filled"`` shows readable «Label» sample values.
+    """
+    # Imported lazily to avoid a circular import (republish imports nothing here,
+    # but keep the dependency direction explicit and cheap).
+    from .republish import _merge_classifications
+
+    settings = settings or get_settings()
+    registry = registry or TemplateRegistry(settings.templates_dir)
+    version = template.latest_version
+    if version < 1 or not registry.representative_docx_exists(template.id, version):
+        raise ValueError(
+            "This template predates editable previews — re-create it (upload examples) to edit it."
+        )
+
+    review = registry.load_review(template.id, version)
+    intel = registry.load_intelligence(template.id, version)
+    cls_list = (
+        classifications
+        if classifications is not None
+        else _merge_classifications(review.classifications, fields)
+    )
+    result = ClassificationResult(
+        extraction_document_id="",
+        classifications=cls_list,
+        sections=intel.sections,
+        document_type_guess=intel.document_type_guess,
+    )
+    with registry.representative_docx_localpath(template.id, version) as rep_path:
         template_bytes = build_template_docx(str(rep_path), result, fields)
     if mode == "tags":
         return template_bytes

@@ -22,6 +22,7 @@ from ...document_ingest import IngestError, store_source_document
 from ...jobs import submit
 from ...schemas.generation import GenerationInput
 from ...services import (
+    build_template_edit_preview_docx,
     generate_document,
     preview_document,
     publish_template,
@@ -36,6 +37,7 @@ from ...validator import validate
 from ..auth import CurrentUser, get_current_user
 from ..deps import get_db, get_registry, get_settings_dep
 from ..schemas import (
+    PreviewDocxRequest,
     PublishRequest,
     RenameRequest,
     RepublishRequest,
@@ -240,6 +242,47 @@ def create_template_version(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"template": template_dto(template), "version": version_dto(tv)}
+
+
+@router.post("/templates/{template_id}/edit-preview.docx")
+def edit_preview_docx(
+    template_id: str,
+    req: PreviewDocxRequest | None = None,
+    mode: str = "filled",
+    db: Session = Depends(get_db),
+    registry: TemplateRegistry = Depends(get_registry),
+    settings: Settings = Depends(get_settings_dep),
+    user: CurrentUser = Depends(get_current_user),
+) -> Response:
+    """Preview an existing template rebuilt with in-progress field edits.
+
+    Mirrors the analysis review preview, but for a published template: the layout
+    is rebuilt from the stored representative DOCX using the edited fields, so the
+    Word preview reflects renames/removals/added-or-image fields before saving a
+    new version. ``mode=filled`` shows «Label» samples; ``mode=tags`` shows raw
+    ``{{ placeholders }}``.
+    """
+    t = _get_template(db, template_id, user)
+    if mode not in ("filled", "tags"):
+        raise HTTPException(status_code=400, detail="mode must be 'filled' or 'tags'")
+    req = req or PreviewDocxRequest()
+    try:
+        data = build_template_edit_preview_docx(
+            t,
+            mode=mode,
+            fields=req.fields or [],
+            classifications=req.classifications,
+            settings=settings,
+            registry=registry,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("edit-preview.docx failed for template %s", template_id)
+        raise HTTPException(
+            status_code=500, detail=f"Preview build failed: {type(exc).__name__}: {exc}"
+        ) from exc
+    return Response(content=data, media_type=DOCX_MEDIA)
 
 
 @router.get("/templates/{template_id}/versions")

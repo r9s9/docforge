@@ -87,6 +87,21 @@ export const api = {
     return res.arrayBuffer();
   },
 
+  // Preview an existing template rebuilt with in-progress field edits (edit screen).
+  templateEditPreviewDocx: async (
+    id: string,
+    mode: "filled" | "tags",
+    fields?: unknown[],
+  ): Promise<ArrayBuffer> => {
+    const res = await authFetch(`/templates/${id}/edit-preview.docx?mode=${mode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: fields ?? null }),
+    });
+    if (!res.ok) await raiseForStatus(res);
+    return res.arrayBuffer();
+  },
+
   // Fire-and-forget cancel that survives page unload/navigation (keepalive).
   cancelAnalysisBeacon: (id: string) => {
     try {
