@@ -1,7 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { api } from "@/lib/api";
 import { useHealth } from "@/lib/useHealth";
+import type { AISettings, AIUsage } from "@/lib/types";
 import { AlertTriangle, Sparkles } from "@/components/icons";
 
 /** Small chip marking an AI-powered action. */
@@ -13,10 +15,51 @@ export function AiBadge({ title }: { title?: string }) {
   );
 }
 
-/** App-wide AI connection status + degraded-mode message. */
+/** App-wide AI connection status + degraded-mode message.
+ *
+ * AI can come from three places (resolved per user, server-side): the user's own
+ * key, a shared free-tier allowance, or the legacy global key. `health.ai_active`
+ * only reflects the *global* key, so on a free-tier/own-key deployment it reads
+ * false even though AI works — we must also consult the per-user settings/usage. */
 export function AiStatusBanner() {
   const health = useHealth();
+  const [ai, setAi] = useState<AISettings | null>(null);
+  const [usage, setUsage] = useState<AIUsage | null>(null);
+
+  useEffect(() => {
+    api
+      .getAISettings()
+      .then(({ ai, usage }) => {
+        setAi(ai);
+        setUsage(usage);
+      })
+      .catch(() => {
+        /* needs auth; ignore (falls back to global health below) */
+      });
+  }, []);
+
   if (!health) return null;
+
+  // 1) The user's own key (unlimited) — or, in local/no-auth dev, the local key.
+  if (ai?.active) {
+    return (
+      <div className="ai-status on">
+        <span className="dot" /> AI connected — <strong>{ai.provider}/{ai.model}</strong>.
+        Smart classification, unstructured-text routing and document mapping are enabled.
+      </div>
+    );
+  }
+  // 2) Shared free-tier allowance still available.
+  if (usage?.free_enabled && !usage.has_own_key && usage.free_remaining > 0) {
+    return (
+      <div className="ai-status on">
+        <span className="dot" /> AI connected — <strong>{usage.free_remaining} free AI action(s)</strong>{" "}
+        remaining. Smart classification and document mapping are enabled.{" "}
+        <a href="/settings">Add your own key →</a>
+      </div>
+    );
+  }
+  // 3) Legacy global shared key.
   if (health.ai_active) {
     return (
       <div className="ai-status on">
@@ -25,6 +68,17 @@ export function AiStatusBanner() {
       </div>
     );
   }
+  // 4) Free tier configured but used up, no own key.
+  if (usage?.free_enabled && !usage.has_own_key && usage.free_remaining <= 0) {
+    return (
+      <div className="ai-status off">
+        <AlertTriangle size={15} strokeWidth={2} /> Your free AI actions are used up — running the
+        offline heuristic engine. <a href="/settings">Add your own API key →</a> to re-enable smart
+        classification and mapping.
+      </div>
+    );
+  }
+  // 5) No AI at all.
   return (
     <div className="ai-status off">
       <AlertTriangle size={15} strokeWidth={2} /> AI is off — running the offline heuristic engine.

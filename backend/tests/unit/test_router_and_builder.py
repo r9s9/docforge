@@ -11,7 +11,14 @@ from docforge.assembler import assemble
 from docforge.schemas.enums import FieldType
 from docforge.schemas.template import FieldDefinition
 from docforge.template_builder import build_template_from_examples
-from docforge.template_builder.builder import _neutralize_run, _neutralize_stray_tags
+from docforge.template_builder.builder import (
+    _neutralize_run,
+    _neutralize_stray_tags,
+    _run_has_image,
+    _templatize_paragraph,
+)
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 
 def _fields():
@@ -55,6 +62,23 @@ def test_build_then_assemble_roundtrip(project_docs):
     assert "Report Date: 2026-07-01" in texts
     # header + exactly one rendered data row
     assert len(doc.tables[0].rows) == 2
+
+
+def test_templatize_paragraph_preserves_images():
+    # A paragraph that holds a logo + dynamic text: templatizing the text must
+    # insert the {{ placeholder }} WITHOUT deleting the image run (regression:
+    # logos used to vanish from the built template and every generated document).
+    doc = Document()
+    para = doc.add_paragraph("Logo: ")
+    img_run = para.add_run()
+    img_run._element.append(OxmlElement("w:drawing"))  # stand-in for an embedded picture
+    assert _run_has_image(img_run)
+
+    _templatize_paragraph(para, "Logo: ", "{{ company_logo }}", "")
+
+    # Image drawing survived, and the placeholder text is present.
+    assert para._p.findall(".//" + qn("w:drawing"))
+    assert "{{ company_logo }}" in para.text
 
 
 def test_neutralize_run_disarms_literal_jinja():

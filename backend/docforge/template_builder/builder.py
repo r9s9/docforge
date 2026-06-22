@@ -131,8 +131,28 @@ def _run_format_at(paragraph: Paragraph, offset: int) -> dict:
     return fmt
 
 
-def _clear_runs(paragraph: Paragraph) -> None:
+def _run_has_image(run) -> bool:
+    """True if a run carries a picture/drawing/embedded object (not just text)."""
+    el = run._element
+    return (
+        el.find(qn("w:drawing")) is not None
+        or el.find(qn("w:pict")) is not None
+        or el.find(qn("w:object")) is not None
+    )
+
+
+def _clear_runs(paragraph: Paragraph, *, keep_images: bool = True) -> None:
+    """Remove a paragraph's runs.
+
+    By default, runs that carry an image/drawing/object are preserved: when we
+    swap a paragraph's dynamic text for a ``{{ placeholder }}`` we must not delete
+    its logo or picture along with the text, or images vanish from the template
+    (and every document generated from it). The placeholder text is appended
+    alongside the surviving image run.
+    """
     for r in list(paragraph.runs):
+        if keep_images and _run_has_image(r):
+            continue
         r._element.getparent().remove(r._element)
 
 
