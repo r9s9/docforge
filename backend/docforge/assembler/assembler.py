@@ -7,6 +7,8 @@ and produces the final DOCX via docxtpl. Field definitions are used only to
 
 from __future__ import annotations
 
+import base64
+import binascii
 from io import BytesIO
 from typing import Any
 
@@ -77,6 +79,27 @@ def _coerce_rows(value: Any, field: FieldDefinition) -> list[dict]:
     return rows
 
 
+def _image_bytes(value: Any) -> bytes | None:
+    """Decode an image field value (raw bytes or a base64 / data-URL string)."""
+    if not value:
+        return None
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value)
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        if s.startswith("data:"):  # strip a "data:image/png;base64," prefix
+            comma = s.find(",")
+            if comma != -1:
+                s = s[comma + 1 :]
+        try:
+            return base64.b64decode(s, validate=False)
+        except (binascii.Error, ValueError):
+            return None
+    return None
+
+
 def build_render_context(fields: list[FieldDefinition], raw: dict[str, Any]) -> dict[str, Any]:
     """Normalize a raw field->value map into a render-safe context.
 
@@ -88,7 +111,9 @@ def build_render_context(fields: list[FieldDefinition], raw: dict[str, Any]) -> 
     for f in fields:
         defined.add(f.field_name)
         value = raw.get(f.field_name)
-        if f.field_type == FieldType.TABLE:
+        if f.field_type == FieldType.IMAGE:
+            ctx[f.field_name] = value  # raw (bytes / base64); applied via replace_pic
+        elif f.field_type == FieldType.TABLE:
             ctx[f.field_name] = _coerce_rows(value, f)
         elif f.field_type == FieldType.BOOLEAN:
             ctx[f.field_name] = _coerce_bool(value if value is not None else f.default)
@@ -111,6 +136,16 @@ def assemble(
     source: Any = BytesIO(template) if isinstance(template, (bytes, bytearray)) else str(template)
     tpl = DocxTemplate(source)
     render_ctx = build_render_context(fields, context) if fields else context
+    # Image fields: swap the tagged picture in place (keeping its size/position),
+    # or leave the original when no image was supplied. Must be queued before
+    # render() — docxtpl applies replacements during its pre-processing pass.
+    if fields:
+        tpl.allow_missing_pics = True  # tolerate a template without that picture
+        for f in fields:
+            if f.field_type == FieldType.IMAGE:
+                data = _image_bytes(render_ctx.pop(f.field_name, None))
+                if data:
+                    tpl.replace_pic(f.field_name, BytesIO(data))
     # autoescape is required: field values can contain &, <, > (e.g. "R&D",
     # "Smith & Jones"). Without it those land raw in the document XML and either
     # corrupt it (xmlParseEntityRef) or get silently dropped.

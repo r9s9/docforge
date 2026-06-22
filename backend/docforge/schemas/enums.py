@@ -35,6 +35,7 @@ class ClassificationType(str, Enum):
     DYNAMIC_PERSON = "DYNAMIC_PERSON"
     DYNAMIC_ENUM = "DYNAMIC_ENUM"
     DYNAMIC_NUMBER = "DYNAMIC_NUMBER"
+    DYNAMIC_IMAGE = "DYNAMIC_IMAGE"
     REPEATABLE_TABLE = "REPEATABLE_TABLE"
     REPEATABLE_SECTION = "REPEATABLE_SECTION"
     AUTO_FIELD = "AUTO_FIELD"
@@ -52,6 +53,7 @@ class FieldType(str, Enum):
     ENUM = "enum"
     TABLE = "table"
     BOOLEAN = "boolean"
+    IMAGE = "image"
 
 
 class DiffStatus(str, Enum):
@@ -146,6 +148,7 @@ _FIELD_TYPE_MAP: dict[ClassificationType, FieldType] = {
     ClassificationType.DYNAMIC_PERSON: FieldType.PERSON,
     ClassificationType.DYNAMIC_ENUM: FieldType.ENUM,
     ClassificationType.DYNAMIC_NUMBER: FieldType.NUMBER,
+    ClassificationType.DYNAMIC_IMAGE: FieldType.IMAGE,
     ClassificationType.REPEATABLE_TABLE: FieldType.TABLE,
     ClassificationType.REPEATABLE_SECTION: FieldType.MULTILINE_TEXT,
 }

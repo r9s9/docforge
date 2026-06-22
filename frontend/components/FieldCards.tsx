@@ -14,6 +14,7 @@ export const FIELD_TYPES = [
   "enum",
   "table",
   "boolean",
+  "image",
 ];
 
 // Remember the user's preferred density across visits.
@@ -39,6 +40,9 @@ function describeField(f: FieldDefinition): string {
   }
   if (f.field_type === "boolean") {
     return "An optional section — include it or leave it out for each document.";
+  }
+  if (f.field_type === "image") {
+    return "A picture you can replace per document — upload a new image when generating, or leave it empty to keep the original. Untick the card to always keep the original (logos, icons, brand marks).";
   }
   switch (f.field_type) {
     case "date":

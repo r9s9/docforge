@@ -11,10 +11,14 @@ from docforge.assembler import assemble
 from docforge.schemas.enums import FieldType
 from docforge.schemas.template import FieldDefinition
 from docforge.template_builder import build_template_from_examples
+from docforge.assembler.assembler import _image_bytes, build_render_context
 from docforge.template_builder.builder import (
+    _PIC_NS,
     _neutralize_run,
     _neutralize_stray_tags,
+    _paragraph_has_picture,
     _run_has_image,
+    _tag_picture,
     _templatize_paragraph,
 )
 from docx.oxml import OxmlElement
@@ -79,6 +83,46 @@ def test_templatize_paragraph_preserves_images():
     # Image drawing survived, and the placeholder text is present.
     assert para._p.findall(".//" + qn("w:drawing"))
     assert "{{ company_logo }}" in para.text
+
+
+def _para_with_picture():
+    """A paragraph carrying a minimal DrawingML picture (w:drawing > pic:cNvPr)."""
+    doc = Document()
+    para = doc.add_paragraph()
+    run = para.add_run()
+    drawing = OxmlElement("w:drawing")
+    cnvpr = OxmlElement("pic:cNvPr")
+    cnvpr.set("name", "Picture 1")
+    drawing.append(cnvpr)
+    run._element.append(drawing)
+    return doc, para, cnvpr
+
+
+def test_tag_picture_sets_replace_key():
+    _doc, para, cnvpr = _para_with_picture()
+    assert _paragraph_has_picture(para)
+    assert _tag_picture(para, "company_logo")
+    # docxtpl.replace_pic matches a picture by its cNvPr title — that's the key.
+    assert cnvpr.get("title") == "company_logo"
+    assert para._p.findall(".//{%s}cNvPr" % _PIC_NS)
+
+
+def test_image_bytes_decodes_inputs():
+    raw = b"\x89PNG\r\n"
+    import base64 as _b64
+
+    assert _image_bytes(raw) == raw
+    assert _image_bytes(_b64.b64encode(raw).decode()) == raw
+    assert _image_bytes("data:image/png;base64," + _b64.b64encode(raw).decode()) == raw
+    assert _image_bytes(None) is None
+    assert _image_bytes("") is None
+
+
+def test_build_render_context_passes_image_through():
+    f = FieldDefinition(field_name="logo", label="Logo", field_type=FieldType.IMAGE, required=False)
+    ctx = build_render_context([f], {"logo": "data:image/png;base64,AAAA"})
+    # Image values are NOT stringified/coerced — assemble decodes + replace_pic them.
+    assert ctx["logo"] == "data:image/png;base64,AAAA"
 
 
 def test_neutralize_run_disarms_literal_jinja():

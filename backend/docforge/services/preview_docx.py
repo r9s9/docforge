@@ -22,6 +22,10 @@ from ..template_builder import build_template_docx
 
 def _sample_value(field: FieldDefinition) -> object:
     """A readable placeholder for one field, used in the sample-filled preview."""
+    if field.field_type == FieldType.IMAGE:
+        # No sample upload -> leave the original picture in place so the preview
+        # shows the real image (logos/figures) rather than a placeholder.
+        return None
     if field.field_type == FieldType.TABLE:
         # One illustrative row keyed by each column's field_name.
         return [{c.field_name: f"«{c.label or c.field_name}»" for c in field.columns}]

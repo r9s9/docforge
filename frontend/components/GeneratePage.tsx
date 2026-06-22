@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   FieldDefinition,
@@ -36,6 +36,43 @@ function blankValue(f: FieldDefinition) {
   if (f.field_type === "table") return [];
   if (f.field_type === "boolean") return f.default ?? true;
   return "";
+}
+
+// Image value editor: pick a file -> base64 data URL stored in the form values.
+// Leaving it empty keeps the template's original picture (logos/icons).
+function ImageInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  function pick(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => onChange(String(r.result || ""));
+    r.readAsDataURL(file);
+  }
+  return (
+    <div className="img-input">
+      {value ? (
+        <div className="img-input-preview">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="Selected" />
+          <button type="button" className="btn secondary small" onClick={() => onChange("")}>
+            Remove — keep original
+          </button>
+        </div>
+      ) : (
+        <p className="muted" style={{ margin: "0 0 6px" }}>
+          No image chosen — the template’s original picture is kept.
+        </p>
+      )}
+      <input ref={ref} type="file" accept="image/*" onChange={pick} />
+    </div>
+  );
 }
 
 function TableEditor({
@@ -253,6 +290,9 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       return Array.isArray(v) && v.length ? `${v.length} row(s)` : "no rows yet";
     }
     if (f.field_type === "boolean") return v === false ? "excluded" : "included";
+    if (f.field_type === "image") {
+      return typeof v === "string" && v.startsWith("data:") ? "new image selected" : "original kept";
+    }
     const s = typeof v === "string" ? v.trim() : v != null ? String(v) : "";
     return s || "—";
   }
@@ -577,6 +617,11 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                                   onChange={(rows) =>
                                     setValues({ ...values, [f.field_name]: rows })
                                   }
+                                />
+                              ) : f.field_type === "image" ? (
+                                <ImageInput
+                                  value={values[f.field_name] || ""}
+                                  onChange={(v) => setValues({ ...values, [f.field_name]: v })}
                                 />
                               ) : f.field_type === "boolean" ? (
                                 <label className="row" style={{ gap: 8, fontWeight: 400 }}>

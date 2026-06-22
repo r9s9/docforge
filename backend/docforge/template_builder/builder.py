@@ -82,6 +82,27 @@ def _neutralize_stray_tags(doc) -> None:
                 t.text = _neutralize_run(t.text)
 
 
+# DrawingML picture namespace — used to find a run's <pic:cNvPr> so we can tag a
+# picture with a stable key. docxtpl.replace_pic() matches a picture by its
+# cNvPr name/title/descr, so writing the field key into @title lets the assembler
+# swap that exact picture at generation while leaving the original as the default.
+_PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+
+
+def _paragraph_has_picture(paragraph: Paragraph) -> bool:
+    """True if the paragraph contains a real DrawingML picture (not just any shape)."""
+    return bool(paragraph._p.findall(".//{%s}cNvPr" % _PIC_NS))
+
+
+def _tag_picture(paragraph: Paragraph, key: str) -> bool:
+    """Tag the first real picture in ``paragraph`` with ``key`` (its cNvPr title)."""
+    cnvprs = paragraph._p.findall(".//{%s}cNvPr" % _PIC_NS)
+    if not cnvprs:
+        return False
+    cnvprs[0].set("title", key)
+    return True
+
+
 def _marker_paragraph_xml(text: str):
     """A bare <w:p> carrying a docxtpl control tag (e.g. {%p if x %})."""
     p = OxmlElement("w:p")
@@ -300,6 +321,11 @@ def build_template_docx(
             continue
 
         para = wn.obj
+        # A paragraph that holds a picture is never rewritten into text — the
+        # image is kept as-is (and tagged below if it's a dynamic image field),
+        # so logos/figures survive instead of being replaced by a placeholder.
+        if _paragraph_has_picture(para):
+            continue
         fd = fd_by_node.get(wn.node_id)
         # Compute the optional toggle name from the ORIGINAL text (before edits).
         include_name = _safe_ident(include_field_name(cls, para)) if cls.optional else None
@@ -322,6 +348,22 @@ def build_template_docx(
 
         if include_name:
             _wrap_optional(para, include_name)
+
+    # Image fields: tag each underlying picture with the field key so the
+    # assembler can swap it via docxtpl.replace_pic at generation. The original
+    # picture stays in place — it's the default, so previews and untouched
+    # ("keep original") images both render exactly as in the example.
+    img_fields = [f for f in fields if f.field_type == FieldType.IMAGE]
+    if img_fields:
+        node_by_id = {wn.node_id: wn for wn in nodes}
+        for f in img_fields:
+            key = _safe_ident(f.field_name)
+            if not key:
+                continue
+            for nid in f.node_ids:
+                wn = node_by_id.get(nid)
+                if wn and wn.kind == "paragraph" and _tag_picture(wn.obj, key):
+                    break
 
     bio = BytesIO()
     doc.save(bio)

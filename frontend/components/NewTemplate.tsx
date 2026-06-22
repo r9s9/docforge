@@ -127,8 +127,18 @@ export default function NewTemplate() {
       }
       setJob(result);
       setName(result.name || result.document_type_guess || "Untitled Template");
-      setFields(result.field_definitions.map((f) => ({ field: { ...f }, include: true })));
-      setPreviewFields(result.field_definitions.map((f) => ({ ...f })));
+      // Image fields default to "keep original" (excluded) so logos/icons are
+      // never lost — the user opts a picture into being replaceable. All other
+      // fields are included by default.
+      setFields(
+        result.field_definitions.map((f) => ({
+          field: { ...f },
+          include: f.field_type !== "image",
+        })),
+      );
+      setPreviewFields(
+        result.field_definitions.filter((f) => f.field_type !== "image").map((f) => ({ ...f })),
+      );
       setPreviewKey((k) => k + 1);
       setStep("review");
     } catch (e: any) {

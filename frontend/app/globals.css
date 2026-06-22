@@ -1533,6 +1533,25 @@ tr.low-conf td {
   font-weight: 600;
 }
 
+/* Image value editor (Generate): thumbnail of the chosen replacement + picker. */
+.img-input-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.img-input-preview img {
+  max-width: 120px;
+  max-height: 90px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  object-fit: contain;
+}
+.img-input input[type="file"] {
+  font-size: 12.5px;
+}
+
 /* --- Field-card density: compact list + per-card expand ------------------- */
 /* Toolbar above the list: a hint + an expand-all / collapse-all toggle. */
 .field-cards-toolbar {
