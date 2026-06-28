@@ -1,5 +1,6 @@
-import LogsPage from "@/components/LogsPage";
+import { redirect } from "next/navigation";
 
+// Logs moved into Settings → Logs. Keep the old route working for bookmarks.
 export default function Page() {
-  return <LogsPage />;
+  redirect("/settings");
 }

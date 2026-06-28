@@ -140,6 +140,14 @@ class TemplateRegistry:
         return self.storage.get_json(key) if self.storage.exists(key) else None
 
     # ----- read: binary DOCX (bytes + local-path access) ------------------
+    def template_docx_key(self, template_id: str, version: int) -> str:
+        """Storage key of the template DOCX (for signed-URL downloads)."""
+        return self._vkey(template_id, version, _TEMPLATE_DOCX)
+
+    def representative_docx_key(self, template_id: str, version: int) -> str:
+        """Storage key of the stored example DOCX (for signed-URL downloads)."""
+        return self._vkey(template_id, version, _REPRESENTATIVE_DOCX)
+
     def template_docx_bytes(self, template_id: str, version: int) -> bytes:
         return self.storage.get_bytes(self._vkey(template_id, version, _TEMPLATE_DOCX))
 

@@ -148,6 +148,56 @@ class SupabaseStorage(Storage):
             offset += len(rows)
         return out
 
+    # ----- signed URLs (direct browser <-> Supabase Storage) --------------
+    def _absolute(self, rel: str) -> str:
+        """Turn a Supabase-returned relative URL into an absolute one.
+
+        Supabase returns paths like ``/object/sign/<bucket>/<key>?token=…`` (the
+        exact leading prefix varies by version); we anchor on ``object/`` and
+        re-root it under our ``/storage/v1`` base so the browser gets a full URL.
+        """
+        tail = rel.split("object/", 1)[-1].lstrip("/")
+        return f"{self.base}/object/{tail}"
+
+    def signed_upload(self, key: str, *, content_type: str | None = None) -> dict | None:
+        r = self._client.post(f"{self.base}/object/upload/sign/{self.bucket}/{key}")
+        if r.status_code not in (200, 201):
+            raise OSError(f"sign upload failed for {key!r}: {r.status_code} {r.text[:300]}")
+        rel = (r.json() or {}).get("url") or ""
+        if not rel:
+            return None
+        return {
+            "method": "PUT",
+            "url": self._absolute(rel),
+            # The token in the URL authorizes the write; no Authorization header
+            # is needed (and the browser must NOT send the service key). Only
+            # content-type is sent — staging keys are unique, so no upsert header
+            # is needed (fewer custom headers = simpler cross-origin preflight).
+            "headers": {"content-type": content_type or _DEFAULT_CONTENT_TYPE},
+        }
+
+    def signed_download(
+        self, key: str, *, expires_in: int = 3600, filename: str | None = None
+    ) -> str | None:
+        r = self._client.post(
+            f"{self.base}/object/sign/{self.bucket}/{key}", json={"expiresIn": int(expires_in)}
+        )
+        if r.status_code in (400, 404):
+            raise FileNotFoundError(f"storage key not found: {key!r}")
+        if r.status_code != 200:
+            raise OSError(f"sign download failed for {key!r}: {r.status_code} {r.text[:300]}")
+        data = r.json() or {}
+        rel = data.get("signedURL") or data.get("signedUrl") or ""
+        if not rel:
+            return None
+        url = self._absolute(rel)
+        if filename:
+            from urllib.parse import quote
+
+            sep = "&" if "?" in url else "?"
+            url = f"{url}{sep}download={quote(filename)}"
+        return url
+
     @contextmanager
     def local_path(self, key: str) -> Iterator[Path]:
         data = self.get_bytes(key)

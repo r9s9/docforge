@@ -64,6 +64,32 @@ class PreviewDocxRequest(BaseModel):
     classifications: list[ElementClassification] | None = None
 
 
+class SignUploadRequest(BaseModel):
+    """Ask the server for a direct-to-storage upload target for one file."""
+
+    filename: str
+    content_type: str | None = None
+
+
+class SourceRef(BaseModel):
+    """A file the browser already uploaded straight to storage."""
+
+    key: str
+    filename: str
+
+
+class AnalyzeRefsRequest(BaseModel):
+    """Start analysis from already-uploaded source files (direct-to-storage)."""
+
+    sources: list[SourceRef]
+
+
+class DocRefRequest(SourceRef):
+    """A single already-uploaded document, optionally against a given version."""
+
+    version: int | None = None
+
+
 class RouteRequest(BaseModel):
     version: int | None = None
     raw_text: str | None = None

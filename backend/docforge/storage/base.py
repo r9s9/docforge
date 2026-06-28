@@ -68,6 +68,32 @@ class Storage(ABC):
         for the local backend it yields the file in place (no copy).
         """
 
+    # ----- direct browser <-> storage transfer (signed URLs) --------------
+    # These let the browser upload/download bytes straight to/from object
+    # storage, bypassing the API server entirely. That is essential on hosts
+    # with a small request/response body cap (e.g. Vercel Functions cap bodies
+    # at 4.5 MB) and is faster everywhere. Backends that can't issue signed URLs
+    # (the local filesystem) return ``None``, and callers fall back to streaming
+    # the bytes through the API.
+    def signed_upload(self, key: str, *, content_type: str | None = None) -> dict | None:
+        """A short-lived direct-upload target for ``key``.
+
+        Returns ``{"url": str, "method": "PUT", "headers": {...}}`` the browser
+        can use to PUT the file straight into storage, or ``None`` if the backend
+        can't (caller should accept a multipart upload instead).
+        """
+        return None
+
+    def signed_download(
+        self, key: str, *, expires_in: int = 3600, filename: str | None = None
+    ) -> str | None:
+        """A short-lived direct-download URL for ``key``.
+
+        ``filename`` (when given) forces a browser download with that name.
+        Returns ``None`` if the backend can't issue one (caller streams instead).
+        """
+        return None
+
     # ----- JSON convenience (implemented on top of bytes) -----------------
     def put_json(self, key: str, obj: Any) -> None:
         self.put_bytes(

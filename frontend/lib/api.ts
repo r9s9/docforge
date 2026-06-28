@@ -58,10 +58,55 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+// --- Direct-to-storage uploads ---------------------------------------------
+// On hosts where the API can issue signed storage URLs (Supabase backend, e.g.
+// on Vercel), the browser PUTs each file straight to object storage and then
+// hands the API just the storage key — so file bytes never hit the API request
+// body (which Vercel caps at 4.5 MB). When signing isn't available (local dev),
+// the helpers return null and callers fall back to a normal multipart upload.
+type SourceRef = { key: string; filename: string };
+type SignResult =
+  | { direct: false }
+  | { direct: true; key: string; url: string; method?: string; headers?: Record<string, string> };
+
+async function uploadDirect(file: File): Promise<SourceRef | null> {
+  const info = await request<SignResult>("/uploads/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, content_type: file.type || undefined }),
+  });
+  if (!info.direct) return null;
+  // No Authorization header here: the signed URL's own token authorizes the PUT.
+  const put = await fetch(info.url, { method: info.method || "PUT", headers: info.headers, body: file });
+  if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+  return { key: info.key, filename: file.name };
+}
+
+/** Upload every file directly, or null if the backend wants multipart instead. */
+async function uploadAllDirect(files: File[]): Promise<SourceRef[] | null> {
+  if (!files.length) return null;
+  const first = await uploadDirect(files[0]);
+  if (!first) return null; // backend has no signed storage → caller uses multipart
+  const refs = [first];
+  for (const f of files.slice(1)) {
+    const r = await uploadDirect(f);
+    if (r) refs.push(r);
+  }
+  return refs;
+}
+
 export const api = {
   health: () => request<Health>("/health"),
 
-  analyze: (files: File[]) => {
+  analyze: async (files: File[]) => {
+    const refs = await uploadAllDirect(files);
+    if (refs) {
+      return request<AnalysisJob>("/templates/analyze-refs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sources: refs }),
+      });
+    }
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
     return request<AnalysisJob>("/templates/analyze", { method: "POST", body: form });
@@ -217,7 +262,15 @@ export const api = {
     return res.arrayBuffer();
   },
 
-  routeDocument: (id: string, file: File) => {
+  routeDocument: async (id: string, file: File) => {
+    const ref = await uploadDirect(file);
+    if (ref) {
+      return request<RouteDocumentResult>(`/templates/${id}/route-document-refs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ref),
+      });
+    }
     const form = new FormData();
     form.append("file", file);
     return request<RouteDocumentResult>(`/templates/${id}/route-document`, {
@@ -226,7 +279,15 @@ export const api = {
     });
   },
 
-  compliance: (id: string, file: File, version?: number) => {
+  compliance: async (id: string, file: File, version?: number) => {
+    const ref = await uploadDirect(file);
+    if (ref) {
+      return request<ComplianceReport>(`/templates/${id}/compliance-refs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...ref, version }),
+      });
+    }
     const form = new FormData();
     form.append("file", file);
     const q = version ? `?version=${version}` : "";
@@ -237,11 +298,30 @@ export const api = {
   },
 
   // In-place fix: returns the corrected DOCX blob + how many fixes were applied.
+  // Direct path: the fix is parked in storage and returned as JSON {fixed, url}
+  // (large) or streamed inline (small); both yield the same shape here.
   complianceFix: async (
     id: string,
     file: File,
     version?: number,
   ): Promise<{ blob: Blob; fixed: number; filename: string }> => {
+    const fallbackName = file.name.replace(/\.docx$/i, "") + "-fixed.docx";
+    const ref = await uploadDirect(file);
+    if (ref) {
+      const res = await authFetch(`/templates/${id}/compliance/fix-refs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...ref, version }),
+      });
+      if (!res.ok) await raiseForStatus(res);
+      if ((res.headers.get("Content-Type") || "").includes("application/json")) {
+        const { fixed, filename, url } = await res.json();
+        const fileRes = await fetch(url);
+        if (!fileRes.ok) throw new Error(`Download failed (${fileRes.status})`);
+        return { blob: await fileRes.blob(), fixed: Number(fixed) || 0, filename: filename || fallbackName };
+      }
+      return { blob: await res.blob(), fixed: Number(res.headers.get("X-Fixes-Applied") || "0"), filename: fallbackName };
+    }
     const form = new FormData();
     form.append("file", file);
     const q = version ? `?version=${version}` : "";
@@ -253,7 +333,7 @@ export const api = {
     const fixed = Number(res.headers.get("X-Fixes-Applied") || "0");
     const cd = res.headers.get("Content-Disposition") || "";
     const m = cd.match(/filename="?([^"]+)"?/);
-    const filename = m ? m[1] : file.name.replace(/\.docx$/i, "") + "-fixed.docx";
+    const filename = m ? m[1] : fallbackName;
     return { blob: await res.blob(), fixed, filename };
   },
 

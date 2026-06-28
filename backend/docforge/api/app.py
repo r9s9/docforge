@@ -31,6 +31,7 @@ from .routes import (
     health,
     projects,
     templates,
+    uploads,
 )
 from .routes import settings as settings_routes
 
@@ -79,13 +80,26 @@ class SPAStaticFiles(StaticFiles):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
-    init_db()
     settings = get_settings()
+    from ..settings_store import get_ai_config
+
+    # On serverless the process is frozen after each response and re-created per
+    # cold start, so creating tables + running maintenance on every boot is both
+    # wasteful and unsafe (concurrent cold starts racing DDL). Skip it; run
+    # `docforge initdb` (or Alembic) once, out of band. See the deploy guide.
+    if settings.serverless:
+        logger.info(
+            "DocForge API started (serverless, env=%s, ai_active=%s)",
+            settings.env, get_ai_config().active,
+        )
+        yield
+        return
+
+    init_db()
 
     # Recover jobs orphaned by a previous crash/restart, and prune old outputs.
     from ..services import prune_generated
     from ..services.recovery import recover_stuck_jobs
-    from ..settings_store import get_ai_config
 
     try:
         n = recover_stuck_jobs()
@@ -184,7 +198,9 @@ def create_app() -> FastAPI:
             content={"detail": f"{type(exc).__name__}: {exc}"},
         )
 
-    for module in (health, templates, projects, analyses, generations, compliance, settings_routes):
+    for module in (
+        health, templates, projects, analyses, generations, compliance, uploads, settings_routes
+    ):
         app.include_router(module.router, prefix="/api")
 
     # Optionally serve a built frontend (Docker/production). Mounted last so it

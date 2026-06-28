@@ -11,16 +11,29 @@ from collections.abc import Iterator
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from ..config import get_settings
 from .base import Base
 
 _settings = get_settings()
 
-_connect_args = (
-    {"check_same_thread": False} if _settings.database_url.startswith("sqlite") else {}
-)
-engine = create_engine(_settings.database_url, connect_args=_connect_args, future=True)
+if _settings.database_url.startswith("sqlite"):
+    engine = create_engine(
+        _settings.database_url, connect_args={"check_same_thread": False}, future=True
+    )
+else:
+    # On serverless, many short-lived instances each hold their own engine, so a
+    # persistent pool would pile up idle/stale connections against the database
+    # (or its PgBouncer pooler). NullPool opens a fresh connection per checkout
+    # and closes it on return; pre_ping discards any connection a frozen instance
+    # left half-dead. Pair this with Supabase's *transaction* pooler (port 6543).
+    engine = create_engine(
+        _settings.database_url,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        future=True,
+    )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, class_=Session)
 
 

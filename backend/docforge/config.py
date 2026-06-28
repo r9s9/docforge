@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     debug: bool = True
     data_dir: Path = Path("./data")
     database_url: str = "sqlite:///./data/docforge.db"
+    # Serverless hosting (e.g. Vercel Functions): the process is short-lived and
+    # frozen after each response, so background threads can't finish and per-boot
+    # maintenance is wasteful. When true: analysis runs synchronously in-request,
+    # and table creation + startup maintenance are skipped (run migrations out of
+    # band). Defaults off for the long-running server / local dev.
+    serverless: bool = False
 
     # --- Uploads / safety ---
     max_upload_mb: int = 25

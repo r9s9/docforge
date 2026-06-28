@@ -8,25 +8,42 @@ import { supabase } from "@/lib/supabase";
 import type { AISettings, AIUsage } from "@/lib/types";
 import { ErrorBox, Spinner } from "@/components/ui";
 import { AlertTriangle, Check, KeyRound, Sparkles, Trash2 } from "@/components/icons";
+import LogsPage from "@/components/LogsPage";
 
-type Tab = "ai" | "profile";
-type UiProvider = "openai" | "anthropic" | "local";
+type Tab = "ai" | "profile" | "logs";
+type UiProvider = "openai" | "anthropic" | "gemini" | "deepseek" | "local";
+
+// Gemini and DeepSeek both speak the OpenAI-compatible Chat Completions API, so
+// they ride the backend's "openai" provider path with a different base URL.
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
+const DEEPSEEK_BASE = "https://api.deepseek.com";
 
 const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }> = {
   openai: { base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   anthropic: { base_url: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
+  gemini: { base_url: GEMINI_BASE, model: "gemini-2.5-flash" },
+  deepseek: { base_url: DEEPSEEK_BASE, model: "deepseek-chat" },
   local: { base_url: "http://localhost:11434/v1", model: "llama3.1" },
 };
 
 // Selectable models per cloud provider (the user picks one instead of typing it).
 // Local servers expose arbitrary model names, so that path keeps a free-text box.
-const MODEL_OPTIONS: Record<"openai" | "anthropic", string[]> = {
+const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string[]> = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
   anthropic: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
+  gemini: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash"],
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
 };
+
+// Map a UI provider to the backend provider value it routes through.
+function backendProvider(p: UiProvider): "openai" | "anthropic" {
+  return p === "anthropic" ? "anthropic" : "openai";
+}
 
 function deriveUiProvider(s: AISettings): UiProvider {
   if (s.provider === "anthropic") return "anthropic";
+  if (/generativelanguage\.googleapis\.com/.test(s.base_url)) return "gemini";
+  if (/deepseek\.com/.test(s.base_url)) return "deepseek";
   if (/localhost|127\.0\.0\.1/.test(s.base_url)) return "local";
   return "openai";
 }
@@ -43,12 +60,16 @@ export default function SettingsPage() {
         <div className={`tab ${tab === "ai" ? "active" : ""}`} onClick={() => setTab("ai")}>
           LLM Settings
         </div>
+        <div className={`tab ${tab === "logs" ? "active" : ""}`} onClick={() => setTab("logs")}>
+          Logs
+        </div>
         <div className={`tab ${tab === "profile" ? "active" : ""}`} onClick={() => setTab("profile")}>
           Profile
         </div>
       </div>
 
       {tab === "ai" && <AISettingsForm />}
+      {tab === "logs" && <LogsPage />}
       {tab === "profile" && <ProfileSettings />}
     </div>
   );
@@ -295,7 +316,7 @@ function AISettingsForm() {
 
   function payload() {
     const body: Record<string, unknown> = {
-      provider: provider === "local" ? "openai" : provider,
+      provider: backendProvider(provider),
       base_url: baseUrl,
       model,
       enabled,
@@ -352,6 +373,8 @@ function AISettingsForm() {
         <select value={provider} onChange={(e) => changeProvider(e.target.value as UiProvider)}>
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="deepseek">DeepSeek</option>
           <option value="local">Local (OpenAI-compatible: Ollama, LM Studio…)</option>
         </select>
       </label>
@@ -369,9 +392,11 @@ function AISettingsForm() {
               ? "••••••••"
               : provider === "anthropic"
                 ? "sk-ant-…"
-                : provider === "local"
-                  ? "ollama"
-                  : "sk-…"
+                : provider === "gemini"
+                  ? "AIza…"
+                  : provider === "local"
+                    ? "ollama"
+                    : "sk-…"
           }
         />
       </label>

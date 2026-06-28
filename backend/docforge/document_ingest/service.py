@@ -18,6 +18,10 @@ from ..ooxml_extractor.package import DocxError, DocxPackage, UnsafeDocxError
 from ..storage import UPLOADS, get_storage, join_key
 from ..structure_normalizer import build_extraction
 
+# Browser-direct uploads land here first (one folder per user); the server then
+# reads, validates and re-stores them under the canonical uploads/<doc_id> key.
+UPLOADS_INCOMING = join_key(UPLOADS, "incoming")
+
 _ALLOWED_EXT = {".docx"}
 # python-docx/Word MIME, plus generic types browsers sometimes send for .docx.
 _ALLOWED_CONTENT_TYPES = {
@@ -105,6 +109,71 @@ def store_source_document(
     db.commit()
     db.refresh(rec)
     return rec
+
+
+def incoming_upload_key(owner_id: str | None, filename: str) -> str:
+    """A unique, per-user staging key for a browser-direct upload."""
+    safe = Path(filename or "upload.docx").name.replace("/", "_").replace("\\", "_")
+    if not safe.lower().endswith(".docx"):
+        safe += ".docx"
+    return join_key(UPLOADS_INCOMING, owner_id or "anon", new_uuid(), safe)
+
+
+def store_source_from_key(
+    db: Session,
+    *,
+    key: str,
+    filename: str,
+    owner_id: str | None = None,
+    workspace_id: str | None = None,
+) -> SourceDocument:
+    """Ingest a file the browser already uploaded straight to storage.
+
+    The key MUST sit under this user's staging prefix — this is the trust check
+    that stops a client passing an arbitrary storage key (another user's upload,
+    or a template artifact) to be read back. We fetch the bytes, run the same
+    validation/storage as a multipart upload, then delete the staging object.
+    """
+    expected_prefix = join_key(UPLOADS_INCOMING, owner_id or "anon") + "/"
+    if not key.startswith(expected_prefix):
+        raise IngestError("Invalid upload reference")
+    storage = get_storage()
+    try:
+        data = storage.get_bytes(key)
+    except FileNotFoundError as exc:
+        raise IngestError("Uploaded file not found (the upload may have failed)") from exc
+    rec = store_source_document(
+        db, filename, data, owner_id=owner_id, workspace_id=workspace_id
+    )
+    try:
+        storage.delete(key)  # best-effort cleanup of the staging object
+    except Exception:
+        pass
+    return rec
+
+
+def read_incoming_bytes(key: str, *, owner_id: str | None, filename: str) -> bytes:
+    """Fetch + validate bytes for an already-uploaded staging object (no DB row).
+
+    Used by routing/compliance, which only need the bytes, not a SourceDocument.
+    Enforces the same per-user prefix guard and size/type validation, then deletes
+    the staging object.
+    """
+    expected_prefix = join_key(UPLOADS_INCOMING, owner_id or "anon") + "/"
+    if not key.startswith(expected_prefix):
+        raise IngestError("Invalid upload reference")
+    storage = get_storage()
+    try:
+        data = storage.get_bytes(key)
+    except FileNotFoundError as exc:
+        raise IngestError("Uploaded file not found (the upload may have failed)") from exc
+    validate_upload(filename, len(data), None)
+    validate_docx_bytes(data)
+    try:
+        storage.delete(key)
+    except Exception:
+        pass
+    return data
 
 
 def extract_source_document(db: Session, source: SourceDocument) -> ExtractedDocument:

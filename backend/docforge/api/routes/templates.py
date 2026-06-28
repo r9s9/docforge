@@ -18,7 +18,12 @@ from ...db.models import (
     Template,
     TemplateVersion,
 )
-from ...document_ingest import IngestError, store_source_document
+from ...document_ingest import (
+    IngestError,
+    read_incoming_bytes,
+    store_source_document,
+    store_source_from_key,
+)
 from ...jobs import submit
 from ...schemas.generation import GenerationInput
 from ...services import (
@@ -36,7 +41,10 @@ from ...template_registry import TemplateRegistry
 from ...validator import validate
 from ..auth import CurrentUser, get_current_user
 from ..deps import get_db, get_registry, get_settings_dep
+from ..file_serving import generated_docx_response, stored_file_response
 from ..schemas import (
+    AnalyzeRefsRequest,
+    DocRefRequest,
     PreviewDocxRequest,
     PublishRequest,
     RenameRequest,
@@ -71,6 +79,25 @@ def _get_template(db: Session, template_id: str, user: CurrentUser) -> Template:
     return t
 
 
+def _start_and_run(db: Session, sources: list, settings: Settings, user: CurrentUser) -> dict:
+    """Create the analysis job and kick it off (background, or inline on serverless).
+
+    On a long-running server the heavy work (which may call a slow LLM) runs in a
+    background thread and the client polls ``GET /api/analyses/{id}``. On
+    serverless the instance is frozen after the response, so a background thread
+    would never finish — we run it inline and return the finished job instead
+    (the client's poll then immediately sees it done).
+    """
+    job = start_analysis(db, sources, owner_id=user.id)
+    if settings.serverless:
+        run_analysis_job(job.id)
+        db.expire_all()
+        job = db.get(AnalysisJob, job.id) or job
+    else:
+        submit(run_analysis_job, job.id)
+    return analysis_job_dto(job, db)
+
+
 @router.post("/templates/analyze", status_code=202)
 def analyze_templates(
     files: list[UploadFile] = File(...),
@@ -78,10 +105,10 @@ def analyze_templates(
     settings: Settings = Depends(get_settings_dep),
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
-    """Flow 1: upload 1–5 example DOCX files and start analysis.
+    """Flow 1: upload 1–5 example DOCX files (multipart) and start analysis.
 
-    Returns a PENDING/RUNNING job immediately; the heavy work (which may call a
-    slow local LLM) runs in the background. Poll ``GET /api/analyses/{id}``.
+    Used in local dev / hosts without signed-URL storage. On Vercel the browser
+    uploads straight to storage and calls ``/templates/analyze-refs`` instead.
     """
     if not files:
         raise HTTPException(status_code=400, detail="no files uploaded")
@@ -101,9 +128,42 @@ def analyze_templates(
         except IngestError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    job = start_analysis(db, sources, owner_id=user.id)
-    submit(run_analysis_job, job.id)
-    return analysis_job_dto(job, db)
+    return _start_and_run(db, sources, settings, user)
+
+
+@router.post("/templates/analyze-refs", status_code=202)
+def analyze_templates_refs(
+    req: AnalyzeRefsRequest,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """Flow 1 (direct-to-storage): start analysis from already-uploaded files.
+
+    The browser PUTs each .docx to a signed URL (see ``/uploads/sign``) and sends
+    the resulting storage keys here, so file bytes never traverse the API — which
+    is what lets uploads exceed the serverless 4.5 MB body cap.
+    """
+    if not req.sources:
+        raise HTTPException(status_code=400, detail="no files uploaded")
+    if len(req.sources) > settings.max_files_per_analysis:
+        raise HTTPException(
+            status_code=400,
+            detail=f"at most {settings.max_files_per_analysis} files per analysis",
+        )
+
+    sources = []
+    for ref in req.sources:
+        try:
+            sources.append(
+                store_source_from_key(
+                    db, key=ref.key, filename=ref.filename or "upload.docx", owner_id=user.id
+                )
+            )
+        except IngestError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _start_and_run(db, sources, settings, user)
 
 
 @router.post("/templates", status_code=201)
@@ -282,7 +342,7 @@ def edit_preview_docx(
         raise HTTPException(
             status_code=500, detail=f"Preview build failed: {type(exc).__name__}: {exc}"
         ) from exc
-    return Response(content=data, media_type=DOCX_MEDIA)
+    return generated_docx_response(data, owner_id=user.id)
 
 
 @router.get("/templates/{template_id}/versions")
@@ -326,8 +386,11 @@ def download_template_docx(
     _get_template(db, template_id, user)
     if not registry.version_exists(template_id, version):
         raise HTTPException(status_code=404, detail="template file not found")
-    data = registry.template_docx_bytes(template_id, version)
-    return Response(content=data, media_type=DOCX_MEDIA, headers=_attachment(f"template_v{version}.docx"))
+    return stored_file_response(
+        registry.template_docx_key(template_id, version),
+        filename=f"template_v{version}.docx",
+        storage=registry.storage,
+    )
 
 
 @router.get("/templates/{template_id}/versions/{version}/representative.docx")
@@ -346,8 +409,11 @@ def download_representative_docx(
             status_code=404,
             detail="no stored example for this template version; re-publish to enable it",
         )
-    data = registry.representative_docx_bytes(template_id, version)
-    return Response(content=data, media_type=DOCX_MEDIA, headers=_attachment(f"example_v{version}.docx"))
+    return stored_file_response(
+        registry.representative_docx_key(template_id, version),
+        filename=f"example_v{version}.docx",
+        storage=registry.storage,
+    )
 
 
 @router.post("/templates/{template_id}/generate")
@@ -410,7 +476,7 @@ def preview_docx(
     except Exception as exc:
         logger.exception("preview.docx failed for template %s", template_id)
         raise HTTPException(status_code=500, detail=f"preview failed: {exc}") from exc
-    return Response(content=data, media_type=DOCX_MEDIA)
+    return generated_docx_response(data, owner_id=user.id)
 
 
 @router.post("/templates/{template_id}/route-document")
@@ -435,6 +501,31 @@ def route_document_endpoint(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("route-document failed for template %s", template_id)
+        raise HTTPException(status_code=500, detail=f"document routing failed: {exc}") from exc
+
+
+@router.post("/templates/{template_id}/route-document-refs")
+def route_document_refs(
+    template_id: str,
+    req: DocRefRequest,
+    db: Session = Depends(get_db),
+    registry: TemplateRegistry = Depends(get_registry),
+    settings: Settings = Depends(get_settings_dep),
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """Direct-to-storage variant of route-document: the DOCX is already uploaded."""
+    t = _get_template(db, template_id, user)
+    name = req.filename or "document.docx"
+    try:
+        data = read_incoming_bytes(req.key, owner_id=user.id, filename=name)
+        return route_document(
+            db, t, filename=name, data=data,
+            version=req.version, settings=settings, registry=registry, owner_id=user.id,
+        )
+    except IngestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("route-document-refs failed for template %s", template_id)
         raise HTTPException(status_code=500, detail=f"document routing failed: {exc}") from exc
 
 

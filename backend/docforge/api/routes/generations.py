@@ -15,6 +15,7 @@ from ...services.pdf import PdfError, docx_to_pdf
 from ...storage import get_storage
 from ..auth import CurrentUser, get_current_user
 from ..deps import get_db, get_settings_dep
+from ..file_serving import stored_file_response
 from ..serializers import generation_dto
 
 router = APIRouter(tags=["generations"])
@@ -63,10 +64,10 @@ def download_generation(
     storage = get_storage()
     if gen is None or not gen.output_path or not storage.exists(gen.output_path):
         raise HTTPException(status_code=404, detail="generated document not found")
-    return Response(
-        content=storage.get_bytes(gen.output_path),
-        media_type=DOCX_MEDIA,
-        headers=_attachment(gen.output_filename or "document.docx"),
+    return stored_file_response(
+        gen.output_path,
+        filename=gen.output_filename or "document.docx",
+        storage=storage,
     )
 
 
