@@ -133,11 +133,17 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        """Allowed CORS origins as a list (``*`` -> allow all)."""
+        """Allowed CORS origins as a list (``*`` -> allow all).
+
+        Trailing slashes are stripped: a browser's ``Origin`` header never has a
+        path/slash (e.g. ``https://app.vercel.app``), but it's easy to paste the
+        address-bar URL with one (``https://app.vercel.app/``) into the env var —
+        which would silently never match. Normalizing here avoids that footgun.
+        """
         raw = (self.cors_allow_origins or "*").strip()
         if raw == "*":
             return ["*"]
-        return [o.strip() for o in raw.split(",") if o.strip()]
+        return [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
 
     @property
     def ai_active(self) -> bool:
