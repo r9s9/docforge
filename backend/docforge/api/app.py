@@ -193,9 +193,24 @@ def create_app() -> FastAPI:
             method=request.method, path=request.url.path,
             error=type(exc).__name__, detail=str(exc)[:300],
         )
+        # Starlette routes the catch-all ``Exception`` handler through
+        # ServerErrorMiddleware, which sits OUTSIDE CORSMiddleware — so its
+        # response reaches the browser with no Access-Control-Allow-Origin and
+        # surfaces as an opaque "NetworkError" that hides the real cause. Re-add
+        # the CORS header here so 500s are actually readable by the frontend.
+        headers: dict[str, str] = {}
+        origin = request.headers.get("origin")
+        if origin:
+            allowed = get_settings().cors_origins
+            if "*" in allowed:
+                headers["Access-Control-Allow-Origin"] = "*"
+            elif origin in allowed:
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Vary"] = "Origin"
         return JSONResponse(
             status_code=500,
             content={"detail": f"{type(exc).__name__}: {exc}"},
+            headers=headers,
         )
 
     for module in (
