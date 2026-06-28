@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "docforge"
-version = "0.5.2"
+version = "0.5.3"
 description = "AI-powered DOCX reverse-engineering and document assembly platform"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -21,6 +21,10 @@ dependencies = [
     # Persistence
     "SQLAlchemy>=2.0",
     "alembic>=1.13",
+    # Postgres driver for managed databases (Supabase). In base deps (not just the
+    # `prod` extra) so platforms that install from pyproject — e.g. Vercel — get it
+    # and SQLAlchemy can create the Postgres engine. Dev on SQLite simply ignores it.
+    "psycopg2-binary>=2.9",
 
     # DOCX / OOXML
     "python-docx>=1.1",
