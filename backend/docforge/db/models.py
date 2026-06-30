@@ -51,6 +51,8 @@ class UserAIConfig(Base, TimestampMixin):
     base_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     api_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # server-side only
     model: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Optional stronger model for agentic reasoning steps (empty -> use `model`).
+    reasoning_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
     no_think: Mapped[bool] = mapped_column(Boolean, default=False)
     free_used: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -103,6 +105,9 @@ class AnalysisJob(Base, UUIDMixin, TimestampMixin):
     # the document exceeded the model's context window).
     ai_warning: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Aggregate AI token usage + estimated cost for this run (see ai/usage.py):
+    # {"in": int, "out": int, "calls": int, "cost_usd": float|None, "by_model": {...}}.
+    token_usage: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class Project(Base, UUIDMixin, TimestampMixin):
@@ -158,6 +163,7 @@ class GenerationRequest(Base, UUIDMixin, TimestampMixin):
     input_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     routing: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # RoutingResult
     context_used: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    token_usage: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # see ai/usage.py
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
@@ -186,3 +192,38 @@ class AIDecisionLog(Base, UUIDMixin, TimestampMixin):
     model_used: Mapped[str | None] = mapped_column(String(120), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class ComplianceRun(Base, UUIDMixin, TimestampMixin):
+    """A compliance check of one uploaded document against a template version.
+
+    Persisted so the UI can show AI token usage/cost for the run and so the
+    compliance agent can learn which differences a user accepts vs fixes.
+    """
+
+    __tablename__ = "compliance_runs"
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    template_id: Mapped[str] = mapped_column(String(32), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    document_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    score: Mapped[int] = mapped_column(Integer, default=0)
+    grade: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    report: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # ComplianceReport
+    token_usage: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # see ai/usage.py
+
+
+class TemplateCorrection(Base, UUIDMixin, TimestampMixin):
+    """Learned conventions — how a user edits the AI's proposals for a doc type.
+
+    Captured when the user publishes a reviewed template (``classify``) or edits
+    routed/composed values (``route``). Replayed as few-shot guidance into future
+    prompts for the same ``owner_id`` + ``document_type`` so the agent adapts to
+    the user's conventions over time (spec: feedback loop / learning).
+    """
+
+    __tablename__ = "template_corrections"
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    document_type: Mapped[str | None] = mapped_column(String(200), index=True, nullable=True)
+    kind: Mapped[str] = mapped_column(String(40), default="classify")  # classify | route
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # structured deltas

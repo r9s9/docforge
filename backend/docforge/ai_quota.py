@@ -74,6 +74,7 @@ def _own_config(row, s) -> AIConfig:
         base_url=(row.base_url or "").strip(),
         api_key=(row.api_key or "").strip(),
         model=row.model or "",
+        reasoning_model=(getattr(row, "reasoning_model", "") or "").strip(),
         timeout_seconds=s.ai_timeout_seconds,
         max_retries=s.ai_max_retries,
         max_output_tokens=s.ai_max_output_tokens,

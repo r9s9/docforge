@@ -23,6 +23,7 @@ def classify(
     settings: Settings | None = None,
     on_progress=None,
     cancel_event=None,
+    learned_hints: str = "",
 ) -> ClassificationResult:
     """Classify a document. Uses the LLM if configured, with a heuristic fallback.
 
@@ -32,13 +33,17 @@ def classify(
 
     ``cancel_event`` (optional threading.Event) aborts the LLM call when set; the
     cancellation propagates (it is NOT swallowed by the heuristic fallback).
+
+    ``learned_hints`` (optional) is a few-shot block of the user's prior
+    corrections for this document type, injected into the agentic prompts.
     """
     client = client or LLMClient()
 
     if client.active:
         try:
             return classify_llm(
-                extraction, diff, client, on_progress=on_progress, cancel_event=cancel_event
+                extraction, diff, client, on_progress=on_progress,
+                cancel_event=cancel_event, learned_hints=learned_hints,
             )
         except LLMCancelled:
             raise  # surfaced to the job runner, which marks the job cancelled

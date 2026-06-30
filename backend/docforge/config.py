@@ -49,11 +49,22 @@ class Settings(BaseSettings):
 
     # --- AI provider ---
     # provider: "openai" (OpenAI / local OpenAI-compatible) or "anthropic".
+    # The recommended cloud default is Google Gemini, reached via its
+    # OpenAI-compatible endpoint, so it rides the "openai" provider path.
     ai_provider: str = "openai"
     ai_enabled: bool = False
     ai_base_url: str = "https://api.openai.com/v1"
     ai_api_key: str = ""
     ai_model: str = "gpt-4o-mini"
+    # Optional second "reasoning" model for the agentic steps that benefit from
+    # stronger reasoning (document understanding, self-critique, value
+    # composition, compliance judgment). Empty -> reuse ``ai_model`` for every
+    # tier. Recommended pairing: workhorse gemini-2.5-flash-lite + reasoning
+    # gemini-3-flash. See ``AIConfig.model_for_tier``.
+    ai_reasoning_model: str = ""
+    # Hard cap on tool-calling iterations per agentic action (latency/cost guard,
+    # important under the serverless request budget).
+    ai_agent_max_steps: int = 6
     ai_timeout_seconds: int = 240  # generous for slow local models (background work)
     # Shorter cap for tiny in-request calls (e.g. the Settings "test connection").
     ai_interactive_timeout_seconds: int = 90

@@ -18,6 +18,7 @@ def record_decision(
     summary: str | None = None,
     payload: dict | None = None,
     workspace_id: str | None = None,
+    owner_id: str | None = None,
     commit: bool = False,
 ) -> AIDecisionLog:
     """Append an audit entry. Caller controls the surrounding transaction."""
@@ -30,6 +31,7 @@ def record_decision(
         summary=summary,
         payload=payload,
         workspace_id=workspace_id,
+        owner_id=owner_id,
     )
     db.add(log)
     if commit:

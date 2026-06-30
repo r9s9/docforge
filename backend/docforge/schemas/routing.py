@@ -21,6 +21,10 @@ class PlacementInstruction(BaseModel):
     ambiguous: bool = False
     alternatives: list[str] = Field(default_factory=list)
     note: str = ""
+    # True when the compose step *drafted* this value from context rather than
+    # finding it verbatim (e.g. a required field with no explicit source). The UI
+    # flags these for review.
+    ai_drafted: bool = False
 
 
 class RoutingResult(BaseModel):
@@ -34,6 +38,8 @@ class RoutingResult(BaseModel):
     unmapped_content: list[str] = Field(default_factory=list)
     model_used: str | None = None
     source: str = "heuristic"
+    # AI token usage for this routing+compose pass (set by the preview endpoint).
+    token_usage: dict | None = None
 
     def to_context(self) -> dict[str, Any]:
         """Collapse placements into a flat ``{field_name: value}`` render context."""

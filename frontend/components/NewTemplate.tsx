@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { AnalysisJob, FieldDefinition, Project } from "@/lib/types";
-import { AiBadge, AiStatusBanner, ErrorBox, Spinner } from "@/components/ui";
+import { AiBadge, AiStatusBanner, ErrorBox, Spinner, TokenUsageLine } from "@/components/ui";
 import { RotateCw } from "@/components/icons";
 import ProgressBar from "@/components/ProgressBar";
 import DocxPreview from "@/components/DocxPreview";
@@ -391,6 +391,7 @@ export default function NewTemplate() {
             <strong>{job.document_type_guess}</strong>
             <span className="muted">· {job.source_document_ids.length} doc(s)</span>
             <span className="muted">· engine: {job.model_used || "heuristic"}</span>
+            {job.token_usage ? <TokenUsageLine usage={job.token_usage} /> : null}
           </div>
 
           {job.diff_summary && (

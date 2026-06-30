@@ -15,6 +15,7 @@ import json
 import logging
 import re
 import time
+from dataclasses import replace
 from typing import TypeVar
 from urllib.parse import urlparse
 
@@ -23,6 +24,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..logging_setup import log_event
 from ..settings_store import AIConfig, get_ai_config
+from .usage import record_usage
 
 logger = logging.getLogger("docforge.ai")
 
@@ -53,9 +55,17 @@ class LLMCancelled(LLMError):
     """
 
 
+class _ToolsUnsupported(Exception):
+    """Internal: the endpoint rejected a tools request — fall back to single-shot."""
+
+
 # Bases that 400'd on response_format=json_object (e.g. LM Studio expects
 # json_schema/text). Cached per-process so we stop re-sending the rejected field.
 _JSON_MODE_UNSUPPORTED: set[str] = set()
+
+# Bases that 400'd on a tool-calling request (no function-calling support).
+# Cached so agentic calls transparently fall back to single-shot JSON for them.
+_TOOLS_UNSUPPORTED: set[str] = set()
 
 
 def _explain_http_error(resp: httpx.Response) -> str:
@@ -244,6 +254,19 @@ def _extract_json(text: str) -> dict | list | None:
     return None
 
 
+def _parse_tool_args(raw) -> dict:
+    """Tool-call arguments come as a JSON string (OpenAI) or already a dict."""
+    if isinstance(raw, dict):
+        return raw
+    if not raw:
+        return {}
+    try:
+        val = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return val if isinstance(val, dict) else {"value": val}
+
+
 class LLMClient:
     def __init__(self, config: AIConfig | None = None):
         self.config = config or get_ai_config()
@@ -308,10 +331,13 @@ class LLMClient:
             "temperature": temperature,
             "max_tokens": self.config.max_output_tokens,
             "stream": True,
+            # Ask for a final usage chunk so streamed calls still report tokens.
+            "stream_options": {"include_usage": True},
         }
         headers = {"Authorization": f"Bearer {self.config.api_key}"}
         acc: list[str] = []
         cancelled = False
+        stream_usage: dict = {}
         try:
             with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
                 with client.stream("POST", "chat/completions", json=payload, headers=headers) as resp:
@@ -332,6 +358,8 @@ class LLMClient:
                             obj = json.loads(line)
                         except json.JSONDecodeError:
                             continue
+                        if obj.get("usage"):
+                            stream_usage = obj["usage"]  # final include_usage chunk
                         choices = obj.get("choices") or [{}]
                         delta = (choices[0].get("delta") or {}).get("content")
                         if delta:
@@ -342,6 +370,12 @@ class LLMClient:
             raise LLMError(f"streaming request failed: {exc}") from exc
         if cancelled:
             raise LLMCancelled("cancelled mid-stream")
+        if stream_usage:
+            record_usage(
+                self.config.model,
+                stream_usage.get("prompt_tokens"),
+                stream_usage.get("completion_tokens"),
+            )
         return "".join(acc)
 
     # ----- transport ------------------------------------------------------
@@ -386,6 +420,7 @@ class LLMClient:
             text = data["choices"][0]["message"]["content"] or ""
             usage = data.get("usage") or {}
             finish = (data.get("choices") or [{}])[0].get("finish_reason")
+            record_usage(self.config.model, usage.get("prompt_tokens"), usage.get("completion_tokens"))
             log_event(
                 logger, "ai.done", provider="openai", model=self.config.model,
                 ms=round((time.perf_counter() - t0) * 1000, 1), resp_chars=len(text),
@@ -432,6 +467,7 @@ class LLMClient:
                 data = resp.json()
             text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
             usage = data.get("usage") or {}
+            record_usage(self.config.model, usage.get("input_tokens"), usage.get("output_tokens"))
             log_event(
                 logger, "ai.done", provider="anthropic", model=self.config.model,
                 ms=round((time.perf_counter() - t0) * 1000, 1), resp_chars=len(text),
@@ -496,3 +532,177 @@ class LLMClient:
             ]
         log_event(logger, "ai.json_failed", level=logging.ERROR, schema=schema.__name__, reason=str(last_error)[:160])
         raise LLMError(f"LLM did not return valid JSON after retries: {last_error}")
+
+    # ----- agentic tool-use loop -----------------------------------------
+    def for_tier(self, tier: str) -> LLMClient:
+        """A client bound to the model for ``tier`` ("workhorse" | "reasoning").
+
+        Returns ``self`` when the tier resolves to the same model, else a shallow
+        clone with the model swapped — so callers can escalate the hard steps to
+        the reasoning model without rebuilding the key/base config.
+        """
+        model = self.config.model_for_tier(tier)
+        if model == self.config.model:
+            return self
+        return LLMClient(replace(self.config, model=model))
+
+    def complete_agentic(
+        self,
+        *,
+        system: str,
+        developer: str,
+        user: str,
+        schema: type[T],
+        tools: list | None = None,
+        tier: str = "workhorse",
+        max_steps: int | None = None,
+        cancel_event=None,
+    ) -> T:
+        """Bounded tool-use loop returning a schema-validated final answer.
+
+        The model may call any provided tool (OpenAI-compatible function calling);
+        each result is fed back until it returns a final JSON answer or the step
+        budget is exhausted. With no tools, an Anthropic provider, or an endpoint
+        that rejects tools, this degrades to single-shot ``complete_json`` —
+        today's behaviour — so nothing regresses offline.
+        """
+        client = self.for_tier(tier)
+        base = client.config.base_url.rstrip("/") + "/"
+        if not tools or client.provider == "anthropic" or base in _TOOLS_UNSUPPORTED:
+            return client.complete_json(
+                system=system, developer=developer, user=user, schema=schema, cancel_event=cancel_event
+            )
+        try:
+            return client._agentic_openai(
+                system=system, developer=developer, user=user,
+                schema=schema, tools=tools, max_steps=max_steps, cancel_event=cancel_event,
+            )
+        except _ToolsUnsupported as exc:
+            _TOOLS_UNSUPPORTED.add(base)
+            log_event(logger, "ai.tools_unsupported", level=logging.WARNING, host=_host(base), reason=str(exc)[:120])
+            return client.complete_json(
+                system=system, developer=developer, user=user, schema=schema, cancel_event=cancel_event
+            )
+
+    def _agentic_openai(self, *, system, developer, user, schema: type[T], tools, max_steps, cancel_event) -> T:
+        from ..config import get_settings
+
+        max_steps = max_steps or get_settings().ai_agent_max_steps
+        by_name = {t.name: t for t in tools}
+        tool_specs = [t.openai_schema() for t in tools]
+        dev = (
+            developer
+            + "\n\nYou may call the provided tools to gather evidence before "
+            "answering. When you have enough information, reply with ONLY the final "
+            "JSON object for the required schema and make no further tool calls."
+        )
+        messages: list[dict] = [
+            {"role": "system", "content": system},
+            {"role": "system", "content": f"[developer instructions]\n{dev}"},
+            {"role": "user", "content": user},
+        ]
+        last_error = "no final answer produced"
+        for step in range(max_steps):
+            if cancel_event is not None and cancel_event.is_set():
+                raise LLMCancelled("cancelled")
+            msg = self._chat_step(messages, tool_specs)
+            calls = msg.get("tool_calls") or []
+            if calls:
+                messages.append(
+                    {"role": "assistant", "content": msg.get("content") or "", "tool_calls": calls}
+                )
+                for tc in calls:
+                    fn = tc.get("function") or {}
+                    name = fn.get("name") or ""
+                    spec = by_name.get(name)
+                    try:
+                        tool_result = spec.run(_parse_tool_args(fn.get("arguments"))) if spec else {
+                            "error": f"unknown tool '{name}'"
+                        }
+                    except Exception as exc:  # tools must never crash the loop
+                        tool_result = {"error": f"{type(exc).__name__}: {exc}"}
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.get("id"),
+                            "name": name,
+                            "content": json.dumps(tool_result, ensure_ascii=False, default=str)[:8000],
+                        }
+                    )
+                log_event(
+                    logger, "ai.agent_step", step=step + 1,
+                    tools=[(c.get("function") or {}).get("name") for c in calls],
+                )
+                continue
+            # No tool call -> treat the message as the final answer.
+            data = _extract_json(msg.get("content") or "")
+            if data is not None:
+                try:
+                    result = schema.model_validate(data)
+                    log_event(logger, "ai.agent_done", schema=schema.__name__, steps=step + 1)
+                    return result
+                except ValidationError as exc:
+                    last_error = f"schema validation failed: {exc.errors()[:2]}"
+            else:
+                last_error = "response was not valid JSON"
+            messages.append({"role": "assistant", "content": msg.get("content") or ""})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"Your previous response was invalid ({last_error}). Reply with "
+                        "ONLY a valid JSON object matching the required schema — no prose, "
+                        "no markdown, no tool calls."
+                    ),
+                }
+            )
+        # Step budget exhausted -> one clean single-shot as a last resort.
+        log_event(
+            logger, "ai.agent_exhausted", level=logging.WARNING,
+            schema=schema.__name__, reason=str(last_error)[:120],
+        )
+        return self.complete_json(system=system, developer=developer, user=user, schema=schema, cancel_event=cancel_event)
+
+    def _chat_step(self, messages: list[dict], tool_specs: list[dict]) -> dict:
+        """One non-streaming chat turn with tools; returns the assistant message."""
+        base = self.config.base_url.rstrip("/") + "/"
+        payload = {
+            "model": self.config.model,
+            "messages": messages,
+            "temperature": 0.0,
+            "max_tokens": self.config.max_output_tokens,
+            "tools": tool_specs,
+            "tool_choice": "auto",
+        }
+        headers = {"Authorization": f"Bearer {self.config.api_key}"}
+        log_event(
+            logger, "ai.call", provider="openai", host=_host(base), model=self.config.model,
+            messages=len(messages), prompt_chars=_msg_chars(messages), tools=len(tool_specs),
+        )
+        t0 = time.perf_counter()
+        try:
+            with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
+                resp = client.post("chat/completions", json=payload, headers=headers)
+                if resp.status_code == 400:
+                    body = (resp.text or "").lower()
+                    if any(k in body for k in ("tool", "function", "not supported", "unsupported", "unrecognized")):
+                        raise _ToolsUnsupported(_explain_http_error(resp))
+                    raise LLMError(_explain_http_error(resp))
+                if resp.status_code >= 400:
+                    raise LLMError(_explain_http_error(resp))
+                data = resp.json()
+            choice = (data.get("choices") or [{}])[0]
+            msg = choice.get("message") or {}
+            usage = data.get("usage") or {}
+            record_usage(self.config.model, usage.get("prompt_tokens"), usage.get("completion_tokens"))
+            log_event(
+                logger, "ai.done", provider="openai", model=self.config.model,
+                ms=round((time.perf_counter() - t0) * 1000, 1), finish=choice.get("finish_reason"),
+                prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"),
+                tool_calls=len(msg.get("tool_calls") or []),
+            )
+            return msg
+        except (_ToolsUnsupported, LLMError):
+            raise
+        except (httpx.HTTPError, KeyError, IndexError) as exc:
+            raise LLMError(f"agentic request failed: {exc}") from exc

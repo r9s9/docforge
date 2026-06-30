@@ -104,6 +104,56 @@ class LLMRouteResponse(_LenientLLMModel):
     unmapped_content: list[str] = Field(default_factory=list)
 
 
+class LLMUnderstanding(_LenientLLMModel):
+    """Holistic, document-level read produced by the reasoning tier (pass A).
+
+    It precedes per-element classification and *informs* it — what kind of
+    document this is, its sections, and which elements are most likely variable.
+    """
+
+    document_type: str = ""
+    summary: str = ""
+    sections: list[LLMSection] = Field(default_factory=list)
+    likely_dynamic: list[str] = Field(default_factory=list)  # node_ids likely to vary
+    notes: str = ""
+
+
+class LLMCritiqueResponse(_LenientLLMModel):
+    """Self-critique output (pass C): corrected classifications for flagged nodes."""
+
+    corrections: list[LLMElementClassification] = Field(default_factory=list)
+    notes: str = ""
+
+
+class LLMComposedValue(_LenientLLMModel):
+    field_name: str
+    value: Any = None
+    confidence: float = 0.8
+    ai_drafted: bool = False  # value was drafted from context, not found verbatim
+    note: str = ""
+
+
+class LLMComposeResponse(_LenientLLMModel):
+    """Output of the generation compose step: refined/drafted field values."""
+
+    values: list[LLMComposedValue] = Field(default_factory=list)
+    still_missing: list[str] = Field(default_factory=list)
+
+
+class LLMComplianceVerdict(_LenientLLMModel):
+    index: int
+    material: bool = True  # a real compliance violation vs a benign/cosmetic diff
+    severity: str = "warning"  # error | warning | info
+    rationale: str = ""
+
+
+class LLMComplianceJudgement(_LenientLLMModel):
+    """The semantic judge's verdicts over a compliance check's differences."""
+
+    verdicts: list[LLMComplianceVerdict] = Field(default_factory=list)
+    summary: str = ""
+
+
 # ---------------------------------------------------------------------------
 # Task A + B: classify elements / infer sections
 # ---------------------------------------------------------------------------
@@ -197,6 +247,9 @@ def build_classify_prompt(
     diff: DiffRunResult | None,
     node_ids: set[str] | None = None,
     include_sections: bool = True,
+    *,
+    understanding_summary: str = "",
+    learned_hints: str = "",
 ) -> tuple[str, str, str]:
     """Build the (system, developer, user) classify prompt.
 
@@ -204,6 +257,8 @@ def build_classify_prompt(
     be classified in batches (one response per batch never exceeds the model's
     output limit). ``include_sections`` requests the section grouping only once
     (on the first batch) to avoid redundant output on later batches.
+    ``understanding_summary`` (pass A) and ``learned_hints`` (the user's prior
+    corrections) are prepended as context when present.
     """
     nodes = _node_payload(extraction, diff, node_ids)
     if include_sections:
@@ -213,13 +268,132 @@ def build_classify_prompt(
             "Classify every node_id above. Return an empty \"sections\" array "
             "([]) — do not produce sections for this batch."
         )
+    preface_parts: list[str] = []
+    if understanding_summary:
+        preface_parts.append("Document understanding (context for your decisions):\n" + understanding_summary)
+    if learned_hints:
+        preface_parts.append(learned_hints)
+    preface = ("\n\n".join(preface_parts) + "\n\n") if preface_parts else ""
     user = (
-        f"Number of sample documents analyzed: {diff.n_documents if diff else 1}.\n"
-        f"Document elements (top-level), with diff evidence where available:\n"
-        f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
-        f"{tail}"
+        preface
+        + f"Number of sample documents analyzed: {diff.n_documents if diff else 1}.\n"
+        + "Element text may be truncated. If a decision is unclear, call "
+        + "get_node_text / get_neighbors / get_diff_evidence to read the full "
+        + "content before classifying.\n"
+        + "Document elements (top-level), with diff evidence where available:\n"
+        + f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
+        + f"{tail}"
     )
     return _CLASSIFY_SYSTEM, _CLASSIFY_DEVELOPER, user
+
+
+# --- Pass A: holistic document understanding -------------------------------
+
+_UNDERSTAND_SYSTEM = (
+    "You are DocForge's senior document analyst. Before any element-by-element "
+    "work, you read a whole business document to understand what it is, how it is "
+    "organised, and which parts a person fills in per document versus the fixed "
+    "boilerplate. Your read guides the detailed classification that follows."
+)
+
+_UNDERSTAND_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "document_type": string,            // e.g. "commercial invoice", "NDA", "inspection report"
+  "summary": string,                  // 2-4 sentences: purpose + overall structure
+  "sections": [
+    {"section_key": string, "title": string, "purpose": string,
+     "expected_content": string, "field_names": [string], "related_sections": [string]}
+  ],
+  "likely_dynamic": [string],         // node_ids that most likely vary per document
+  "notes": string                     // anything the classifier should watch out for
+}
+Output valid JSON only. No prose, no markdown.
+"""
+
+
+def build_understanding_prompt(
+    extraction: DocumentExtraction,
+    diff: DiffRunResult | None,
+    *,
+    learned_hints: str = "",
+) -> tuple[str, str, str]:
+    """Pass A: a holistic read of the document (reasoning tier)."""
+    nodes = _node_payload(extraction, diff, None)
+    preface = (learned_hints + "\n\n") if learned_hints else ""
+    user = (
+        preface
+        + f"Number of sample documents analyzed: {diff.n_documents if diff else 1}.\n"
+        + "Full element text is available via get_node_text if a snippet is truncated.\n"
+        + "Document elements (top-level), with diff evidence where available:\n"
+        + f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
+        + "Read the whole document and produce the understanding object."
+    )
+    return _UNDERSTAND_SYSTEM, _UNDERSTAND_DEVELOPER, user
+
+
+# --- Pass C: self-critique of the draft classification ----------------------
+
+_CRITIQUE_SYSTEM = (
+    "You are DocForge's classification reviewer. You receive a draft template "
+    "classification and re-examine the questionable parts, correcting mistakes: "
+    "FIXED text that should be a DYNAMIC field (or vice versa), wrong field types, "
+    "missing labels/static_prefix, vague descriptions, and duplicate field names."
+)
+
+_CRITIQUE_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "corrections": [
+    {  // one entry per node you are CHANGING — same shape as a classification
+      "node_id": string,
+      "classification": one of
+        ["FIXED","DYNAMIC_TEXT","DYNAMIC_DATE","DYNAMIC_PERSON","DYNAMIC_ENUM",
+         "DYNAMIC_NUMBER","REPEATABLE_TABLE","REPEATABLE_SECTION","AUTO_FIELD","UNKNOWN"],
+      "field_name": snake_case string or null,
+      "field_type": one of
+        ["text","multiline_text","date","person","number","enum","table","boolean"] or null,
+      "description": short, specific string,
+      "required": boolean,
+      "confidence": number 0..1,
+      "static_prefix": string or null,
+      "static_suffix": string or null,
+      "enum_values": [string],
+      "rationale": short string explaining the correction
+    }
+  ],
+  "notes": string
+}
+Only include nodes you are actually changing. Every DYNAMIC/REPEATABLE field must
+have a clear, specific description. Use the tools to read full text when unsure.
+Output valid JSON only. No prose, no markdown.
+"""
+
+
+def build_critique_prompt(
+    draft: list[dict],
+    *,
+    understanding_summary: str = "",
+    learned_hints: str = "",
+) -> tuple[str, str, str]:
+    """Pass C: review the draft classification and return only the corrections.
+
+    ``draft`` is a compact list of the current per-node decisions (node_id, text,
+    classification, field_name, field_type, description, confidence, evidence).
+    """
+    preface_parts: list[str] = []
+    if understanding_summary:
+        preface_parts.append("Document understanding:\n" + understanding_summary)
+    if learned_hints:
+        preface_parts.append(learned_hints)
+    preface = ("\n\n".join(preface_parts) + "\n\n") if preface_parts else ""
+    user = (
+        preface
+        + "Draft classification to review (correct only what is wrong):\n"
+        + f"{json.dumps(draft, ensure_ascii=False, indent=2)}\n\n"
+        + "Return corrections for the nodes that need fixing."
+    )
+    return _CRITIQUE_SYSTEM, _CRITIQUE_DEVELOPER, user
 
 
 # ---------------------------------------------------------------------------
@@ -312,3 +486,123 @@ def build_route_prompt(
             parts.append("Unstructured input to route:\n" + raw_text)
     parts.append("Produce placement instructions for the fields above.")
     return _ROUTE_SYSTEM, _ROUTE_DEVELOPER, "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Generation compose: refine/format routed values, draft missing required ones
+# ---------------------------------------------------------------------------
+
+_COMPOSE_SYSTEM = (
+    "You are DocForge's document author. You take values that were routed into a "
+    "template's fields and make them document-ready: correctly formatted for each "
+    "field's type, written in the right register, and complete. You never invent "
+    "facts that the supplied content does not support."
+)
+
+_COMPOSE_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "values": [
+    {"field_name": string,        // a template field_name
+     "value": any,                // refined value (list of row-objects for tables)
+     "confidence": number 0..1,
+     "ai_drafted": boolean,       // true if you drafted it rather than found it verbatim
+     "note": string}
+  ],
+  "still_missing": [string]       // required fields you could not fill from the content
+}
+
+Rules:
+- Improve each routed value to fit its field's TYPE and DESCRIPTION: format dates
+  as ISO (YYYY-MM-DD) unless the description says otherwise, normalize numbers and
+  currency, fix obvious casing/typos, and expand terse notes into complete prose
+  for multiline_text fields.
+- For enum fields, the value MUST be one of the field's allowed_values.
+- For a REQUIRED field with no value, DRAFT a sensible value from the supplied
+  content and set ai_drafted=true with a lower confidence. If it is genuinely
+  unknowable from the content, leave it out and list it in still_missing.
+- NEVER fabricate specific facts (names, totals, dates) not supported by the content.
+- Use normalize_date / normalize_number / validate_value to check before finalizing.
+- Output valid JSON only. No prose, no markdown.
+"""
+
+
+def build_compose_prompt(
+    fields: list[FieldDefinition],
+    placements: list,
+    *,
+    source_text: str = "",
+    structured_data: dict | None = None,
+    missing_required: list[str] | None = None,
+) -> tuple[str, str, str]:
+    """Build the (system, developer, user) compose prompt.
+
+    ``placements`` is the routed values to refine (objects with ``field_name`` /
+    ``value``). ``source_text`` is the content they came from (notes or an
+    extracted document), used to draft missing values and verify facts.
+    """
+    current = {p.field_name: p.value for p in placements}
+    parts = [
+        "Template fields:\n" + json.dumps(_fields_payload(fields), ensure_ascii=False, indent=2),
+        "Currently routed values (refine these):\n"
+        + json.dumps(current, ensure_ascii=False, default=str, indent=2),
+    ]
+    if missing_required:
+        parts.append(
+            "Required fields still missing a value (draft from the content if supported):\n"
+            + ", ".join(missing_required)
+        )
+    if structured_data:
+        parts.append(
+            "Structured input the user provided:\n"
+            + json.dumps(structured_data, ensure_ascii=False, default=str, indent=2)
+        )
+    if source_text:
+        parts.append("Source content the values came from:\n" + source_text[:6000])
+    parts.append("Return the refined values.")
+    return _COMPOSE_SYSTEM, _COMPOSE_DEVELOPER, "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Compliance judge: is each difference a MATERIAL violation or benign?
+# ---------------------------------------------------------------------------
+
+_JUDGE_SYSTEM = (
+    "You are DocForge's compliance reviewer. A deterministic check has compared a "
+    "document against its template and listed the differences. For each one you "
+    "decide whether it is a MATERIAL compliance violation (changed obligations, "
+    "missing required content, altered legal/boilerplate meaning) or a benign, "
+    "cosmetic difference (whitespace, synonyms, reformatting, an expected variable "
+    "value). You explain each verdict briefly."
+)
+
+_JUDGE_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "verdicts": [
+    {"index": number,          // the difference's index from the input
+     "material": boolean,      // true = a real compliance problem
+     "severity": one of ["error","warning","info"],
+     "rationale": short string}
+  ],
+  "summary": string
+}
+Guidance:
+- A changed value in a legitimately-variable field is usually benign (info).
+- Missing or altered required boilerplate / obligations is usually material (error).
+- Reordering, whitespace, casing and synonym wording are usually benign.
+- Be specific in the rationale; do not just restate the difference.
+- Output valid JSON only. No prose, no markdown.
+"""
+
+
+def build_compliance_judge_prompt(
+    document_type: str, differences: list[dict]
+) -> tuple[str, str, str]:
+    """Build the (system, developer, user) prompt for the compliance judge."""
+    user = (
+        f"Document type: {document_type or 'unknown'}.\n"
+        + "Differences found (judge each by its index):\n"
+        + json.dumps(differences, ensure_ascii=False, indent=2)
+    )
+    return _JUDGE_SYSTEM, _JUDGE_DEVELOPER, user

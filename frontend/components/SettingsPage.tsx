@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import type { AISettings, AIUsage } from "@/lib/types";
-import { ErrorBox, Spinner } from "@/components/ui";
+import type { AISettings, AIUsage, TokenTotals } from "@/lib/types";
+import { ErrorBox, formatCost, formatTokens, Spinner } from "@/components/ui";
 import { AlertTriangle, Check, KeyRound, Sparkles, Trash2 } from "@/components/icons";
 import LogsPage from "@/components/LogsPage";
 
@@ -29,10 +29,27 @@ const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }>
 // Selectable models per cloud provider (the user picks one instead of typing it).
 // Local servers expose arbitrary model names, so that path keeps a free-text box.
 const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string[]> = {
-  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
-  anthropic: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
-  gemini: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash"],
+  openai: ["gpt-5-nano", "gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
+  anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-8"],
+  gemini: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
   deepseek: ["deepseek-chat", "deepseek-reasoner"],
+};
+
+// Recommended "reasoning" model per provider — used only for the harder agentic
+// steps (document understanding, self-critique, value composition, compliance).
+const REASONING_DEFAULTS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string> = {
+  openai: "gpt-5-mini",
+  anthropic: "claude-sonnet-4-6",
+  gemini: "gemini-3-flash",
+  deepseek: "deepseek-reasoner",
+};
+
+// The shipped recommendation: cheap Gemini workhorse + stronger Gemini reasoning.
+const RECOMMENDED = {
+  provider: "gemini" as UiProvider,
+  base_url: GEMINI_BASE,
+  model: "gemini-2.5-flash-lite",
+  reasoning_model: "gemini-3-flash",
 };
 
 // Map a UI provider to the backend provider value it routes through.
@@ -270,12 +287,29 @@ function FreeTierBanner({ usage }: { usage: AIUsage }) {
   );
 }
 
+function TokenTotalsPanel({ tokens }: { tokens: TokenTotals }) {
+  const cost = formatCost(tokens.cost_usd);
+  return (
+    <div className="notice section" style={{ marginTop: 0 }}>
+      <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={15} strokeWidth={2} /> AI usage so far
+      </strong>
+      <div className="muted" style={{ marginTop: 6 }}>
+        {formatTokens(tokens.in)} input + {formatTokens(tokens.out)} output tokens across{" "}
+        {tokens.actions} action{tokens.actions === 1 ? "" : "s"}
+        {cost ? <> · estimated {cost}</> : null}.
+      </div>
+    </div>
+  );
+}
+
 function AISettingsForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [provider, setProvider] = useState<UiProvider>("openai");
-  const [baseUrl, setBaseUrl] = useState(PROVIDER_DEFAULTS.openai.base_url);
-  const [model, setModel] = useState(PROVIDER_DEFAULTS.openai.model);
+  const [provider, setProvider] = useState<UiProvider>("gemini");
+  const [baseUrl, setBaseUrl] = useState(PROVIDER_DEFAULTS.gemini.base_url);
+  const [model, setModel] = useState(RECOMMENDED.model);
+  const [reasoningModel, setReasoningModel] = useState(RECOMMENDED.reasoning_model);
   const [apiKey, setApiKey] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [noThink, setNoThink] = useState(false);
@@ -284,18 +318,21 @@ function AISettingsForm() {
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saved, setSaved] = useState(false);
   const [usage, setUsage] = useState<AIUsage | null>(null);
+  const [tokens, setTokens] = useState<TokenTotals | null>(null);
 
   useEffect(() => {
     api
       .getAISettings()
-      .then(({ ai, usage }) => {
+      .then(({ ai, usage, tokens }) => {
         setProvider(deriveUiProvider(ai));
         setBaseUrl(ai.base_url);
         setModel(ai.model);
+        setReasoningModel(ai.reasoning_model || "");
         setEnabled(ai.enabled);
         setNoThink(ai.no_think ?? false);
         setHasKey(ai.has_key);
         setUsage(usage);
+        setTokens(tokens ?? null);
       })
       .catch((e) => setError(String(e.message || e)))
       .finally(() => setLoading(false));
@@ -306,6 +343,17 @@ function AISettingsForm() {
     setBaseUrl(PROVIDER_DEFAULTS[p].base_url);
     // Default to the first selectable model for cloud providers.
     setModel(p === "local" ? PROVIDER_DEFAULTS.local.model : MODEL_OPTIONS[p][0]);
+    setReasoningModel(p === "local" ? "" : REASONING_DEFAULTS[p]);
+    setTestResult(null);
+  }
+
+  // One-click "recommended": the cheap-but-capable Gemini tiered setup.
+  function applyRecommended() {
+    setProvider(RECOMMENDED.provider);
+    setBaseUrl(RECOMMENDED.base_url);
+    setModel(RECOMMENDED.model);
+    setReasoningModel(RECOMMENDED.reasoning_model);
+    setEnabled(true);
     setTestResult(null);
   }
 
@@ -313,12 +361,17 @@ function AISettingsForm() {
   // currently-stored model so an existing/custom value still shows up.
   const modelChoices =
     provider === "local" ? [] : Array.from(new Set([...MODEL_OPTIONS[provider], model].filter(Boolean)));
+  const reasoningChoices =
+    provider === "local"
+      ? []
+      : Array.from(new Set([...MODEL_OPTIONS[provider], reasoningModel].filter(Boolean)));
 
   function payload() {
     const body: Record<string, unknown> = {
       provider: backendProvider(provider),
       base_url: baseUrl,
       model,
+      reasoning_model: reasoningModel,
       enabled,
       no_think: noThink,
     };
@@ -343,9 +396,10 @@ function AISettingsForm() {
     setSaved(false);
     setError("");
     try {
-      const { ai, usage } = await api.updateAISettings(payload());
+      const { ai, usage, tokens } = await api.updateAISettings(payload());
       setHasKey(ai.has_key);
       setUsage(usage);
+      setTokens(tokens ?? null);
       setApiKey("");
       setSaved(true);
     } catch (e: any) {
@@ -361,12 +415,31 @@ function AISettingsForm() {
     <div className="section" style={{ maxWidth: 560 }}>
       {error && <ErrorBox message={error} />}
       {usage && <FreeTierBanner usage={usage} />}
+      {tokens && tokens.actions > 0 && <TokenTotalsPanel tokens={tokens} />}
       <h2 className="section-h">Your AI Provider</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Pick a provider and paste your API key — that&apos;s all you need. Leave
-        disabled to use the free allowance (if any) or the offline heuristic
-        engine. Your key is stored server-side and never returned.
+        DocForge uses <strong>your own</strong> provider key for every AI step. The
+        recommended setup is <strong>Google Gemini</strong>, tiered: a cheap
+        workhorse model for routine work plus a stronger reasoning model for the
+        harder agent steps. Your key is stored server-side and never returned.
       </p>
+
+      <div className="notice section" style={{ marginTop: 0 }}>
+        <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Sparkles size={15} strokeWidth={2} /> Recommended — Gemini (tiered)
+        </strong>
+        <div className="muted" style={{ margin: "6px 0 10px" }}>
+          <span className="mono">gemini-2.5-flash-lite</span> for routine steps +{" "}
+          <span className="mono">gemini-3-flash</span> for reasoning. Cheap, capable,
+          1M-token context.{" "}
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+            Get a Gemini API key →
+          </a>
+        </div>
+        <button type="button" className="btn secondary small" onClick={applyRecommended}>
+          Use recommended setup
+        </button>
+      </div>
 
       <label className="field">
         <span>Provider</span>
@@ -417,6 +490,34 @@ function AISettingsForm() {
           <span>Model</span>
           <select value={model} onChange={(e) => setModel(e.target.value)}>
             {modelChoices.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {provider === "local" ? (
+        <label className="field">
+          <span>
+            Reasoning model <span className="muted">(optional — used for harder steps)</span>
+          </span>
+          <input
+            value={reasoningModel}
+            onChange={(e) => setReasoningModel(e.target.value)}
+            placeholder="Leave blank to reuse the model above"
+          />
+        </label>
+      ) : (
+        <label className="field">
+          <span>
+            Reasoning model{" "}
+            <span className="muted">(harder steps: understanding, critique, composition)</span>
+          </span>
+          <select value={reasoningModel} onChange={(e) => setReasoningModel(e.target.value)}>
+            <option value="">Same as model above</option>
+            {reasoningChoices.map((m) => (
               <option key={m} value={m}>
                 {m}
               </option>

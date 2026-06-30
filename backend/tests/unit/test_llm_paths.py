@@ -9,9 +9,12 @@ import httpx
 from docforge.ai.client import LLMClient, _extract_json
 from docforge.ai.prompts import (
     LLMClassifyResponse,
+    LLMComposeResponse,
+    LLMCritiqueResponse,
     LLMElementClassification,
     LLMPlacement,
     LLMRouteResponse,
+    LLMUnderstanding,
 )
 from docforge.ai_classifier.llm import classify_llm
 from docforge.ai_router.document import route_document_content
@@ -45,12 +48,28 @@ def _cfg(provider="openai"):
 class _FakeClient:
     model = "mock-model"
     active = True
+    provider = "openai"
+    supports_streaming = False
 
     def __init__(self, response):
         self._response = response
 
     def complete_json(self, **kwargs):
         return self._response
+
+    # The agentic steps dispatch by schema: understanding/critique/compose are
+    # best-effort wrappers (no-ops here), the canned response is the main result.
+    def complete_agentic(self, *, schema, **kwargs):
+        if schema is LLMUnderstanding:
+            return LLMUnderstanding()
+        if schema is LLMCritiqueResponse:
+            return LLMCritiqueResponse()
+        if schema is LLMComposeResponse:
+            return LLMComposeResponse()
+        return self._response
+
+    def for_tier(self, tier):
+        return self
 
 
 # --- transport / parsing ---------------------------------------------------
@@ -114,34 +133,23 @@ def test_classify_llm_maps_response(project_docs):
     assert any(c.field_name == "foo" and c.classification.value == "DYNAMIC_TEXT" for c in result.classifications)
 
 
-def test_classify_llm_streaming_reports_progress(project_docs):
+def test_classify_llm_reports_progress(project_docs):
     ext = build_extraction(project_docs[0], "d0")
     nid = ext.top_level_elements()[1].node_id
-    payload = (
-        '{"document_type_guess":"Streamed","classifications":[{"node_id":"'
-        + nid
-        + '","classification":"DYNAMIC_TEXT","field_name":"foo","field_type":"text"}],"sections":[]}'
+    resp = LLMClassifyResponse(
+        document_type_guess="Reported",
+        classifications=[
+            LLMElementClassification(
+                node_id=nid, classification="DYNAMIC_TEXT", field_name="foo", field_type="text"
+            )
+        ],
+        sections=[],
     )
-
-    class StreamingClient:
-        model = "mock"
-        active = True
-        provider = "openai"
-        supports_streaming = True
-
-        def stream_openai(self, messages, *, on_delta=None, temperature=0.0, cancel_event=None):
-            acc = ""
-            for ch in payload:
-                acc += ch
-                if on_delta:
-                    on_delta(ch, acc)
-            return payload
-
     progress: list[float] = []
-    res = classify_llm(ext, None, StreamingClient(), on_progress=lambda d, f: progress.append(f))
-    assert res.document_type_guess == "Streamed"
+    res = classify_llm(ext, None, _FakeClient(resp), on_progress=lambda d, f: progress.append(f))
+    assert res.document_type_guess == "Reported"
     assert any(c.field_name == "foo" for c in res.classifications)
-    assert progress and progress[-1] == 1.0  # streamed to completion
+    assert progress and progress[-1] == 1.0  # progress runs to completion
 
 
 def test_classify_llm_batches_large_documents(tmp_path):
@@ -168,7 +176,16 @@ def test_classify_llm_batches_large_documents(tmp_path):
         provider = "openai"
         supports_streaming = False
 
-        def complete_json(self, *, system, developer, user, schema, cancel_event=None):
+        def complete_agentic(self, *, system, developer, user, schema, tools=None,
+                              tier="workhorse", max_steps=None, cancel_event=None):
+            from docforge.ai.client import LLMError
+
+            # Skip the understanding pass (focus the test on classify batching);
+            # critique is a no-op here.
+            if schema is LLMUnderstanding:
+                raise LLMError("no understanding in this test")
+            if schema is LLMCritiqueResponse:
+                return LLMCritiqueResponse()
             import re
 
             calls["n"] += 1
@@ -183,6 +200,9 @@ def test_classify_llm_batches_large_documents(tmp_path):
                 ],
                 sections=[],
             )
+
+        def for_tier(self, tier):
+            return self
 
     res = classify_llm(ext, None, _BatchClient())
     from_llm = [c for c in res.classifications if c.source == "llm"]

@@ -544,9 +544,10 @@ def route_content(
     fields = registry.load_fields(template_id, version)
     # Routing preview: own-key users get AI; free-tier users get the heuristic
     # (no free credit spent — credits are only spent on the actual generate).
+    from ...ai.usage import track_usage
     from ...ai_quota import plan_ai_for_owner, use_ai_plan
 
-    with use_ai_plan(plan_ai_for_owner(user.id, allow_free=False)):
+    with track_usage() as usage, use_ai_plan(plan_ai_for_owner(user.id, allow_free=False)):
         result = route(
             fields,
             template_id=template_id,
@@ -555,6 +556,8 @@ def route_content(
             data=req.data,
             settings=settings,
         )
+    if usage.calls:
+        result.token_usage = usage.as_dict()
     return result.model_dump(mode="json")
 
 

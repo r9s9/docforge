@@ -25,6 +25,49 @@ from ..structure_normalizer import build_extraction
 from ..template_builder import build_template_docx
 from ..template_registry import TemplateRegistry
 from .audit import record_decision
+from .learning import record_correction
+
+
+def _diff_classifications(orig: list[dict], final: list[ElementClassification]) -> list[str]:
+    """Human-readable deltas between the AI's proposal and the user's final edits.
+
+    These become few-shot guidance replayed into future analyses of the same
+    document type (the learning loop). Keyed by node so renames/retypes/
+    reclassifications are captured precisely.
+    """
+    orig_by = {c.get("node_id"): c for c in orig}
+    lines: list[str] = []
+    for c in final:
+        o = orig_by.get(c.node_id)
+        if not o:
+            continue
+        o_cls, n_cls = o.get("classification"), c.classification.value
+        o_name, n_name = o.get("field_name"), c.field_name
+        o_type = o.get("field_type")
+        n_type = c.field_type.value if c.field_type else None
+        label = n_name or o_name or (o.get("static_prefix") or "").strip(": ") or "an element"
+        if o_cls != n_cls:
+            lines.append(f'reclassified "{label}" from {o_cls} to {n_cls}')
+        elif o_name and n_name and o_name != n_name:
+            lines.append(f'renamed field "{o_name}" to "{n_name}"')
+        elif n_name and o_type != n_type and n_type:
+            lines.append(f'set field "{n_name}" type to {n_type} (was {o_type})')
+    return lines
+
+
+def _capture_learning(db, job, final: list[ElementClassification], document_type, owner_id) -> None:
+    """Record how the user corrected the AI's classification (best-effort)."""
+    if not owner_id:
+        return
+    orig = (job.classification or {}).get("classifications", [])
+    if not orig:
+        return
+    summaries = _diff_classifications(orig, final)
+    if summaries:
+        record_correction(
+            db, owner_id=owner_id, document_type=document_type,
+            kind="classify", summaries=summaries[:20],
+        )
 
 
 def publish_template(
@@ -184,6 +227,11 @@ def publish_template(
         summary=f"Published '{template.name}' v{version} with {len(fields)} field(s).",
         workspace_id=workspace_id,
     )
+
+    # Learning loop: when the user edited the AI's proposal, remember the deltas
+    # so future analyses of this document type adapt to their conventions.
+    if edited:
+        _capture_learning(db, job, result.classifications, result.document_type_guess, owner_id)
 
     db.commit()
     db.refresh(template)

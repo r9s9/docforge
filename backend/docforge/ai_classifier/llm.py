@@ -4,10 +4,18 @@ heuristic path, so callers are agnostic to which engine ran.
 
 from __future__ import annotations
 
-from pydantic import ValidationError
+import logging
 
-from ..ai.client import LLMCancelled, LLMClient, _extract_json
-from ..ai.prompts import LLMClassifyResponse, build_classify_prompt
+from ..ai.client import LLMCancelled, LLMClient, LLMError
+from ..ai.prompts import (
+    LLMClassifyResponse,
+    LLMCritiqueResponse,
+    LLMUnderstanding,
+    build_classify_prompt,
+    build_critique_prompt,
+    build_understanding_prompt,
+)
+from ..ai.tools import classify_tools
 from ..common.textutil import slugify_field
 from ..schemas.classification import (
     ClassificationResult,
@@ -15,8 +23,11 @@ from ..schemas.classification import (
     SectionUnderstanding,
 )
 from ..schemas.diff import DiffRunResult
-from ..schemas.enums import ClassificationType, FieldType
+from ..schemas.enums import ClassificationType, FieldType, needs_field
 from ..schemas.extraction import DocumentExtraction
+from ..settings_store import REASONING_TIER, WORKHORSE_TIER
+
+logger = logging.getLogger("docforge.ai_classifier")
 
 
 def _coerce_classification(value: str | None) -> ClassificationType:
@@ -139,34 +150,148 @@ def _apply_optional_from_diff(result: ClassificationResult, diff: DiffRunResult 
 # JSON output risks exceeding the model's max_output_tokens and getting truncated
 # (finish_reason=length), so we classify large documents in batches of this size.
 CLASSIFY_BATCH_SIZE = 20
+# How many flagged nodes the self-critique pass will re-examine (cost guard).
+CRITIQUE_LIMIT = 24
 
 
 def _chunk(items: list, size: int) -> list[list]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
-def _run_batch(
-    client, system, developer, user, on_delta, cancel_event
-) -> LLMClassifyResponse:
-    """Classify one batch. Stream when possible (live progress), with a robust
-    non-streaming + repair fallback if the streamed JSON can't be parsed."""
-    if on_delta is not None and client.supports_streaming:
-        messages = [
-            {"role": "system", "content": system},
-            {"role": "system", "content": f"[developer instructions]\n{developer}"},
-            {"role": "user", "content": user},
-        ]
-        raw = client.stream_openai(messages, on_delta=on_delta, cancel_event=cancel_event)
-        data = _extract_json(raw)
-        if data is not None:
-            try:
-                return LLMClassifyResponse.model_validate(data)
-            except ValidationError:
-                pass  # fall through to the repair loop below
-    return client.complete_json(
-        system=system, developer=developer, user=user,
-        schema=LLMClassifyResponse, cancel_event=cancel_event,
+def _summarize_understanding(u: LLMUnderstanding) -> str:
+    parts: list[str] = []
+    if u.document_type:
+        parts.append(f"Type: {u.document_type}")
+    if u.summary:
+        parts.append(u.summary)
+    if u.sections:
+        sec = "; ".join(
+            f"{s.title or s.section_key}: {s.purpose}".strip(": ")
+            for s in u.sections[:8]
+            if (s.title or s.section_key)
+        )
+        if sec:
+            parts.append("Sections — " + sec)
+    if u.notes:
+        parts.append("Notes: " + u.notes)
+    return "\n".join(parts)[:2000]
+
+
+def _run_understanding(
+    client: LLMClient, extraction, diff, tools, learned_hints, cancel_event
+) -> LLMUnderstanding | None:
+    """Pass A — holistic read (reasoning tier). Best-effort: None on failure."""
+    system, developer, user = build_understanding_prompt(extraction, diff, learned_hints=learned_hints)
+    try:
+        return client.complete_agentic(
+            system=system, developer=developer, user=user, schema=LLMUnderstanding,
+            tools=tools, tier=REASONING_TIER, cancel_event=cancel_event,
+        )
+    except LLMCancelled:
+        raise
+    except LLMError:
+        logger.debug("understanding pass failed; continuing without it", exc_info=True)
+        return None
+
+
+def _questionable(c: ElementClassification) -> bool:
+    """Nodes the critique pass should re-examine."""
+    if c.confidence < 0.6:
+        return True
+    if c.classification == ClassificationType.UNKNOWN:
+        return True
+    if c.field_name and not (c.description or "").strip():
+        return True
+    return False
+
+
+def _draft_view(extraction, diff, flagged: list[ElementClassification]) -> list[dict]:
+    by_id = {e.node_id: e for e in extraction.elements}
+    diff_by_node = {d.representative_node_id: d for d in (diff.node_diffs if diff else [])}
+    out: list[dict] = []
+    for c in flagged:
+        e = by_id.get(c.node_id)
+        item: dict = {
+            "node_id": c.node_id,
+            "text": (e.text or "")[:300] if e else "",
+            "classification": c.classification.value,
+            "field_name": c.field_name,
+            "field_type": c.field_type.value if c.field_type else None,
+            "description": c.description,
+            "confidence": round(c.confidence, 2),
+        }
+        nd = diff_by_node.get(c.node_id)
+        if nd:
+            item["evidence"] = {
+                "status": nd.status.value,
+                "samples": [s[:80] for s in nd.sample_texts[:4]],
+                "detected_kind": nd.detected_kind,
+            }
+        out.append(item)
+    return out
+
+
+def _apply_corrections(result: ClassificationResult, resp: LLMCritiqueResponse, extraction) -> int:
+    """Merge critique corrections back onto the draft. Returns count applied."""
+    valid_ids = {e.node_id for e in extraction.elements}
+    by_node = {c.node_id: c for c in result.classifications}
+    used_names = {c.field_name for c in result.classifications if c.field_name}
+    applied = 0
+    for cor in resp.corrections:
+        if cor.node_id not in valid_ids or cor.node_id not in by_node:
+            continue
+        c = by_node[cor.node_id]
+        if c.field_name:
+            used_names.discard(c.field_name)  # free the old name before reassigning
+        cls = _coerce_classification(cor.classification)
+        c.classification = cls
+        if needs_field(cls):
+            name = _unique(slugify_field(cor.field_name or c.field_name or "field"), used_names)
+            used_names.add(name)
+            c.field_name = name
+            c.field_type = _coerce_field_type(cor.field_type) or c.field_type
+        else:
+            c.field_name = None
+            c.field_type = None
+        if cor.description:
+            c.description = cor.description
+        c.required = cor.required
+        c.confidence = _clamp(cor.confidence)
+        c.static_prefix = cor.static_prefix
+        c.static_suffix = cor.static_suffix
+        if cor.enum_values:
+            c.enum_values = cor.enum_values
+        c.rationale = (cor.rationale or c.rationale or "") + " [critique]"
+        c.source = "llm"
+        applied += 1
+    return applied
+
+
+def _self_critique(
+    client, extraction, diff, result, tools, understanding_summary, learned_hints, on_progress, cancel_event
+) -> None:
+    """Pass C — re-examine the questionable nodes and apply corrections."""
+    flagged = [c for c in result.classifications if _questionable(c)][:CRITIQUE_LIMIT]
+    if not flagged:
+        return
+    if on_progress is not None:
+        on_progress("AI reviewing its classification…", 0.96)
+    system, developer, user = build_critique_prompt(
+        _draft_view(extraction, diff, flagged),
+        understanding_summary=understanding_summary, learned_hints=learned_hints,
     )
+    try:
+        resp = client.complete_agentic(
+            system=system, developer=developer, user=user, schema=LLMCritiqueResponse,
+            tools=tools, tier=REASONING_TIER, cancel_event=cancel_event,
+        )
+    except LLMCancelled:
+        raise
+    except LLMError:
+        logger.debug("critique pass failed; keeping draft", exc_info=True)
+        return
+    n = _apply_corrections(result, resp, extraction)
+    logger.info("self-critique adjusted %d/%d flagged classification(s)", n, len(flagged))
 
 
 def classify_llm(
@@ -175,53 +300,62 @@ def classify_llm(
     client: LLMClient,
     on_progress=None,
     cancel_event=None,
+    *,
+    learned_hints: str = "",
 ) -> ClassificationResult:
+    """Agentic classification: understand (A) -> classify with tools (B) -> critique (C).
+
+    Each element can be classified from its *full* text and cross-document
+    evidence (via tools) rather than a truncated snippet. Every stage degrades
+    gracefully — understanding/critique are best-effort, and complete_agentic
+    itself falls back to single-shot JSON when the endpoint lacks tool support.
+    """
+    tools = classify_tools(extraction, diff)
+
+    # Pass A — holistic understanding (informs classification).
+    understanding = _run_understanding(client, extraction, diff, tools, learned_hints, cancel_event)
+    understanding_summary = _summarize_understanding(understanding) if understanding else ""
+
+    # Pass B — classify in batches via the agentic tool loop (workhorse tier).
     node_ids = [e.node_id for e in extraction.top_level_elements()]
     batches = _chunk(node_ids, CLASSIFY_BATCH_SIZE) or [[]]
     n_batches = len(batches)
-
     merged: list = []
-    sections: list = []
-    document_type_guess = ""
+    sections: list = list(understanding.sections) if understanding else []
+    document_type_guess = understanding.document_type if understanding else ""
 
     for bi, batch_ids in enumerate(batches):
         if cancel_event is not None and cancel_event.is_set():
             raise LLMCancelled("cancelled before classify batch")
         first = bi == 0
+        if on_progress is not None:
+            on_progress(f"AI classifying… batch {bi + 1}/{n_batches}", 0.35 + 0.55 * bi / n_batches)
         system, developer, user = build_classify_prompt(
-            extraction, diff, node_ids=set(batch_ids), include_sections=first
+            extraction, diff, node_ids=set(batch_ids),
+            include_sections=first and understanding is None,
+            understanding_summary=understanding_summary, learned_hints=learned_hints,
         )
-        on_delta = None
-        if on_progress is not None and client.supports_streaming:
-            target = max(150, len(batch_ids) * 45)
-            state = {"n": 0}
-
-            def on_delta(_chunk_text, _acc, _bi=bi, _target=target, _state=state):
-                _state["n"] += 1
-                frac = (_bi + min(0.99, _state["n"] / _target)) / n_batches
-                label = (
-                    f"AI classifying… batch {_bi + 1}/{n_batches} "
-                    f"({_state['n']} tokens)"
-                )
-                on_progress(label, min(0.99, frac))
-
-        try:
-            resp = _run_batch(client, system, developer, user, on_delta, cancel_event)
-        except LLMCancelled:
-            raise  # cancellation must propagate, never fall back to heuristics
+        resp = client.complete_agentic(
+            system=system, developer=developer, user=user, schema=LLMClassifyResponse,
+            tools=tools, tier=WORKHORSE_TIER, cancel_event=cancel_event,
+        )
         merged.extend(resp.classifications)
-        if first:
+        if first and not sections and resp.sections:
             sections = resp.sections
-            document_type_guess = resp.document_type_guess
-        elif not document_type_guess and resp.document_type_guess:
+        if not document_type_guess and resp.document_type_guess:
             document_type_guess = resp.document_type_guess
 
     combined = LLMClassifyResponse(
-        document_type_guess=document_type_guess,
-        classifications=merged,
-        sections=sections,
+        document_type_guess=document_type_guess, classifications=merged, sections=sections
     )
     result = map_response(extraction, combined, client.model)
+
+    # Pass C — self-critique of the questionable nodes.
+    _self_critique(
+        client, extraction, diff, result, tools,
+        understanding_summary, learned_hints, on_progress, cancel_event,
+    )
+
     _apply_optional_from_diff(result, diff)
     if on_progress is not None:
         on_progress("AI classification complete", 1.0)

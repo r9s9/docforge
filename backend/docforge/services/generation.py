@@ -9,6 +9,7 @@ from docx import Document
 from docx.table import Table
 from sqlalchemy.orm import Session
 
+from ..ai.usage import track_usage
 from ..ai_router import (
     document_content,
     extraction_blocks,
@@ -20,6 +21,7 @@ from ..common.textutil import slugify_field
 from ..config import Settings, get_settings
 from ..db.models import GeneratedDocument, GenerationRequest, Project, Template
 from ..document_ingest import extract_source_document, store_source_document
+from ..logging_setup import log_event
 from ..schemas.enums import GenerationMode, JobStatus
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.generation import GenerationInput
@@ -28,8 +30,6 @@ from ..storage import GENERATED, get_storage, join_key
 from ..structure_normalizer import iter_block_items
 from ..template_registry import TemplateRegistry
 from .audit import record_decision
-
-from ..logging_setup import log_event
 
 logger = logging.getLogger("docforge.generation")
 
@@ -134,7 +134,7 @@ def route_document(
     # to fuzzy AI text-routing when structural alignment covers little (truly
     # different document).
     routing = None
-    with use_ai_plan(plan):
+    with track_usage() as usage, use_ai_plan(plan):
         rep_raw = registry.load_representative(template.id, version)
         if rep_raw:
             try:
@@ -178,6 +178,7 @@ def route_document(
         "routing": routing.model_dump(mode="json"),
         "extracted": extraction_blocks(doc),
         "version": version,
+        "token_usage": usage.as_dict() if usage.calls else None,
     }
 
 
@@ -287,10 +288,11 @@ def generate_document(
         # 1) Resolve a routing result -> render context, then overlay the
         # project's inherited metadata (defaults; explicit values already win).
         # Unstructured routing may hit the model under this user's AI plan.
-        with use_ai_plan(plan):
+        with track_usage() as usage, use_ai_plan(plan):
             routing = resolve_routing(template.id, version, gen_input, fields, settings)
         context = _merge_with_project(_project_metadata(db, template), routing.to_context())
         req.routing = routing.model_dump(mode="json")
+        req.token_usage = usage.as_dict() if usage.calls else None
 
         # 2) Validate (unless explicitly skipped).
         from ..validator import validate  # local import avoids cycle at import time

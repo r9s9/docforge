@@ -20,14 +20,15 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..ai.client import LLMCancelled
+from ..ai.usage import track_usage
 from ..ai_classifier import classify, derive_field_definitions, derive_validation_rules
 from ..config import Settings, get_settings
 from ..db.models import AnalysisJob, SourceDocument
 from ..db.session import SessionLocal, engine
 from ..document_ingest import extract_source_document
 from ..jobs import clear_cancel, register_cancel
-from ..multi_doc_differ import diff_documents, pick_representative
 from ..logging_setup import log_event, reset_request_context, set_request_context
+from ..multi_doc_differ import diff_documents, pick_representative
 from ..schemas.enums import JobStatus
 from ..schemas.extraction import DocumentExtraction
 from .audit import record_decision
@@ -106,12 +107,21 @@ def _execute_analysis(
         shared["frac"] = fraction
         shared["stage"] = detail
 
+    # Few-shot guidance from this user's prior corrections (learning loop). Keyed
+    # by owner across recent types — the document type isn't known until classify
+    # runs. Empty for anonymous/local jobs or when nothing has been learned yet.
+    from .learning import corrections_fewshot
+
+    learned_hints = corrections_fewshot(db, job.owner_id, None, kind="classify")
+
     hb = threading.Thread(target=heartbeat, daemon=True)
     hb.start()
     try:
-        result = classify(
-            rep, diff, settings=settings, on_progress=cls_progress, cancel_event=cancel_event
-        )
+        with track_usage() as usage:
+            result = classify(
+                rep, diff, settings=settings, on_progress=cls_progress,
+                cancel_event=cancel_event, learned_hints=learned_hints,
+            )
     finally:
         stop.set()
         hb.join(timeout=2)
@@ -144,6 +154,7 @@ def _execute_analysis(
     job.document_type_guess = result.document_type_guess
     job.model_used = result.model_used
     job.ai_warning = result.ai_warning
+    job.token_usage = usage.as_dict() if usage.calls else None
     job.status = JobStatus.COMPLETED.value
 
     record_decision(

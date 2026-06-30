@@ -11,6 +11,7 @@ from ..config import Settings
 from ..schemas.routing import RoutingResult
 from ..schemas.template import FieldDefinition
 from ..settings_store import generation_ai_config
+from .compose import compose_values
 from .llm import route_llm
 from .router import route_structured, route_unstructured_heuristic
 
@@ -35,7 +36,7 @@ def route(
 
     if client.active and (raw_text or data):
         try:
-            return route_llm(
+            routing = route_llm(
                 fields,
                 raw_text=raw_text,
                 data=data,
@@ -47,5 +48,10 @@ def route(
             logger.warning("LLM routing failed, falling back to heuristic: %s", exc)
         except Exception:  # never let a routing hiccup 500 the request
             logger.exception("Unexpected error during LLM routing; using heuristic")
+        else:
+            # Compose: format/normalise values and draft missing required ones.
+            return compose_values(
+                routing, fields, source_text=raw_text or "", structured_data=data, client=client
+            )
 
     return route_unstructured_heuristic(fields, raw_text or "", template_id, version)

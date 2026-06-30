@@ -11,8 +11,9 @@ import type {
   RoutingResult,
   Template,
   TemplateDetail,
+  TokenUsage,
 } from "@/lib/types";
-import { AiBadge, AiStatusBanner, ErrorBox, Spinner, StatusBadge } from "@/components/ui";
+import { AiBadge, AiStatusBanner, ErrorBox, Spinner, StatusBadge, TokenUsageLine } from "@/components/ui";
 import {
   ChevronDown,
   ChevronRight,
@@ -143,6 +144,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   const [docMismatch, setDocMismatch] = useState(false); // uploaded doc didn't match this template
   const [docFile, setDocFile] = useState<File | null>(null);
   const [extracted, setExtracted] = useState<PreviewBlock[] | null>(null);
+  const [routeUsage, setRouteUsage] = useState<TokenUsage | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   // Which value cards are expanded (compact list by default; chevron opens one).
@@ -206,6 +208,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     try {
       const r = await api.route(selectedId, { raw_text: rawText });
       setRouting(r);
+      setRouteUsage(r.token_usage ?? null);
       const next: FormValues = { ...values };
       r.placements.forEach((p) => (next[p.field_name] = p.value));
       setValues(next);
@@ -230,6 +233,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       const r = await api.routeDocument(selectedId, docFile);
       setRouting(r.routing);
       setExtracted(r.extracted);
+      setRouteUsage(r.token_usage ?? null);
       const next: FormValues = { ...values };
       r.routing.placements.forEach((p) => (next[p.field_name] = p.value));
       setValues(next);
@@ -463,6 +467,11 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                 <div className="muted">Unmapped: {routing.unmapped_content.join(" · ")}</div>
               )}
               <div className="muted">Values applied to the form below — review and generate.</div>
+              {routeUsage ? (
+                <div style={{ marginTop: 6 }}>
+                  <TokenUsageLine usage={routeUsage} />
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -711,7 +720,8 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
 
 function RoutedChip({ p }: { p: PlacementInstruction }) {
   const pct = Math.round((p.confidence ?? 1) * 100);
-  const low = pct < 60 || p.ambiguous;
+  const drafted = !!p.ai_drafted;
+  const low = pct < 60 || p.ambiguous || drafted;
   return (
     <span
       className="badge"
@@ -722,12 +732,15 @@ function RoutedChip({ p }: { p: PlacementInstruction }) {
         color: low ? "var(--amber)" : "var(--accent-press)",
       }}
       title={
-        p.ambiguous
-          ? `Ambiguous${p.alternatives?.length ? " — could be: " + p.alternatives.join(", ") : ""}`
-          : `AI-filled · ${pct}% confidence`
+        drafted
+          ? "AI-drafted from your content — please review before generating"
+          : p.ambiguous
+            ? `Ambiguous${p.alternatives?.length ? " — could be: " + p.alternatives.join(", ") : ""}`
+            : `AI-filled · ${pct}% confidence`
       }
     >
-      <Sparkles size={11} strokeWidth={2} /> {pct}%{p.ambiguous ? " ?" : ""}
+      <Sparkles size={11} strokeWidth={2} /> {drafted ? "drafted" : `${pct}%`}
+      {p.ambiguous ? " ?" : ""}
     </span>
   );
 }
@@ -768,6 +781,11 @@ function ResultPanel({ result }: { result: GenerationResult }) {
         </h2>
         {v && <StatusBadge value={v.status} />}
       </div>
+      {result.token_usage ? (
+        <div style={{ marginTop: 8 }}>
+          <TokenUsageLine usage={result.token_usage} />
+        </div>
+      ) : null}
 
       <div className="row" style={{ margin: "16px 0" }}>
         {result.download_url && (

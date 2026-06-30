@@ -19,6 +19,20 @@ from .config import get_settings
 
 OPENAI_DEFAULT_BASE = "https://api.openai.com/v1"
 ANTHROPIC_DEFAULT_BASE = "https://api.anthropic.com"
+# Google Gemini speaks the OpenAI-compatible Chat Completions API, so it rides
+# the "openai" provider path with this base. This is the recommended default.
+GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+# Recommended cloud default ("bring your own key"): a cheap, capable, 1M-context
+# Gemini pairing. The workhorse handles high-volume mechanical calls; the
+# reasoning model is used only for the harder agentic steps.
+GEMINI_WORKHORSE_MODEL = "gemini-2.5-flash-lite"
+GEMINI_REASONING_MODEL = "gemini-3-flash"
+
+# Logical tiers an agentic step can ask for. "reasoning" uses ``reasoning_model``
+# when configured; everything else uses the workhorse ``model``.
+WORKHORSE_TIER = "workhorse"
+REASONING_TIER = "reasoning"
 
 
 @dataclass
@@ -28,6 +42,8 @@ class AIConfig:
     base_url: str = OPENAI_DEFAULT_BASE
     api_key: str = ""
     model: str = "gpt-4o-mini"
+    # Optional stronger model for the reasoning tier (empty -> reuse ``model``).
+    reasoning_model: str = ""
     timeout_seconds: int = 120
     max_retries: int = 2
     max_output_tokens: int = 6000
@@ -39,6 +55,16 @@ class AIConfig:
     @property
     def active(self) -> bool:
         return bool(self.enabled and self.api_key and self.base_url)
+
+    def model_for_tier(self, tier: str = WORKHORSE_TIER) -> str:
+        """The model name to use for a logical tier.
+
+        The reasoning tier falls back to the workhorse model when no separate
+        ``reasoning_model`` is configured, so single-model setups still work.
+        """
+        if tier == REASONING_TIER and (self.reasoning_model or "").strip():
+            return self.reasoning_model.strip()
+        return self.model
 
 
 def _overrides_path() -> Path:
@@ -85,6 +111,7 @@ def global_ai_config() -> AIConfig:
         base_url=s.ai_base_url,
         api_key=s.ai_api_key,
         model=s.ai_model,
+        reasoning_model=s.ai_reasoning_model,
         timeout_seconds=s.ai_timeout_seconds,
         max_retries=s.ai_max_retries,
         max_output_tokens=s.ai_max_output_tokens,
@@ -119,7 +146,7 @@ def update_ai_config(patch: dict) -> AIConfig:
     data = load_overrides()
     ai = data.get("ai", {})
     for key in (
-        "provider", "enabled", "base_url", "model",
+        "provider", "enabled", "base_url", "model", "reasoning_model",
         "timeout_seconds", "max_retries", "max_output_tokens", "no_think",
     ):
         if key in patch and patch[key] is not None:

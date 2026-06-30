@@ -56,3 +56,5 @@ class ComplianceReport(BaseModel):
     document_preview: list[dict] = Field(default_factory=list)
     # True when there are changed/missing FIXED differences the in-place fixer can repair.
     fixable: bool = False
+    # AI token usage + estimated cost for the semantic judge (None when AI was off).
+    token_usage: dict | None = None

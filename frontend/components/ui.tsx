@@ -3,8 +3,42 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { useHealth } from "@/lib/useHealth";
-import type { AISettings, AIUsage } from "@/lib/types";
+import type { AISettings, AIUsage, TokenUsage } from "@/lib/types";
 import { AlertTriangle, Sparkles } from "@/components/icons";
+
+/** Abbreviate a token count: 1234 -> "1.2K", 56000 -> "56K". */
+export function formatTokens(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K`;
+  return String(n);
+}
+
+/** Best-effort cost label, or null when the model price is unknown. */
+export function formatCost(c: number | null | undefined): string | null {
+  if (c == null) return null;
+  return c < 0.01 ? `~$${c.toFixed(4)}` : `~$${c.toFixed(2)}`;
+}
+
+/** Compact "AI used 12.3K in / 1.1K out · ~$0.004 · model" line for a result. */
+export function TokenUsageLine({ usage }: { usage?: TokenUsage | null }) {
+  if (!usage || !usage.calls) return null;
+  const models = Object.keys(usage.by_model || {});
+  const modelLabel = models.length === 1 ? models[0] : models.length > 1 ? `${models.length} models` : null;
+  const cost = formatCost(usage.cost_usd);
+  return (
+    <div
+      className="token-usage muted"
+      style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+      title={`${usage.in} input + ${usage.out} output tokens across ${usage.calls} AI call(s)`}
+    >
+      <Sparkles size={12} strokeWidth={2} />
+      <span>
+        AI used <strong>{formatTokens(usage.in)}</strong> in / <strong>{formatTokens(usage.out)}</strong> out
+        {cost && <> · {cost}</>}
+        {modelLabel && <> · {modelLabel}</>}
+      </span>
+    </div>
+  );
+}
 
 /** Small chip marking an AI-powered action. */
 export function AiBadge({ title }: { title?: string }) {

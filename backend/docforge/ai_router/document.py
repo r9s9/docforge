@@ -223,11 +223,12 @@ def route_document_content(
     from ..settings_store import generation_ai_config
 
     client = client or LLMClient(generation_ai_config())
+    source_text = render_content_text(content)
     if client.active:
         try:
-            return route_llm(
+            routing = route_llm(
                 fields,
-                raw_text=render_content_text(content),
+                raw_text=source_text,
                 data=None,
                 client=client,
                 template_id=template_id,
@@ -238,4 +239,8 @@ def route_document_content(
             logger.warning("LLM document routing failed, falling back to heuristic: %s", exc)
         except Exception:  # never let a routing hiccup 500 the request
             logger.exception("Unexpected error during document routing; using heuristic")
+        else:
+            from .compose import compose_values
+
+            return compose_values(routing, fields, source_text=source_text, client=client)
     return route_document_heuristic(fields, content, template_id, version)

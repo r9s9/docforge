@@ -55,6 +55,7 @@ def check_compliance_endpoint(
             version=version,
             settings=settings,
             registry=registry,
+            owner_id=user.id,
         )
     except (IngestError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -134,7 +135,7 @@ def check_compliance_refs(
         data = read_incoming_bytes(req.key, owner_id=user.id, filename=name)
         report = check_document(
             db, template, filename=name, data=data,
-            version=req.version, settings=settings, registry=registry,
+            version=req.version, settings=settings, registry=registry, owner_id=user.id,
         )
     except (IngestError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

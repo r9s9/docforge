@@ -1,5 +1,23 @@
 // TypeScript mirrors of the backend response shapes (kept intentionally light).
 
+// AI token usage + estimated cost for a single action (see backend ai/usage.py).
+export interface TokenUsage {
+  in: number;
+  out: number;
+  calls: number;
+  cost_usd: number | null;
+  by_model: Record<string, { in: number; out: number; calls: number }>;
+}
+
+// Lifetime token totals for a user (shown in Settings).
+export interface TokenTotals {
+  in: number;
+  out: number;
+  calls: number;
+  actions: number;
+  cost_usd: number | null;
+}
+
 export interface TableColumn {
   field_name: string;
   label: string;
@@ -81,6 +99,7 @@ export interface AnalysisJob {
   ai_warning: string | null;
   error: string | null;
   diff_summary: Record<string, number> | null;
+  token_usage?: TokenUsage | null;
   sections: SectionUnderstanding[];
   classifications: ElementClassification[];
   field_definitions: FieldDefinition[];
@@ -177,6 +196,7 @@ export interface PlacementInstruction {
   ambiguous: boolean;
   alternatives: string[];
   note: string;
+  ai_drafted?: boolean;
 }
 
 export interface RoutingResult {
@@ -188,6 +208,7 @@ export interface RoutingResult {
   unmapped_content: string[];
   model_used: string | null;
   source: string;
+  token_usage?: TokenUsage | null;
 }
 
 export interface GenerationResult {
@@ -200,6 +221,7 @@ export interface GenerationResult {
   routing: RoutingResult | null;
   context_used: Record<string, unknown> | null;
   validation: ValidationReport | null;
+  token_usage?: TokenUsage | null;
   output_filename: string | null;
   generated_document_id: string | null;
   download_url: string | null;
@@ -221,6 +243,7 @@ export interface AISettings {
   enabled: boolean;
   base_url: string;
   model: string;
+  reasoning_model?: string;
   has_key: boolean;
   no_think: boolean;
   active: boolean;
@@ -238,6 +261,7 @@ export interface AIUsage {
 export interface AISettingsResponse {
   ai: AISettings;
   usage: AIUsage;
+  tokens?: TokenTotals;
 }
 
 // A server-side log line for the in-app Logs page (scoped to the current user).
@@ -293,6 +317,7 @@ export interface ComplianceReport {
   missing_fields: string[];
   alignment: ComplianceAlignedPair[];
   fixable: boolean;
+  token_usage?: TokenUsage | null;
   document_preview: PreviewBlock[];
 }
 
@@ -315,4 +340,5 @@ export interface RouteDocumentResult {
   routing: RoutingResult;
   extracted: PreviewBlock[];
   version: number;
+  token_usage?: TokenUsage | null;
 }

@@ -14,9 +14,12 @@ from sqlalchemy.orm import Session
 
 from ...ai.client import LLMClient, LLMError
 from ...ai_quota import usage_snapshot
-from ...db.models import UserAIConfig
+from ...db.models import AnalysisJob, ComplianceRun, GenerationRequest, UserAIConfig
 from ...settings_store import (
     ANTHROPIC_DEFAULT_BASE,
+    GEMINI_DEFAULT_BASE,
+    GEMINI_REASONING_MODEL,
+    GEMINI_WORKHORSE_MODEL,
     OPENAI_DEFAULT_BASE,
     AIConfig,
 )
@@ -31,18 +34,25 @@ class AISettingsIn(BaseModel):
     enabled: bool | None = None
     base_url: str | None = None
     model: str | None = None
+    reasoning_model: str | None = None  # optional stronger model for agent loops
     api_key: str | None = None  # write-only; blank = keep existing
     no_think: bool | None = None  # prepend /no_think for Qwen3
 
 
 def _ai_dto(row: UserAIConfig | None) -> dict:
-    """Public view of a user's AI config (never includes the key itself)."""
+    """Public view of a user's AI config (never includes the key itself).
+
+    A brand-new user (no row yet) is shown the recommended cloud default —
+    Gemini, tiered: a cheap workhorse model plus a stronger reasoning model used
+    only for the harder agentic steps. They still need to add their own key.
+    """
     if row is None:
         return {
             "provider": "openai",
             "enabled": False,
-            "base_url": OPENAI_DEFAULT_BASE,
-            "model": "gpt-4o-mini",
+            "base_url": GEMINI_DEFAULT_BASE,
+            "model": GEMINI_WORKHORSE_MODEL,
+            "reasoning_model": GEMINI_REASONING_MODEL,
             "has_key": False,
             "no_think": False,
             "active": False,
@@ -52,10 +62,39 @@ def _ai_dto(row: UserAIConfig | None) -> dict:
         "enabled": bool(row.enabled),
         "base_url": row.base_url or OPENAI_DEFAULT_BASE,
         "model": row.model or "gpt-4o-mini",
+        "reasoning_model": (row.reasoning_model or "").strip(),
         "has_key": bool((row.api_key or "").strip()),
         "no_think": bool(row.no_think),
         "active": bool(row.enabled and (row.api_key or "").strip()),
     }
+
+
+def _token_totals(db: Session, owner_id: str) -> dict:
+    """Lifetime AI token usage + estimated cost for a user, across all actions."""
+    totals = {"in": 0, "out": 0, "calls": 0, "actions": 0, "cost_usd": 0.0}
+    any_cost = False
+    for model_cls in (AnalysisJob, GenerationRequest, ComplianceRun):
+        try:
+            rows = (
+                db.query(model_cls.token_usage)
+                .filter(model_cls.owner_id == owner_id, model_cls.token_usage.isnot(None))
+                .all()
+            )
+        except Exception:  # pragma: no cover - table may not exist yet
+            continue
+        for (tu,) in rows:
+            if not tu:
+                continue
+            totals["in"] += int(tu.get("in", 0) or 0)
+            totals["out"] += int(tu.get("out", 0) or 0)
+            totals["calls"] += int(tu.get("calls", 0) or 0)
+            totals["actions"] += 1
+            c = tu.get("cost_usd")
+            if c is not None:
+                any_cost = True
+                totals["cost_usd"] += float(c)
+    totals["cost_usd"] = round(totals["cost_usd"], 6) if any_cost else None
+    return totals
 
 
 @router.get("/settings")
@@ -64,7 +103,7 @@ def get_settings_api(
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
     row = db.get(UserAIConfig, user.id)
-    return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id)}
+    return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
 
 
 @router.delete("/settings/account")
@@ -102,7 +141,7 @@ def put_settings_api(
         row = UserAIConfig(owner_id=user.id)
         db.add(row)
     patch = body.model_dump(exclude_none=True)
-    for key in ("provider", "enabled", "base_url", "model", "no_think"):
+    for key in ("provider", "enabled", "base_url", "model", "reasoning_model", "no_think"):
         if key in patch:
             setattr(row, key, patch[key])
     # A blank api_key never clobbers an existing stored key.
@@ -110,7 +149,7 @@ def put_settings_api(
         row.api_key = patch["api_key"].strip()
     db.commit()
     db.refresh(row)
-    return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id)}
+    return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
 
 
 @router.post("/settings/ai/test")

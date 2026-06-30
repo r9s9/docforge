@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { ComplianceReport, Template } from "@/lib/types";
-import { ErrorBox, Spinner } from "@/components/ui";
+import { ErrorBox, Spinner, TokenUsageLine } from "@/components/ui";
 import { FileText, Sparkles } from "@/components/icons";
 import DocxPreview from "@/components/DocxPreview";
 
@@ -216,6 +216,12 @@ function Report({
           </div>
         </div>
       </div>
+
+      {report.token_usage ? (
+        <div className="section" style={{ marginTop: 10 }}>
+          <TokenUsageLine usage={report.token_usage} />
+        </div>
+      ) : null}
 
       {fixMsg && (
         <div className="banner info section" role="status">
