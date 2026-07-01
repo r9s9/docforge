@@ -130,6 +130,88 @@ def test_agentic_tools_unsupported_falls_back(monkeypatch):
     assert out.answer == "fallback"
 
 
+# --- transient-error retry + tier fallback ---------------------------------
+
+def test_post_with_retry_recovers_from_503(monkeypatch):
+    from docforge.ai import client as mod
+
+    monkeypatch.setattr(mod.time, "sleep", lambda s: None)
+    statuses = iter([503, 200])
+
+    class FakeResp:
+        def __init__(self, status):
+            self.status_code = status
+            self.headers = {}
+            self.text = "overloaded"
+            self.reason_phrase = "err"
+        def json(self):
+            return {"error": {"message": "overloaded"}}
+
+    class FakeClient:
+        def post(self, path, json=None, headers=None):
+            return FakeResp(next(statuses))
+
+    resp = mod._post_with_retry(FakeClient(), "chat/completions", {}, {})
+    assert resp.status_code == 200
+
+
+def test_post_with_retry_raises_unavailable_when_exhausted(monkeypatch):
+    import pytest
+
+    from docforge.ai import client as mod
+    from docforge.ai.client import LLMUnavailable
+
+    monkeypatch.setattr(mod.time, "sleep", lambda s: None)
+
+    class FakeResp:
+        status_code = 503
+        headers: dict = {}
+        text = "overloaded"
+        reason_phrase = "Service Unavailable"
+        def json(self):
+            return {"error": {"message": "high demand"}}
+
+    class FakeClient:
+        def post(self, path, json=None, headers=None):
+            return FakeResp()
+
+    with pytest.raises(LLMUnavailable):
+        mod._post_with_retry(FakeClient(), "chat/completions", {}, {})
+
+
+def test_agentic_reasoning_unavailable_falls_back_to_workhorse(monkeypatch):
+    from docforge.ai.client import LLMUnavailable
+
+    client = LLMClient(_cfg(base_url="http://tierfb", reasoning_model="big"))
+    used_models: list[str] = []
+
+    def fake_tiered(self, *, tier, **kw):
+        used_models.append(self.config.model_for_tier(tier))
+        if tier == "reasoning":
+            raise LLMUnavailable("503 overloaded")
+        return _Out(answer="from-workhorse")
+
+    monkeypatch.setattr(LLMClient, "_complete_agentic_tiered", fake_tiered)
+    out = client.complete_agentic(system="s", developer="d", user="u", schema=_Out, tier="reasoning")
+    assert out.answer == "from-workhorse"
+    assert used_models == ["big", "m"]
+
+
+def test_agentic_unavailable_workhorse_propagates(monkeypatch):
+    import pytest
+
+    from docforge.ai.client import LLMUnavailable
+
+    client = LLMClient(_cfg(base_url="http://tierfb2"))
+
+    def fake_tiered(self, **kw):
+        raise LLMUnavailable("503 overloaded")
+
+    monkeypatch.setattr(LLMClient, "_complete_agentic_tiered", fake_tiered)
+    with pytest.raises(LLMUnavailable):
+        client.complete_agentic(system="s", developer="d", user="u", schema=_Out)
+
+
 # --- deterministic tools ---------------------------------------------------
 
 def test_normalizer_tools():

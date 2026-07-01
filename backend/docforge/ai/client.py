@@ -15,6 +15,7 @@ import json
 import logging
 import re
 import time
+from contextlib import contextmanager
 from dataclasses import replace
 from typing import TypeVar
 from urllib.parse import urlparse
@@ -55,6 +56,13 @@ class LLMCancelled(LLMError):
     """
 
 
+class LLMUnavailable(LLMError):
+    """Raised when the model server is transiently overloaded (429/5xx) and
+    retries were exhausted. Distinct from LLMError so callers can try a
+    different model (e.g. reasoning tier -> workhorse) before giving up.
+    """
+
+
 class _ToolsUnsupported(Exception):
     """Internal: the endpoint rejected a tools request — fall back to single-shot."""
 
@@ -66,6 +74,52 @@ _JSON_MODE_UNSUPPORTED: set[str] = set()
 # Bases that 400'd on a tool-calling request (no function-calling support).
 # Cached so agentic calls transparently fall back to single-shot JSON for them.
 _TOOLS_UNSUPPORTED: set[str] = set()
+
+# Transient server-side conditions worth retrying: rate limits and overload.
+# Gemini in particular returns 503 UNAVAILABLE ("high demand") in short spikes.
+_RETRYABLE_STATUS = {429, 500, 502, 503, 529}
+_TRANSIENT_ATTEMPTS = 3  # initial call + 2 retries
+_BACKOFF_BASE_SECONDS = 2.0
+
+
+def _retry_delay(resp: httpx.Response, attempt: int) -> float:
+    """Delay before retrying a transient failure — honors Retry-After if sane."""
+    ra = resp.headers.get("retry-after")
+    if ra:
+        try:
+            secs = float(ra)
+            if 0 < secs <= 30:
+                return secs
+        except ValueError:
+            pass
+    return _BACKOFF_BASE_SECONDS * (2**attempt)  # 2s, 4s
+
+
+def _post_with_retry(
+    client: httpx.Client, path: str, payload: dict, headers: dict, *, cancel_event=None
+) -> httpx.Response:
+    """POST with bounded retry on transient 429/5xx overload responses.
+
+    Returns the first non-transient response (success or a real 4xx the caller
+    handles). Raises LLMUnavailable when every attempt hit a transient status,
+    so callers can distinguish "overloaded right now" from a permanent error.
+    """
+    resp: httpx.Response | None = None
+    for attempt in range(_TRANSIENT_ATTEMPTS):
+        if cancel_event is not None and cancel_event.is_set():
+            raise LLMCancelled("cancelled")
+        resp = client.post(path, json=payload, headers=headers)
+        if resp.status_code not in _RETRYABLE_STATUS:
+            return resp
+        if attempt < _TRANSIENT_ATTEMPTS - 1:
+            delay = _retry_delay(resp, attempt)
+            log_event(
+                logger, "ai.transient_retry", level=logging.WARNING,
+                status=resp.status_code, attempt=attempt + 1, delay_s=delay,
+            )
+            time.sleep(delay)
+    assert resp is not None
+    raise LLMUnavailable(_explain_http_error(resp))
 
 
 def _explain_http_error(resp: httpx.Response) -> str:
@@ -340,10 +394,7 @@ class LLMClient:
         stream_usage: dict = {}
         try:
             with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
-                with client.stream("POST", "chat/completions", json=payload, headers=headers) as resp:
-                    if resp.status_code >= 400:
-                        resp.read()
-                        raise LLMError(_explain_http_error(resp))
+                with self._stream_with_retry(client, payload, headers, cancel_event) as resp:
                     for line in resp.iter_lines():
                         if cancel_event is not None and cancel_event.is_set():
                             cancelled = True
@@ -378,6 +429,38 @@ class LLMClient:
             )
         return "".join(acc)
 
+    @contextmanager
+    def _stream_with_retry(self, client: httpx.Client, payload: dict, headers: dict, cancel_event):
+        """Open a streaming completion, retrying transient overload statuses.
+
+        Retry is safe here because nothing has been consumed yet when the
+        status line says 429/503 — we close that response and try again.
+        Yields a response guaranteed to be < 400.
+        """
+        last: httpx.Response | None = None
+        for attempt in range(_TRANSIENT_ATTEMPTS):
+            if cancel_event is not None and cancel_event.is_set():
+                raise LLMCancelled("cancelled")
+            with client.stream("POST", "chat/completions", json=payload, headers=headers) as resp:
+                if resp.status_code in _RETRYABLE_STATUS:
+                    resp.read()
+                    last = resp
+                    if attempt < _TRANSIENT_ATTEMPTS - 1:
+                        delay = _retry_delay(resp, attempt)
+                        log_event(
+                            logger, "ai.transient_retry", level=logging.WARNING,
+                            status=resp.status_code, attempt=attempt + 1, delay_s=delay,
+                        )
+                        time.sleep(delay)
+                    continue
+                if resp.status_code >= 400:
+                    resp.read()
+                    raise LLMError(_explain_http_error(resp))
+                yield resp
+                return
+        assert last is not None
+        raise LLMUnavailable(_explain_http_error(last))
+
     # ----- transport ------------------------------------------------------
     def complete(self, messages: list[dict], *, temperature: float = 0.0, json_mode: bool = True) -> str:
         if not self.active:
@@ -406,14 +489,14 @@ class LLMClient:
         t0 = time.perf_counter()
         try:
             with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
-                resp = client.post("chat/completions", json=payload, headers=headers)
+                resp = _post_with_retry(client, "chat/completions", payload, headers)
                 # Some servers (e.g. LM Studio) reject json_object -> retry as plain
                 # text and remember not to send it again to this base.
                 if resp.status_code == 400 and use_json:
                     _JSON_MODE_UNSUPPORTED.add(base)
                     payload.pop("response_format", None)
                     log_event(logger, "ai.json_mode_unsupported", level=logging.WARNING, host=_host(base))
-                    resp = client.post("chat/completions", json=payload, headers=headers)
+                    resp = _post_with_retry(client, "chat/completions", payload, headers)
                 if resp.status_code >= 400:
                     raise LLMError(_explain_http_error(resp))
                 data = resp.json()
@@ -462,7 +545,7 @@ class LLMClient:
         t0 = time.perf_counter()
         try:
             with httpx.Client(timeout=self.config.timeout_seconds) as client:
-                resp = client.post(f"{base}/v1/messages", json=payload, headers=headers)
+                resp = _post_with_retry(client, f"{base}/v1/messages", payload, headers)
                 resp.raise_for_status()
                 data = resp.json()
             text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
@@ -565,7 +648,34 @@ class LLMClient:
         budget is exhausted. With no tools, an Anthropic provider, or an endpoint
         that rejects tools, this degrades to single-shot ``complete_json`` —
         today's behaviour — so nothing regresses offline.
+
+        When the reasoning-tier model is transiently unavailable (e.g. Gemini
+        503 "high demand" spikes) after retries, the call is re-run once on the
+        workhorse model instead of abandoning AI for the whole action.
         """
+        try:
+            return self._complete_agentic_tiered(
+                system=system, developer=developer, user=user, schema=schema,
+                tools=tools, tier=tier, max_steps=max_steps, cancel_event=cancel_event,
+            )
+        except LLMUnavailable:
+            from ..settings_store import REASONING_TIER, WORKHORSE_TIER
+
+            if tier != REASONING_TIER or self.config.model_for_tier(tier) == self.config.model_for_tier(WORKHORSE_TIER):
+                raise
+            log_event(
+                logger, "ai.tier_fallback", level=logging.WARNING,
+                from_model=self.config.model_for_tier(tier),
+                to_model=self.config.model_for_tier(WORKHORSE_TIER),
+            )
+            return self._complete_agentic_tiered(
+                system=system, developer=developer, user=user, schema=schema,
+                tools=tools, tier=WORKHORSE_TIER, max_steps=max_steps, cancel_event=cancel_event,
+            )
+
+    def _complete_agentic_tiered(
+        self, *, system, developer, user, schema: type[T], tools, tier, max_steps, cancel_event
+    ) -> T:
         client = self.for_tier(tier)
         base = client.config.base_url.rstrip("/") + "/"
         if not tools or client.provider == "anthropic" or base in _TOOLS_UNSUPPORTED:
@@ -682,7 +792,7 @@ class LLMClient:
         t0 = time.perf_counter()
         try:
             with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
-                resp = client.post("chat/completions", json=payload, headers=headers)
+                resp = _post_with_retry(client, "chat/completions", payload, headers)
                 if resp.status_code == 400:
                     body = (resp.text or "").lower()
                     if any(k in body for k in ("tool", "function", "not supported", "unsupported", "unrecognized")):
