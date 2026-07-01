@@ -14,7 +14,7 @@ import logging
 
 from ..ai.client import LLMClient, LLMError
 from ..ai.prompts import LLMComposeResponse, build_compose_prompt
-from ..ai.tools import compose_tools
+from ..ai.tools import compose_tools, validate_field_value
 from ..schemas.routing import PlacementInstruction, RoutingResult
 from ..schemas.template import FieldDefinition
 from ..settings_store import REASONING_TIER
@@ -80,11 +80,30 @@ def compose_values(
                 p.note = cv.note
 
     placements = list(existing.values())
+
+    # Deterministic cross-check: the model's confidence/ambiguous fields are
+    # self-rated with nothing independently verifying them. Re-run the same
+    # type/enum check the compose tool loop had access to against every FINAL
+    # value and downgrade confidence when it fails — so a wrong date/number/enum
+    # value is flagged for review even if the model was confidently wrong.
+    by_name = {f.field_name: f for f in fields}
+    n_flagged = 0
+    for p in placements:
+        f = by_name.get(p.field_name)
+        if f is None or p.value in (None, ""):
+            continue
+        check = validate_field_value(f, p.value)
+        if not check.get("ok", True):
+            n_flagged += 1
+            p.confidence = min(p.confidence, 0.3)
+            flag = f"Needs review — {check.get('reason') or 'failed validation'}."
+            p.note = f"{p.note} {flag}".strip() if p.note else flag
+
     placed = {p.field_name for p in placements if p.value not in (None, "")}
     missing = [f.field_name for f in fields if f.required and f.field_name not in placed]
     n_drafted = sum(1 for p in placements if p.ai_drafted)
     logger.info(
-        "compose refined %d value(s), drafted %d, %d required still missing",
-        len(placements), n_drafted, len(missing),
+        "compose refined %d value(s), drafted %d, flagged %d on validation, %d required still missing",
+        len(placements), n_drafted, n_flagged, len(missing),
     )
     return routing.model_copy(update={"placements": placements, "missing_required": missing})

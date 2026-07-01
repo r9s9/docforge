@@ -8,6 +8,7 @@ from docforge.ai_classifier import (
     derive_validation_rules,
 )
 from docforge.multi_doc_differ import diff_documents
+from docforge.schemas.classification import ClassificationResult, ElementClassification
 from docforge.schemas.enums import ClassificationType, FieldType
 from docforge.structure_normalizer import build_extraction
 
@@ -60,3 +61,29 @@ def test_classify_single_document_still_finds_fields(project_docs):
     # labeled values become dynamic even without diff evidence
     assert "project_name" in names
     assert len(fields) >= 3
+
+
+def test_derive_field_definitions_fills_blank_description(project_docs):
+    # The heuristic classifier (and sometimes the LLM) leaves description empty.
+    # Routing/compose lean on description as their main semantic signal beyond
+    # the bare field name, so a blank one must never reach the field definition.
+    ext = build_extraction(project_docs[0], "solo")
+    node_id = ext.top_level_elements()[1].node_id
+    result = ClassificationResult(
+        extraction_document_id=ext.document_id,
+        classifications=[
+            ElementClassification(
+                node_id=node_id,
+                classification=ClassificationType.DYNAMIC_DATE,
+                field_name="issued_on",
+                field_type=FieldType.DATE,
+                description="",  # blank on purpose
+                static_prefix="Issued On: ",
+                confidence=0.8,
+            )
+        ],
+    )
+    fields = derive_field_definitions(ext, result)
+    f = next(f for f in fields if f.field_name == "issued_on")
+    assert f.description.strip() != ""
+    assert "Issued On" in f.description  # carries the document's own label forward

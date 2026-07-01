@@ -527,6 +527,15 @@ Rules:
 """
 
 
+# The routing step (build_route_prompt) sends raw_text/document content in full
+# — compose runs on the SAME content right after routing already succeeded with
+# it, so truncating here more tightly would silently starve compose of context
+# routing already had. This is a generous backstop against pathological inputs
+# (e.g. a multi-megabyte document), not the default path: ~200K chars comfortably
+# covers even long multi-page contracts while still bounding worst-case cost.
+_COMPOSE_SOURCE_TEXT_CAP = 200_000
+
+
 def build_compose_prompt(
     fields: list[FieldDefinition],
     placements: list,
@@ -558,7 +567,7 @@ def build_compose_prompt(
             + json.dumps(structured_data, ensure_ascii=False, default=str, indent=2)
         )
     if source_text:
-        parts.append("Source content the values came from:\n" + source_text[:6000])
+        parts.append("Source content the values came from:\n" + source_text[:_COMPOSE_SOURCE_TEXT_CAP])
     parts.append("Return the refined values.")
     return _COMPOSE_SYSTEM, _COMPOSE_DEVELOPER, "\n\n".join(parts)
 

@@ -208,7 +208,7 @@ _VALIDATE_PARAM = {
 }
 
 
-def _validate_field_value(f, value) -> dict:
+def validate_field_value(f, value) -> dict:
     """Lightweight, deterministic check of a value against a field's type/enum."""
     ft = f.field_type.value
     if value in (None, ""):
@@ -254,7 +254,7 @@ def compose_tools(fields) -> list[ToolSpec]:
         f = by_name.get(args.get("field_name"))
         if not f:
             return {"ok": False, "reason": "unknown field_name"}
-        return _validate_field_value(f, args.get("value"))
+        return validate_field_value(f, args.get("value"))
 
     return normalizer_tools() + [
         ToolSpec("get_field_spec", "Type, description, required flag, allowed values and columns for a field.", _FIELD_PARAM, get_field_spec),

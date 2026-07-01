@@ -57,6 +57,33 @@ def _label_from(field_name: str, classification: ElementClassification) -> str:
     return field_name.replace("_", " ").title()
 
 
+_KIND_HINT = {
+    ClassificationType.DYNAMIC_DATE: "A date value",
+    ClassificationType.DYNAMIC_PERSON: "A person's name",
+    ClassificationType.DYNAMIC_NUMBER: "A numeric value",
+    ClassificationType.DYNAMIC_ENUM: "One of a fixed set of choices",
+    ClassificationType.REPEATABLE_TABLE: "Repeating rows of data",
+    ClassificationType.REPEATABLE_SECTION: "Repeating free-text content",
+}
+
+
+def _fallback_description(label: str, classification: ElementClassification) -> str:
+    """A deterministic, still-useful description when the AI left one blank.
+
+    The routing/compose agents lean on ``description`` as their main semantic
+    signal for a field beyond its bare name — an empty description silently
+    starves them of context. This keeps every field usable even if a
+    classification pass (or a heuristic-fallback run) never wrote one.
+    """
+    hint = _KIND_HINT.get(classification.classification, "The value")
+    parts = [f"{hint} for \"{label}\"."]
+    if classification.static_prefix:
+        parts.append(f"In the document it follows the label \"{classification.static_prefix.strip()}\".")
+    if classification.enum_values:
+        parts.append(f"Allowed values: {', '.join(classification.enum_values)}.")
+    return " ".join(parts)
+
+
 def derive_field_definitions(
     extraction: DocumentExtraction, result: ClassificationResult
 ) -> list[FieldDefinition]:
@@ -89,13 +116,14 @@ def derive_field_definitions(
             headers = el.table_structure.headers if el and el.table_structure else []
             columns = _table_columns(headers)
 
+        label = _label_from(c.field_name, c)
         fields.append(
             FieldDefinition(
                 field_name=c.field_name,
-                label=_label_from(c.field_name, c),
+                label=label,
                 field_type=c.field_type or FieldType.TEXT,
                 classification=c.classification,
-                description=c.description,
+                description=(c.description or "").strip() or _fallback_description(label, c),
                 required=c.required and not c.optional,
                 enum_values=c.enum_values,
                 node_ids=[c.node_id],

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
+  AISettings,
+  AIUsage,
   FieldDefinition,
   GenerationResult,
   PlacementInstruction,
@@ -13,8 +15,18 @@ import type {
   TemplateDetail,
   TokenUsage,
 } from "@/lib/types";
-import { AiBadge, AiStatusBanner, ErrorBox, Spinner, StatusBadge, TokenUsageLine } from "@/components/ui";
 import {
+  AiBadge,
+  AiStatusBanner,
+  ErrorBox,
+  isAiActive,
+  Spinner,
+  StatusBadge,
+  TokenUsageLine,
+} from "@/components/ui";
+import { useHealth } from "@/lib/useHealth";
+import {
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
   ChevronsDownUp,
@@ -29,6 +41,9 @@ import {
 import DocBlocks from "@/components/DocBlocks";
 import DocxPreview from "@/components/DocxPreview";
 import ProgressBar from "@/components/ProgressBar";
+
+// Routing sources that mean "the AI genuinely ran" (vs. a heuristic fallback).
+const AI_ROUTING_SOURCES = new Set(["llm", "structural"]);
 
 type Mode = "form" | "raw" | "document" | "json";
 type FormValues = Record<string, any>;
@@ -153,6 +168,25 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   const [aiStage, setAiStage] = useState("");
   const docInputRef = useRef<HTMLInputElement>(null);
   const aiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Whether AI is actually active for this user (own key / free-tier remaining
+  // / global key) — used to tell "AI is on but this call fell back to
+  // heuristics" apart from "AI is simply off" (see the routing notice below).
+  const health = useHealth();
+  const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
+  const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
+  useEffect(() => {
+    api
+      .getAISettings()
+      .then(({ ai, usage }) => {
+        setAiSettings(ai);
+        setAiUsage(usage);
+      })
+      .catch(() => {
+        /* AiStatusBanner already surfaces auth/connection issues */
+      });
+  }, []);
+  const aiActive = isAiActive(health, aiSettings, aiUsage);
 
   function startAiTimer(stage: string) {
     setAiStage(stage);
@@ -458,6 +492,14 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
             <div className="notice section">
               <strong>Routing ({routing.source})</strong> mapped {routing.placements.length}{" "}
               field(s).
+              {aiActive && !AI_ROUTING_SOURCES.has(routing.source) && (
+                <div className="banner warn" style={{ marginTop: 8 }} role="status">
+                  <AlertTriangle size={14} strokeWidth={2} />{" "}
+                  <strong>AI didn&apos;t run for this mapping</strong> — it failed or timed out, so
+                  the basic heuristic engine mapped this instead (less accurate). Review the values
+                  below carefully, or try again.
+                </div>
+              )}
               {routing.missing_required.length > 0 && (
                 <div style={{ color: "var(--amber)" }}>
                   Missing required: {routing.missing_required.join(", ")}

@@ -76,3 +76,21 @@ def test_compose_noop_when_inactive():
         active = False
 
     assert compose_values(routing, _fields(), client=_Off()) is routing
+
+
+def test_compose_downgrades_confidence_on_failed_deterministic_check():
+    # The model can be confidently wrong (e.g. "amount" isn't numeric) — the
+    # self-rated confidence must not be trusted blindly; a deterministic
+    # type check failing should downgrade it and flag a review note.
+    routing = RoutingResult(template_id="t", version=1, placements=[], source="llm")
+    resp = LLMComposeResponse(
+        values=[
+            LLMComposedValue(field_name="title", value="Hello", confidence=0.9),
+            LLMComposedValue(field_name="amount", value="not-a-number", confidence=0.95),
+        ]
+    )
+    out = compose_values(routing, _fields(), client=_ComposeClient(resp))
+    vals = {p.field_name: p for p in out.placements}
+    assert vals["title"].confidence == 0.9  # valid text -> untouched
+    assert vals["amount"].confidence <= 0.3  # deterministic check overrides self-rating
+    assert "Needs review" in vals["amount"].note

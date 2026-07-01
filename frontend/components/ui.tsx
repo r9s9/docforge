@@ -3,8 +3,22 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { useHealth } from "@/lib/useHealth";
-import type { AISettings, AIUsage, TokenUsage } from "@/lib/types";
+import type { AISettings, AIUsage, Health, TokenUsage } from "@/lib/types";
 import { AlertTriangle, Sparkles } from "@/components/icons";
+
+/** Whether AI is actually active for this user right now (own key, free-tier
+ * allowance remaining, or the legacy global key) — the same three-source check
+ * AiStatusBanner uses. Exported so other pages can tell "AI is on but this
+ * particular routing call fell back to heuristics" apart from "AI is off". */
+export function isAiActive(
+  health: Health | null,
+  ai: AISettings | null,
+  usage: AIUsage | null,
+): boolean {
+  if (ai?.active) return true;
+  if (usage?.free_enabled && !usage.has_own_key && usage.free_remaining > 0) return true;
+  return !!health?.ai_active;
+}
 
 /** Abbreviate a token count: 1234 -> "1.2K", 56000 -> "56K". */
 export function formatTokens(n: number): string {
