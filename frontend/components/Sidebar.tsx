@@ -9,6 +9,7 @@ import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import type { AISettings, AIUsage, Health } from "@/lib/types";
 import {
   Check,
+  CircleQuestionMark,
   FileText,
   FolderKanban,
   GripVertical,
@@ -103,7 +104,7 @@ function AiStatus({
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -309,25 +310,37 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-foot">
-        <button
-          className="theme-switch"
-          onClick={toggleTheme}
-          role="switch"
-          aria-checked={theme === "dark"}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          title={theme === "dark" ? "Light mode" : "Dark mode"}
-        >
-          <span className={`theme-switch-track ${theme === "dark" ? "on" : ""}`}>
-            <span className="theme-switch-thumb">
-              {theme === "dark" ? (
-                <Moon size={11} strokeWidth={2} />
-              ) : (
-                <Sun size={11} strokeWidth={2} />
-              )}
+        <div className="sidebar-foot-row">
+          <button
+            className="theme-switch"
+            onClick={toggleTheme}
+            role="switch"
+            aria-checked={theme === "dark"}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            <span className={`theme-switch-track ${theme === "dark" ? "on" : ""}`}>
+              <span className="theme-switch-thumb">
+                {theme === "dark" ? (
+                  <Moon size={11} strokeWidth={2} />
+                ) : (
+                  <Sun size={11} strokeWidth={2} />
+                )}
+              </span>
             </span>
-          </span>
-          <span className="label">{theme === "dark" ? "Dark" : "Light"}</span>
-        </button>
+            <span className="label">{theme === "dark" ? "Dark" : "Light"}</span>
+          </button>
+          {onOpenTutorial && (
+            <button
+              className="help-btn"
+              onClick={onOpenTutorial}
+              title="Show tutorial"
+              aria-label="Show tutorial"
+            >
+              <CircleQuestionMark size={15} strokeWidth={1.9} />
+            </button>
+          )}
+        </div>
 
         {health ? (
           <>

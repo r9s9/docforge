@@ -1942,11 +1942,503 @@ tr.low-conf td {
   }
 }
 
+/* ---- Modal (generic overlay + card) ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 86vh;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  animation: rise-in 0.3s ease-out both;
+}
+.modal-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+}
+.modal-close:hover {
+  color: var(--text);
+  background: var(--card-2);
+}
+
+/* ---- Tutorial modal ---- */
+.tut-modal {
+  max-width: 720px;
+}
+.tut-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px 0;
+}
+.tut-head h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.tut-head .sub {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.tut-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tut-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+}
+.tut-tab:hover {
+  color: var(--text);
+  background: var(--card-2);
+}
+.tut-tab.active {
+  color: var(--text);
+  background: var(--accent-soft);
+  border-color: var(--border-strong);
+  font-weight: 600;
+}
+.tut-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 24px 20px;
+  min-height: 300px;
+}
+.tut-body h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.tut-body h3 + h3,
+.tut-body p + h3 {
+  margin-top: 18px;
+}
+.tut-body p {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.tut-body p b,
+.tut-body li b {
+  color: var(--text);
+  font-weight: 600;
+}
+.tut-lead {
+  margin-top: 14px;
+}
+.tut-list {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.tut-list li {
+  margin-bottom: 6px;
+}
+.tut-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 24px 16px;
+  border-top: 1px solid var(--border);
+}
+.tut-skip {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.tut-skip:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.tut-dots {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+.tut-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: background 0.14s ease, transform 0.14s ease;
+}
+.tut-dot:hover {
+  transform: scale(1.3);
+}
+.tut-dot.active {
+  background: var(--accent);
+}
+.tut-nav {
+  display: flex;
+  gap: 8px;
+}
+
+/* Tutorial figures — CSS mini-mockups of real UI, theme-aware by construction. */
+.tut-figure {
+  margin: 12px 0 14px;
+  padding: 14px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.tut-figure figcaption {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.tut-mock {
+  pointer-events: none;
+  user-select: none;
+  font-size: 11.5px;
+}
+/* Core loop (welcome tab) */
+.tut-loop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tut-loop-step {
+  flex: 1;
+  padding: 9px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+.tut-loop-step b {
+  display: block;
+  font-size: 11.5px;
+}
+.tut-loop-step span {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.tut-loop-arrow {
+  flex: 0 0 auto;
+  color: var(--faint);
+}
+/* Mode cards */
+.tut-mock-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tut-mock-card {
+  padding: 9px 11px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.tut-mock-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.tut-mock-card b {
+  display: block;
+  font-size: 11.5px;
+  margin-bottom: 2px;
+}
+.tut-mock-card span {
+  display: block;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+/* Analysis progress */
+.tut-mock-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.tut-mock-progress-head b {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--text);
+}
+.tut-mock-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.tut-mock-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.tut-mock-steps {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--faint);
+}
+.tut-mock-steps .done {
+  color: var(--green);
+}
+.tut-mock-steps .current {
+  color: var(--text);
+  font-weight: 600;
+}
+/* Field card */
+.tut-mock-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 340px;
+  padding: 9px 11px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.tut-mock-field-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tut-mock-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tut-badge {
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 9.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tut-conf {
+  display: inline-block;
+  width: 46px;
+  height: 4px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.tut-conf i {
+  display: block;
+  height: 100%;
+  background: var(--green);
+}
+.tut-mock-desc {
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+/* Segmented toggle (input modes) */
+.tut-mock-seg {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--card);
+}
+.tut-mock-seg span {
+  padding: 4px 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.tut-mock-seg span + span {
+  border-left: 1px solid var(--border);
+}
+.tut-mock-seg span.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+/* Compliance columns */
+.tut-mock-cols {
+  display: grid;
+  grid-template-columns: 1fr 90px 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+.tut-mock-doc {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.tut-mock-line {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+}
+.tut-mock-line.w80 {
+  width: 80%;
+}
+.tut-mock-line.w60 {
+  width: 60%;
+}
+.tut-mock-line.hl {
+  background: rgba(250, 204, 21, 0.55);
+}
+.tut-mock-line.hl-sel {
+  background: rgba(214, 78, 62, 0.55);
+}
+.tut-mock-score {
+  align-items: center;
+  text-align: center;
+}
+.tut-mock-score b {
+  font-family: var(--font-serif);
+  font-size: 17px;
+}
+.tut-mock-score span {
+  font-size: 10px;
+  color: var(--muted);
+}
+/* AI settings rows */
+.tut-mock-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 380px;
+}
+.tut-mock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+}
+.tut-mock-row > span:first-child {
+  color: var(--muted);
+  flex: 1;
+}
+.tut-mock-row b {
+  font-weight: 600;
+}
+.tut-chip-ok {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .tut-mock-cards,
+  .tut-mock-cols {
+    grid-template-columns: 1fr;
+  }
+  .tut-loop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tut-loop-arrow {
+    align-self: center;
+    transform: rotate(90deg);
+  }
+}
+
+/* ---- Sidebar foot row: theme switch + tutorial button side by side ---- */
+.sidebar-foot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sidebar-foot-row .theme-switch {
+  flex: 1;
+  margin-bottom: 0;
+}
+.help-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+.help-btn:hover {
+  color: var(--text);
+  background: var(--card-2);
+  border-color: var(--border);
+}
+
 /* ---- Reduced motion: disable decorative animation ---- */
 @media (prefers-reduced-motion: reduce) {
   .aurora i,
   .page-anim,
-  .field-card {
+  .field-card,
+  .modal {
     animation: none !important;
   }
 }
