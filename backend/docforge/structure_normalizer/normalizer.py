@@ -76,19 +76,57 @@ def _numbering_info(paragraph: Paragraph, resolver: NumberingResolver) -> Number
     )
 
 
-def _has_field(paragraph: Paragraph) -> tuple[bool, bool]:
-    """Return (has_word_field, is_toc)."""
-    p = paragraph._p
-    simple = p.find(".//" + qn("w:fldSimple"))
-    instr = p.findall(".//" + qn("w:instrText"))
-    has_field = simple is not None or len(instr) > 0
-    is_toc = False
-    if simple is not None and "TOC" in (simple.get(qn("w:instr")) or ""):
-        is_toc = True
-    for it in instr:
-        if it.text and "TOC" in it.text:
-            is_toc = True
-    return has_field, is_toc
+class _FieldSpanTracker:
+    """Tracks a Word "complex field" (``w:fldChar`` begin/separate/end) across
+    the multiple PARAGRAPHS it can span.
+
+    A generated Table of Contents is the common case: Word puts the
+    begin/instrText marker in only the FIRST paragraph, then each visible
+    entry ("1.1 Agenda & Topics ... 3") is its OWN paragraph with no field
+    marker of its own, until a final ``end`` marker closes the field. Checking
+    each paragraph in isolation (the previous behaviour) only recognized that
+    first line as auto-field/TOC content — every other entry looked like
+    ordinary fixed text and was eligible for tags-only to convert into a
+    static placeholder, which would break the TOC (Word regenerates its
+    content from the real headings whenever fields are updated/printed).
+    """
+
+    def __init__(self) -> None:
+        self.open = False
+        self.is_toc = False
+
+    def reset(self) -> None:
+        self.open = False
+        self.is_toc = False
+
+    def process(self, paragraph: Paragraph) -> tuple[bool, bool]:
+        """Return (has_word_field, is_toc) for ``paragraph``, updating span state."""
+        p = paragraph._p
+        was_open, was_toc = self.open, self.is_toc
+
+        simple = p.find(".//" + qn("w:fldSimple"))
+        instr = p.findall(".//" + qn("w:instrText"))
+        fld_chars = p.findall(".//" + qn("w:fldChar"))
+        begin = any(fc.get(qn("w:fldCharType")) == "begin" for fc in fld_chars)
+        end = any(fc.get(qn("w:fldCharType")) == "end" for fc in fld_chars)
+
+        this_field = simple is not None or bool(instr) or bool(fld_chars)
+        this_toc = (simple is not None and "TOC" in (simple.get(qn("w:instr")) or "")) or any(
+            it.text and "TOC" in it.text for it in instr
+        )
+
+        has_field = this_field or was_open
+        is_toc = this_toc or (was_open and was_toc)
+
+        if begin:
+            self.open = True
+        if this_toc:
+            self.is_toc = True
+        if end:
+            self.open = False
+            self.is_toc = False
+
+        return has_field, is_toc
 
 
 def _build_sections(doc) -> list[DocumentSection]:
@@ -125,8 +163,10 @@ def _element_from_walknode(
     pkg: DocxPackage,
     doc_rels,
     resolver: NumberingResolver,
+    field_tracker: _FieldSpanTracker,
 ) -> NormalizedElement:
     if wn.kind == "table":
+        field_tracker.reset()  # a field never legitimately spans into/out of a table
         table = wn.obj
         ts = extract_table_structure(table)
         subtype = f"r{wn.row}c{wn.col}" if wn.row is not None else None
@@ -150,7 +190,7 @@ def _element_from_walknode(
     fmt = paragraph_formatting(para)
     images = paragraph_images(para, pkg, doc_rels)
     numbering = _numbering_info(para, resolver)
-    has_field, is_toc = _has_field(para)
+    has_field, is_toc = field_tracker.process(para)
 
     # Decide element type.
     heading_sub = _heading_subtype(fmt.style_name)
@@ -216,7 +256,14 @@ def build_extraction(
     doc = Document(str(file_path))
     nodes = walk_document(doc)
 
-    elements = [_element_from_walknode(wn, pkg, doc_rels, resolver) for wn in nodes]
+    # One field-span tracker per (scope, parent_node_id, cell) context, so an
+    # open field never leaks across a header/footer/table-cell boundary.
+    trackers: dict[tuple, _FieldSpanTracker] = {}
+    elements: list[NormalizedElement] = []
+    for wn in nodes:
+        key = (wn.scope, wn.parent_node_id, wn.row, wn.col)
+        tracker = trackers.setdefault(key, _FieldSpanTracker())
+        elements.append(_element_from_walknode(wn, pkg, doc_rels, resolver, tracker))
     sections = _build_sections(doc)
 
     # Stable content hash over (type, text) — used to detect duplicate uploads.

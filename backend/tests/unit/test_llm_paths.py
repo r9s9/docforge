@@ -172,7 +172,10 @@ def test_classify_llm_reports_progress(project_docs):
     res = classify_llm(ext, None, _FakeClient(resp), on_progress=on_progress)
     assert res.document_type_guess == "Reported"
     assert any(c.field_name == "foo" for c in res.classifications)
-    assert progress and progress[-1] == 1.0  # progress runs to completion
+    # classify_llm caps its own progress below 1.0 -- classify() (service.py)
+    # emits the final 1.0 once any post-processing (e.g. tags-only's describe
+    # pass) has also actually finished, so the bar doesn't look "done" early.
+    assert progress and progress[-1] == 0.85
     assert "understand" in codes and "classify" in codes  # phase codes emitted
 
 

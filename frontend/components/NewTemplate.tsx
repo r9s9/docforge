@@ -28,12 +28,15 @@ function uniqueName(base: string, used: Set<string>): string {
   return `${base}_${i}`;
 }
 
-/** Phases of the agentic analysis shown as a live checklist while the AI works. */
-const AI_STEPS = [
+/** Phases of the agentic analysis shown as a live checklist while the AI works.
+ * Tags-only mode runs one extra pass (writing descriptions for every field it
+ * had to force-create) that smart mode never does. */
+const AI_STEPS_SMART = [
   { code: "understand", label: "Understand" },
   { code: "classify", label: "Classify" },
   { code: "verify", label: "Verify" },
 ];
+const AI_STEPS_TAGS_ONLY = [...AI_STEPS_SMART, { code: "describe", label: "Describe" }];
 
 export default function NewTemplate() {
   const router = useRouter();
@@ -382,7 +385,7 @@ export default function NewTemplate() {
                       percent={progress}
                       stage={stage}
                       busy
-                      steps={AI_STEPS}
+                      steps={analysisMode === "tags_only" ? AI_STEPS_TAGS_ONLY : AI_STEPS_SMART}
                       currentCode={stageCode}
                     />
                     <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>

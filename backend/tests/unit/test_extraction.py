@@ -4,10 +4,23 @@ from __future__ import annotations
 
 from docx import Document
 from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 from docforge.ooxml_extractor import DocxPackage, read_raw_parts
 from docforge.schemas.enums import ElementType
 from docforge.structure_normalizer import build_extraction
+
+
+def _fldchar(kind: str):
+    fc = OxmlElement("w:fldChar")
+    fc.set(qn("w:fldCharType"), kind)
+    return fc
+
+
+def _instr_text(text: str):
+    it = OxmlElement("w:instrText")
+    it.text = text
+    return it
 
 
 def test_extraction_finds_core_elements(project_docs):
@@ -87,3 +100,42 @@ def test_extraction_finds_text_wrapped_in_content_control(tmp_path):
         "Text inside a content control.",
         "Plain paragraph after.",
     ]
+
+
+def test_extraction_toc_field_spans_multiple_paragraphs(tmp_path):
+    """A generated Table of Contents puts the fldChar begin/instrText marker
+    only in the FIRST paragraph — every visible entry after that ("1.1 Agenda
+    & Topics ... 3") is its own plain paragraph with no field marker of its
+    own, until a final `end` marker closes the field several paragraphs
+    later. Checking each paragraph in isolation used to only recognize that
+    first line as TOC/auto-field content, leaving every other entry looking
+    like ordinary fixed text (eligible to become a broken static placeholder
+    in tags-only mode, when it should stay a live, self-updating field)."""
+    doc = Document()
+
+    p1 = doc.add_paragraph()
+    p1.add_run()._element.append(_fldchar("begin"))
+    p1.add_run()._element.append(_instr_text(' TOC \\o "1-3" \\h \\z \\u '))
+    p1.add_run()._element.append(_fldchar("separate"))
+    p1.add_run("Heading One\t1")
+
+    doc.add_paragraph("Heading Two\t2")  # no field marker of its own
+
+    p3 = doc.add_paragraph("Heading Three\t3")
+    p3.add_run()._element.append(_fldchar("end"))
+
+    doc.add_paragraph("Plain paragraph after the TOC.")
+
+    path = tmp_path / "toc.docx"
+    doc.save(str(path))
+
+    ext = build_extraction(str(path), "toc-doc")
+    toc_paras = [e for e in ext.top_level_elements() if e.text.startswith("Heading")]
+    assert len(toc_paras) == 3
+    for e in toc_paras:
+        assert "auto_field" in e.semantic_hints, f"{e.text!r} missing auto_field hint"
+        assert "toc" in e.semantic_hints, f"{e.text!r} missing toc hint"
+
+    after = next(e for e in ext.top_level_elements() if "after" in e.text)
+    assert "toc" not in after.semantic_hints  # field closed correctly — doesn't leak
+    assert "auto_field" not in after.semantic_hints

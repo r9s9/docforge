@@ -38,6 +38,7 @@ def describe_forced_fields(
     forced_node_ids: set[str],
     *,
     cancel_event=None,
+    on_progress=None,
 ) -> int:
     """Overwrite the deterministic description with an AI-written one for every
     classification in ``forced_node_ids``. Returns how many were updated.
@@ -80,9 +81,17 @@ def describe_forced_fields(
 
     updated = 0
     tiered = client.for_tier(WORKHORSE_TIER)
-    for batch in _chunk(items, _BATCH_SIZE):
+    batches = _chunk(items, _BATCH_SIZE)
+    n_batches = len(batches)
+    for bi, batch in enumerate(batches):
         if cancel_event is not None and cancel_event.is_set():
             break
+        if on_progress is not None:
+            on_progress(
+                f"AI writing field descriptions… batch {bi + 1}/{n_batches}",
+                0.90 + 0.09 * bi / n_batches,
+                "describe",
+            )
         system, developer, user = build_describe_prompt(batch)
         try:
             resp = tiered.complete_json(

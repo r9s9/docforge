@@ -68,9 +68,18 @@ def classify(
         forced = enforce_tags_only(extraction, result)
         if forced and client.active:
             try:
-                describe_forced_fields(client, extraction, result, forced, cancel_event=cancel_event)
+                describe_forced_fields(
+                    client, extraction, result, forced,
+                    cancel_event=cancel_event, on_progress=on_progress,
+                )
             except LLMCancelled:
                 raise
             except Exception:  # never let a description hiccup break analysis
                 logger.debug("describe-forced-fields pass failed; keeping deterministic text", exc_info=True)
+
+    # Emitted once ALL AI work (including the tags-only description pass) has
+    # actually finished, so the progress bar doesn't sit "done-looking" at
+    # classify_llm's own 0.85 ceiling while more work still runs behind it.
+    if on_progress is not None and client.active:
+        on_progress("AI classification complete", 1.0, "verify")
     return result

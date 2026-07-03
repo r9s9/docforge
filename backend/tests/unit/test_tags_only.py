@@ -110,6 +110,65 @@ def test_tags_only_template_contains_no_original_text(tmp_path):
     assert "overall goals" not in out_text
 
 
+def test_tags_only_leaves_multi_paragraph_toc_field_untagged(tmp_path):
+    # A genuine Word Table of Contents must stay a live field -- Word
+    # regenerates its content from the document's real headings whenever
+    # fields are updated, so tagging it as a static placeholder would either
+    # get silently overwritten or ship permanently-stale headings.
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    def fldchar(kind):
+        fc = OxmlElement("w:fldChar")
+        fc.set(qn("w:fldCharType"), kind)
+        return fc
+
+    def instr_text(text):
+        it = OxmlElement("w:instrText")
+        it.text = text
+        return it
+
+    doc = Document()
+    doc.add_heading("Table of Contents", level=1)
+    p1 = doc.add_paragraph()
+    p1.add_run()._element.append(fldchar("begin"))
+    p1.add_run()._element.append(instr_text(' TOC \\o "1-3" \\h \\z \\u '))
+    p1.add_run()._element.append(fldchar("separate"))
+    p1.add_run("Heading One\t1")
+    doc.add_paragraph("Heading Two\t2")
+    p3 = doc.add_paragraph("Heading Three\t3")
+    p3.add_run()._element.append(fldchar("end"))
+    doc.add_heading("Real Section", level=1)
+    doc.add_paragraph("Genuinely fixed-vs-dynamic body content to tag.")
+    path = tmp_path / "toc_doc.docx"
+    doc.save(str(path))
+
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")
+    cls_by_node = {c.node_id: c for c in result.classifications}
+
+    toc_nodes = [e for e in ext.top_level_elements() if e.text.startswith("Heading")]
+    assert len(toc_nodes) == 3
+    for e in toc_nodes:
+        c = cls_by_node[e.node_id]
+        assert c.classification == ClassificationType.AUTO_FIELD, (
+            f"TOC entry {e.text!r} should stay AUTO_FIELD, got {c.classification}"
+        )
+        assert not c.field_name
+
+    # The template must not templatize it either.
+    fields = derive_field_definitions(ext, result)
+    template_bytes = build_template_docx(path, result, fields)
+    tpl_texts = "\n".join(p.text for p in Document(BytesIO(template_bytes)).paragraphs)
+    assert "Heading One\t1" in tpl_texts or "Heading One" in tpl_texts
+
+    # Meanwhile genuinely ordinary content in the same doc still gets tagged.
+    real_body = next(
+        e for e in ext.top_level_elements() if "Genuinely fixed" in e.text
+    )
+    assert needs_field(cls_by_node[real_body.node_id].classification)
+
+
 def test_tags_only_single_row_table_gets_tagged(tmp_path):
     # A table with only one row (common for an "info bar" style layout) used to
     # be silently left completely untouched: classified as REPEATABLE_TABLE but
@@ -228,6 +287,77 @@ def test_describe_forced_fields_applies_one_description_to_grouped_nodes(tmp_pat
     assert calls["n"] == 1  # one request covers the whole shared-name group
     assert n == len(body)
     assert all(c.description == "Shared AI description." for c in body if c.field_name == name)
+
+
+def test_describe_forced_fields_reports_progress(tmp_path, monkeypatch):
+    from docforge.ai.client import LLMClient
+    from docforge.ai.prompts import LLMFieldDescriptions
+    from docforge.settings_store import AIConfig
+
+    path = _make_doc(tmp_path)
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")
+
+    forced = {c.node_id for c in result.classifications if c.field_name}
+    assert forced
+
+    client = LLMClient(
+        AIConfig(provider="openai", enabled=True, base_url="http://x", api_key="k", model="m")
+    )
+
+    def fake_complete_json(*, system, developer, user, schema, cancel_event=None):
+        return LLMFieldDescriptions(descriptions=[])
+
+    monkeypatch.setattr(client, "complete_json", fake_complete_json)
+    events: list[tuple[str, float, str | None]] = []
+    describe_forced_fields(
+        client, ext, result, forced,
+        on_progress=lambda detail, frac, code=None: events.append((detail, frac, code)),
+    )
+    assert events, "describe pass should report at least one progress event"
+    assert all(code == "describe" for _d, _f, code in events)
+    # Progress must be monotonically non-decreasing and stay below the final
+    # 1.0 signal, which only classify() itself emits once everything is done.
+    fracs = [f for _d, f, _c in events]
+    assert fracs == sorted(fracs)
+    assert all(0.90 <= f < 1.0 for f in fracs)
+
+
+def test_classify_emits_final_complete_signal_after_describe_pass(tmp_path, monkeypatch):
+    """End-to-end: classify() itself (not classify_llm) must be the one to
+    report the final 1.0/"verify" tick, and only after the tags-only describe
+    pass has actually run -- otherwise the UI's progress bar looks "done"
+    while the describe pass silently keeps working behind it."""
+    from docforge.ai.client import LLMClient, LLMError
+    from docforge.ai.prompts import LLMFieldDescriptions
+    from docforge.settings_store import AIConfig
+
+    path = _make_doc(tmp_path)
+    ext = build_extraction(path, "d0")
+
+    client = LLMClient(
+        AIConfig(provider="openai", enabled=True, base_url="http://x", api_key="k", model="m")
+    )
+
+    def _boom(*a, **k):
+        raise LLMError("boom")
+
+    # Heuristic-quality classify_llm path isn't under test here -- force the
+    # LLM call to fail so classify() falls back to the heuristic engine, then
+    # verify only describe_forced_fields + the final signal fire afterward.
+    monkeypatch.setattr("docforge.ai_classifier.service.classify_llm", _boom)
+    monkeypatch.setattr(client, "complete_json", lambda **kw: LLMFieldDescriptions(descriptions=[]))
+
+    events: list[tuple[str, float, str | None]] = []
+    classify(
+        ext, None, client=client, mode="tags_only",
+        on_progress=lambda detail, frac, code=None: events.append((detail, frac, code)),
+    )
+    assert events, "classify() should report progress even on the heuristic-fallback path"
+    assert events[-1][1] == 1.0 and events[-1][2] == "verify"
+    assert any(code == "describe" for _d, _f, code in events)
+    # The final 1.0 signal is strictly the LAST thing reported.
+    assert all(f < 1.0 for _d, f, _c in events[:-1])
 
 
 def test_enforce_tags_only_respects_ai_named_fields(tmp_path):

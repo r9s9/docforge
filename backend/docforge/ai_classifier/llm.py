@@ -374,5 +374,9 @@ def classify_llm(
 
     _apply_optional_from_diff(result, diff)
     if on_progress is not None:
-        on_progress("AI classification complete", 1.0, "verify")
+        # Capped below 1.0 -- tags-only mode still has enforce_tags_only +
+        # the field-description pass to run; classify() emits the final
+        # "complete"/1.0 tick once ALL of that has actually finished, so the
+        # progress bar doesn't stall looking "done" while more work runs.
+        on_progress("AI reviewing complete", 0.85, "verify")
     return result

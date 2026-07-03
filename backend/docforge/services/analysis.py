@@ -87,12 +87,29 @@ def _execute_analysis(
 
     def heartbeat():
         t0 = time.monotonic()
-        tau = max(20.0, n_nodes * 2.0)  # time constant for the asymptotic creep
+        tau_start = max(20.0, n_nodes * 2.0)  # time constant before any real signal
+        tau_idle = 20.0  # creep rate between real updates (a single slow LLM
+        # call — e.g. the reasoning-tier "understand" pass — reports one
+        # fraction, then nothing until it returns; without this the bar would
+        # sit dead-still for that whole stretch instead of visibly, modestly
+        # advancing while genuinely still working).
+        last_seen: float | None = None
+        last_real_frac = 0.0
+        last_real_time = t0
         while not stop.wait(1.2):
+            now = time.monotonic()
             frac = shared["frac"]
-            if frac is None:  # no live tokens yet -> asymptotic time-based creep
-                frac = min(0.92, 1.0 - math.exp(-(time.monotonic() - t0) / tau))
-            pct = 35 + int(50 * max(0.0, min(1.0, frac)))
+            if frac is None:  # no live signal yet -> asymptotic time-based creep
+                eff = min(0.92, 1.0 - math.exp(-(now - t0) / tau_start))
+            else:
+                if frac != last_seen:
+                    last_seen = frac
+                    last_real_frac = frac
+                    last_real_time = now
+                elapsed = now - last_real_time
+                ceiling = max(last_real_frac, min(0.99, last_real_frac + 0.12))
+                eff = last_real_frac + (ceiling - last_real_frac) * (1.0 - math.exp(-elapsed / tau_idle))
+            pct = 35 + int(50 * max(0.0, min(1.0, eff)))
             try:
                 with engine.connect() as conn:
                     conn.execute(
