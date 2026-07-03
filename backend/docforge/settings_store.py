@@ -27,7 +27,7 @@ GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
 # Gemini pairing. The workhorse handles high-volume mechanical calls; the
 # reasoning model is used only for the harder agentic steps.
 GEMINI_WORKHORSE_MODEL = "gemini-2.5-flash-lite"
-GEMINI_REASONING_MODEL = "gemini-3-flash"
+GEMINI_REASONING_MODEL = "gemini-2.5-flash"
 
 # Logical tiers an agentic step can ask for. "reasoning" uses ``reasoning_model``
 # when configured; everything else uses the workhorse ``model``.

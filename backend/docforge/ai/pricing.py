@@ -17,9 +17,13 @@ MODEL_PRICES: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-pro": (1.25, 10.00),
+    # Deprecated / shut down 2026-06-01 — kept only so historical usage logs from
+    # before the shutdown still show a cost estimate; no longer offered in the UI.
     "gemini-2.0-flash": (0.10, 0.40),
-    "gemini-3-flash": (0.50, 3.00),
-    "gemini-3-pro": (2.00, 12.00),
+    "gemini-3.1-flash-lite": (0.25, 1.50),
+    "gemini-3-flash-preview": (0.50, 3.00),
+    "gemini-3.5-flash": (1.50, 9.00),
+    "gemini-3.1-pro-preview": (2.00, 12.00),
     # DeepSeek (OpenAI-compatible)
     "deepseek-v4-flash": (0.09, 0.18),
     "deepseek-chat": (0.14, 0.28),

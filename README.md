@@ -93,7 +93,7 @@ support tool-calling.
 - Two-tier model config: a cheap **workhorse** model for high-volume steps and
   a stronger **reasoning** model for understanding/critique/composition/judging.
   One click in Settings applies the recommended pairing:
-  `gemini-2.5-flash-lite` (workhorse) + `gemini-3-flash` (reasoning) — a fast,
+  `gemini-2.5-flash-lite` (workhorse) + `gemini-2.5-flash` (reasoning) — a fast,
   1M-context, ~10× cheaper alternative to typical "budget" cloud models.
 - Every AI action shows its **token usage and estimated cost** right where it
   ran (New Template, Generate, Compliance Check) plus a running total in
