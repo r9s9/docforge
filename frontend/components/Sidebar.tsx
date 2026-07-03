@@ -32,8 +32,7 @@ type NavId =
   | "projects"
   | "generate"
   | "compliance"
-  | "connections"
-  | "settings";
+  | "connections";
 
 interface NavDef {
   id: NavId;
@@ -44,6 +43,8 @@ interface NavDef {
 }
 
 // Static registry: icons + routes never change (only order + labels are editable).
+// Settings lives outside this list — it's a small fixed icon up in the brand row,
+// not a reorderable menu row (see the `.settings-icon-btn` link below).
 const NAV_REGISTRY: Record<NavId, NavDef> = {
   dashboard: { id: "dashboard", href: "/", label: "Dashboard", Icon: LayoutGrid, exact: true },
   new: { id: "new", href: "/new", label: "New Template", Icon: Plus },
@@ -51,7 +52,6 @@ const NAV_REGISTRY: Record<NavId, NavDef> = {
   generate: { id: "generate", href: "/generate", label: "Generate Document", Icon: PenLine },
   compliance: { id: "compliance", href: "/compliance", label: "Compliance Check", Icon: ShieldCheck },
   connections: { id: "connections", href: "/connections", label: "Connections", Icon: Plug },
-  settings: { id: "settings", href: "/settings", label: "Settings", Icon: Settings },
 };
 
 const DEFAULT_ORDER: NavId[] = [
@@ -61,7 +61,6 @@ const DEFAULT_ORDER: NavId[] = [
   "generate",
   "compliance",
   "connections",
-  "settings",
 ];
 
 const PIN_KEY = "docforge-sidebar-pinned";
@@ -230,6 +229,14 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
         <span className="brand-text">
           Doc<b>Forge</b>
         </span>
+        <Link
+          href="/settings"
+          className={`settings-icon-btn ${isActive("/settings") ? "on" : ""}`}
+          title="Settings"
+          aria-label="Settings"
+        >
+          <Settings size={15} strokeWidth={1.9} />
+        </Link>
         <button
           className={`pin-btn ${pinned ? "on" : ""}`}
           onClick={togglePin}

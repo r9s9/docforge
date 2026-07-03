@@ -43,6 +43,8 @@
   --glass-rim-light: rgba(255, 255, 255, 0.7);
   --glass-rim-dark: rgba(20, 20, 30, 0.06);
   --glass-shine: rgba(255, 255, 255, 0.5);
+  /* Gap between the floating sidebar card and the viewport edge on all sides. */
+  --sidebar-gap: 12px;
 }
 
 /* Dark mode — near-black surfaces, white ink accent. */
@@ -118,17 +120,17 @@ a:hover {
 .app {
   display: flex;
   min-height: 100vh;
-  padding-left: 66px; /* collapsed sidebar footprint */
+  padding-left: calc(66px + var(--sidebar-gap) * 2); /* collapsed sidebar footprint + its gap */
   transition: padding-left 0.18s ease;
 }
 .app:has(.sidebar.pinned) {
-  padding-left: 248px;
+  padding-left: calc(248px + var(--sidebar-gap) * 2);
 }
 .sidebar {
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0; /* span the full viewport (reliable under root zoom; 100vh is not) */
+  top: var(--sidebar-gap);
+  left: var(--sidebar-gap);
+  bottom: var(--sidebar-gap); /* floats free on all four sides, like a rounded card */
   width: 66px;
   z-index: 50;
   /* Liquid glass: a translucent tint over a blurred, saturated sample of
@@ -137,10 +139,10 @@ a:hover {
   background: linear-gradient(180deg, var(--glass-shine), transparent 220px), var(--glass-tint);
   -webkit-backdrop-filter: blur(28px) saturate(1.7);
   backdrop-filter: blur(28px) saturate(1.7);
-  border-top: 1px solid var(--glass-rim-light);
-  border-right: 1px solid var(--glass-rim-dark);
-  border-radius: 0 22px 22px 0;
-  box-shadow: inset -1px 0 0 var(--glass-rim-light), inset 1px 0 0 var(--glass-shine);
+  border: 1px solid var(--glass-rim-dark);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 var(--glass-shine), inset 0 -1px 0 var(--glass-rim-dark),
+    inset 1px 0 0 var(--glass-shine), inset -1px 0 0 var(--glass-rim-dark), var(--shadow-lg);
   padding: 18px 13px;
   display: flex;
   flex-direction: column;
@@ -151,8 +153,9 @@ a:hover {
 /* Expand on hover (when not pinned) — overlays content, no layout shift. */
 .sidebar:not(.pinned):hover {
   width: 248px;
-  box-shadow: inset -1px 0 0 var(--glass-rim-light), inset 1px 0 0 var(--glass-shine),
-    16px 0 40px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 1px 0 var(--glass-shine), inset 0 -1px 0 var(--glass-rim-dark),
+    inset 1px 0 0 var(--glass-shine), inset -1px 0 0 var(--glass-rim-dark),
+    16px 8px 40px rgba(0, 0, 0, 0.18);
 }
 .sidebar.pinned {
   width: 248px;
@@ -161,6 +164,7 @@ a:hover {
 .sidebar.collapsed-hidden,
 .sidebar:not(.pinned):not(:hover) .label,
 .sidebar:not(.pinned):not(:hover) .brand-text,
+.sidebar:not(.pinned):not(:hover) .settings-icon-btn,
 .sidebar:not(.pinned):not(:hover) .pin-btn,
 .sidebar:not(.pinned):not(:hover) .sidebar-foot {
   display: none;
@@ -193,6 +197,27 @@ a:hover {
   color: var(--text);
 }
 .pin-btn.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+/* Small settings shortcut, up in the brand row rather than a full menu row. */
+.settings-icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+.settings-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text);
+}
+.settings-icon-btn.on {
   color: var(--accent);
   background: var(--accent-soft);
 }
