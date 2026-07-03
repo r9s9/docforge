@@ -154,6 +154,17 @@ class LLMComplianceJudgement(_LenientLLMModel):
     summary: str = ""
 
 
+class LLMFieldDescription(_LenientLLMModel):
+    node_id: str
+    description: str = ""
+
+
+class LLMFieldDescriptions(_LenientLLMModel):
+    """Output of the tags-only description pass: one blurb per forced field."""
+
+    descriptions: list[LLMFieldDescription] = Field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # Task A + B: classify elements / infer sections
 # ---------------------------------------------------------------------------
@@ -435,6 +446,50 @@ def build_critique_prompt(
     return _CRITIQUE_SYSTEM, developer, user
 
 
+# --- Tags-only: describe fields the enforcement pass had to force -----------
+# `enforce_tags_only` runs AFTER the classification agent (incl. self-critique)
+# already finished, so any field it force-creates never got the model's
+# attention — it only carries a templated, content-citing placeholder
+# description. This pass asks the (cheap) workhorse model for a real one.
+
+_DESCRIBE_SYSTEM = (
+    "You are DocForge's field-description writer. You are given template fields "
+    "with their type and the ORIGINAL example text they replaced, and you write a "
+    "short, specific, natural-language description of what content belongs in "
+    "each field, grounded in the example. These descriptions are shown to template "
+    "authors and used by another AI to route new content into the right field, so "
+    "they must be concrete and specific — never generic boilerplate."
+)
+
+_DESCRIBE_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "descriptions": [
+    {"node_id": string, "description": string}
+  ]
+}
+
+Rules:
+- One or two sentences per field. Describe WHAT belongs there (its role/topic),
+  not a generic phrase like "the value for this field" or "content for this section".
+- Ground it in the example text: mention the KIND of content it held, e.g. "The
+  session's learning objectives, written as 2-3 short bullet points" rather than
+  "Text content for this section".
+- Do not quote the example text verbatim at length — summarize its nature instead.
+- Cover every node_id given. Output valid JSON only. No prose, no markdown.
+"""
+
+
+def build_describe_prompt(items: list[dict]) -> tuple[str, str, str]:
+    """``items`` — [{node_id, field_name, field_type, classification, example_text}]."""
+    user = (
+        "Fields needing a description (write one per node_id):\n"
+        + json.dumps(items, ensure_ascii=False, indent=2)
+        + "\n\nProduce a description for every node_id above."
+    )
+    return _DESCRIBE_SYSTEM, _DESCRIBE_DEVELOPER, user
+
+
 # ---------------------------------------------------------------------------
 # Task C: route unstructured / structured content into template fields
 # ---------------------------------------------------------------------------
@@ -464,8 +519,12 @@ Return ONLY a JSON object with this shape:
 
 Rules:
 - Only use field_name values from the provided template fields. Never invent fields.
-- For a table field, "value" MUST be a list of objects keyed by the table's column
-  field_names.
+- For a field whose "classification" is REPEATABLE_TABLE, "value" MUST be a list of
+  objects keyed by the table's column field_names.
+- For a field whose "classification" is REPEATABLE_SECTION, "value" SHOULD be a list
+  of strings — one entry per distinct point/paragraph/bullet — when the content
+  naturally breaks into more than one point. A single string is fine when there is
+  only one point.
 - Respect field types (dates as date-like strings, numbers as numbers/strings).
 - If a required field has no corresponding content, list it in missing_required.
 - Set ambiguous=true and populate alternatives when content could fit >1 field.
@@ -480,6 +539,7 @@ def _fields_payload(fields: list[FieldDefinition]) -> list[dict]:
             "field_name": f.field_name,
             "label": f.label,
             "type": f.field_type.value,
+            "classification": f.classification.value,
             "required": f.required,
             "description": f.description,
         }
@@ -556,10 +616,16 @@ Rules:
   as ISO (YYYY-MM-DD) unless the description says otherwise, normalize numbers and
   currency, fix obvious casing/typos, and expand terse notes into complete prose
   for multiline_text fields.
+- For a field whose "classification" is REPEATABLE_SECTION, "value" SHOULD be a
+  list of strings — one entry per distinct point/paragraph/bullet — when the
+  content naturally breaks into more than one point.
 - For enum fields, the value MUST be one of the field's allowed_values.
 - For a REQUIRED field with no value, DRAFT a sensible value from the supplied
-  content and set ai_drafted=true with a lower confidence. If it is genuinely
-  unknowable from the content, leave it out and list it in still_missing.
+  content and set ai_drafted=true with a lower confidence. Only leave it out and
+  list it in still_missing when the content gives NO usable basis at all for it —
+  prefer a reasonable, clearly-marked (ai_drafted=true) draft over leaving a
+  section empty, since an empty required field disappears entirely from the
+  generated document.
 - NEVER fabricate specific facts (names, totals, dates) not supported by the content.
 - Use normalize_date / normalize_number / validate_value to check before finalizing.
 - Output valid JSON only. No prose, no markdown.

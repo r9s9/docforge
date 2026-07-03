@@ -237,11 +237,18 @@ def _tag_row(row, text: str) -> None:
 
 
 def _templatize_table(table: Table, field_name: str, columns: list) -> None:
-    """Convert the first data row into a repeated row driven by ``field_name``."""
+    """Convert a data row into a repeated row driven by ``field_name``.
+
+    Tables with >= 2 rows keep row 0 as a frozen header and loop row 1. A table
+    with only ONE row has no separate header — that single row IS the loop
+    template, or the whole table would otherwise be left completely untouched
+    (never templatized, text never removed) since there'd be no "row 1" to pick.
+    """
     rows = table.rows
-    if len(rows) < 2:
-        return  # header only — nothing to repeat
-    template_row = rows[1]
+    if len(rows) < 1:
+        return  # no rows at all — nothing to repeat
+    single_row = len(rows) == 1
+    template_row = rows[0] if single_row else rows[1]
 
     # Rewrite each physical cell of the template row to {{ item.col }}.
     seen: set[int] = set()
@@ -253,8 +260,9 @@ def _templatize_table(table: Table, field_name: str, columns: list) -> None:
         col = columns[ci].field_name if ci < len(columns) else f"col{ci + 1}"
         _set_cell_expr(cell, f"{{{{ {_LOOP_VAR}.{col} }}}}")
 
-    # Drop the remaining example data rows (index >= 2).
-    for extra in list(table.rows)[2:]:
+    # Drop any remaining example data rows after the template row.
+    extra_start = 1 if single_row else 2
+    for extra in list(table.rows)[extra_start:]:
         extra._tr.getparent().remove(extra._tr)
 
     # Wrap the template row with for/endfor marker rows (verified pattern).
@@ -287,6 +295,20 @@ def _wrap_optional(paragraph: Paragraph, include_name: str) -> None:
     """Wrap a paragraph so it only renders when ``include_name`` is truthy."""
     _insert_marker_before(paragraph, f"{{%p if {include_name} %}}")
     _insert_marker_after(paragraph, "{%p endif %}")
+
+
+def _is_tags_only_forced(cls) -> bool:
+    """Whether ``enforce_tags_only`` touched this classification.
+
+    Marked via a rationale substring (see ``ai_classifier/tags_only.py``) so no
+    schema change was needed. Used to decide whether an unfilled field's whole
+    paragraph should vanish from the generated document (tags-only mode forces
+    EVERY text block into a field, so many of them legitimately have no content
+    for a given generation — a blank leftover line for each looks broken) versus
+    a normal smart-mode dynamic field, where leaving a blank value in place is
+    the existing, unsurprising behavior.
+    """
+    return "[tags_only]" in (cls.rationale or "")
 
 
 # --- main builder -----------------------------------------------------------
@@ -357,6 +379,11 @@ def build_template_docx(
                 _templatize_paragraph(
                     para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or ""
                 )
+                if _is_tags_only_forced(cls):
+                    # Unfilled -> the whole paragraph disappears instead of
+                    # rendering a blank line (the field's own value is both
+                    # the condition and the content it guards).
+                    _wrap_optional(para, name)
             elif (fd and fd.field_name) or cls.field_name:
                 logger.warning(
                     "skipping field with unsafe name %r (left as fixed text)",

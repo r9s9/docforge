@@ -15,14 +15,31 @@ from docforge.ai.prompts import (
     LLMPlacement,
     LLMRouteResponse,
     LLMUnderstanding,
+    build_compose_prompt,
+    build_route_prompt,
 )
 from docforge.ai_classifier.llm import classify_llm
 from docforge.ai_router.document import route_document_content
 from docforge.ai_router.llm import route_llm
-from docforge.schemas.enums import FieldType
+from docforge.schemas.enums import ClassificationType, FieldType
 from docforge.schemas.template import FieldDefinition
 from docforge.settings_store import AIConfig
 from docforge.structure_normalizer import build_extraction
+
+
+def test_route_and_compose_prompts_expose_classification_and_list_guidance():
+    fields = [
+        FieldDefinition(
+            field_name="findings", label="Findings", field_type=FieldType.MULTILINE_TEXT,
+            classification=ClassificationType.REPEATABLE_SECTION, description="Key findings.",
+        )
+    ]
+    _sys, developer, user = build_route_prompt(fields, raw_text="Some notes.")
+    assert '"classification": "REPEATABLE_SECTION"' in user
+    assert "REPEATABLE_SECTION" in developer  # list-of-strings guidance present
+
+    _sys2, developer2, _user2 = build_compose_prompt(fields, [], source_text="notes")
+    assert "REPEATABLE_SECTION" in developer2
 
 
 class _Resp:

@@ -34,6 +34,26 @@ class WalkNode:
     col: int | None = None
 
 
+def _yield_block(child, parent):
+    """Yield the Paragraph/Table wrapper(s) for one child element.
+
+    Recurses into ``<w:sdt>`` (content control / structured document tag)
+    wrappers: python-docx has no typed class for ``w:sdt``, so a plain
+    ``isinstance(child, CT_P)`` check silently skips any paragraph or table a
+    user (or another tool) wrapped in a Rich Text / Plain Text content control
+    — that text would otherwise never reach extraction or classification.
+    """
+    if isinstance(child, CT_P):
+        yield Paragraph(child, parent)
+    elif isinstance(child, CT_Tbl):
+        yield Table(child, parent)
+    elif child.tag == qn("w:sdt"):
+        content = child.find(qn("w:sdtContent"))
+        if content is not None:
+            for inner in content.iterchildren():
+                yield from _yield_block(inner, parent)
+
+
 def iter_block_items(parent):
     """Yield Paragraphs and Tables in document order from a body or table cell.
 
@@ -47,10 +67,7 @@ def iter_block_items(parent):
     else:
         raise ValueError(f"Unsupported walk parent: {type(parent)!r}")
     for child in parent_elm.iterchildren():
-        if isinstance(child, CT_P):
-            yield Paragraph(child, parent)
-        elif isinstance(child, CT_Tbl):
-            yield Table(child, parent)
+        yield from _yield_block(child, parent)
 
 
 def _has_sectpr(paragraph: Paragraph) -> bool:

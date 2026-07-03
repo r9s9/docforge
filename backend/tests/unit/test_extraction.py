@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from docx import Document
+from docx.oxml import OxmlElement
+
 from docforge.ooxml_extractor import DocxPackage, read_raw_parts
 from docforge.schemas.enums import ElementType
 from docforge.structure_normalizer import build_extraction
@@ -55,3 +58,32 @@ def test_raw_parts_inventory(project_docs):
     assert info["main_document"] == "word/document.xml"
     assert info["has_styles"] is True
     assert info["n_parts"] > 3
+
+
+def test_extraction_finds_text_wrapped_in_content_control(tmp_path):
+    """A paragraph wrapped in a <w:sdt> (Rich Text / Plain Text content control)
+    used to be completely invisible to extraction — python-docx has no typed
+    wrapper for <w:sdt>, so a plain isinstance check silently skipped it."""
+    doc = Document()
+    doc.add_paragraph("Plain paragraph before.")
+    wrapped = doc.add_paragraph("Text inside a content control.")
+    p_elm = wrapped._p
+    body = p_elm.getparent()
+    sdt = OxmlElement("w:sdt")
+    sdt.append(OxmlElement("w:sdtPr"))
+    sdt_content = OxmlElement("w:sdtContent")
+    sdt.append(sdt_content)
+    body.replace(p_elm, sdt)
+    sdt_content.append(p_elm)
+    doc.add_paragraph("Plain paragraph after.")
+
+    path = tmp_path / "sdt.docx"
+    doc.save(str(path))
+
+    ext = build_extraction(str(path), "sdt-doc")
+    texts = [e.text for e in ext.top_level_elements()]
+    assert texts == [
+        "Plain paragraph before.",
+        "Text inside a content control.",
+        "Plain paragraph after.",
+    ]

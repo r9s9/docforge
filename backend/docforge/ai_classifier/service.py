@@ -9,6 +9,7 @@ from ..config import Settings
 from ..schemas.classification import ClassificationResult
 from ..schemas.diff import DiffRunResult
 from ..schemas.extraction import DocumentExtraction
+from .describe import describe_forced_fields
 from .heuristic import classify_heuristic
 from .llm import classify_llm
 from .tags_only import enforce_tags_only
@@ -64,5 +65,12 @@ def classify(
         result = classify_heuristic(extraction, diff)
 
     if mode == "tags_only":
-        enforce_tags_only(extraction, result)
+        forced = enforce_tags_only(extraction, result)
+        if forced and client.active:
+            try:
+                describe_forced_fields(client, extraction, result, forced, cancel_event=cancel_event)
+            except LLMCancelled:
+                raise
+            except Exception:  # never let a description hiccup break analysis
+                logger.debug("describe-forced-fields pass failed; keeping deterministic text", exc_info=True)
     return result

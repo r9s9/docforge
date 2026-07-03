@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from ..common.textutil import slugify_field
 from ..schemas.classification import ClassificationResult, ElementClassification
-from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic
+from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic, needs_field
 from ..schemas.extraction import DocumentExtraction, NormalizedElement
 
 # Body text longer than this becomes a multiline field rather than a one-liner.
@@ -76,12 +76,30 @@ def _force_dynamic(
     c.static_suffix = None
     if not (c.description or "").strip():
         c.description = _synth_description(section, text)
-    c.rationale = f"{c.rationale} [tags_only]".strip()
+    _mark_tags_only(c)
 
 
-def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResult) -> None:
-    """Mutate ``result`` so every non-exempt text node is a dynamic field."""
+def _mark_tags_only(c: ElementClassification) -> None:
+    """Tag a classification as tags-only-touched (idempotent).
+
+    Used downstream by the template builder (to hide an empty field's whole
+    paragraph rather than leave a blank line) and by the description-writing
+    AI pass (to find nodes that still need a real, content-grounded blurb).
+    """
+    if "[tags_only]" not in (c.rationale or ""):
+        c.rationale = f"{(c.rationale or '').rstrip()} [tags_only]".strip()
+
+
+def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResult) -> set[str]:
+    """Mutate ``result`` so every non-exempt text node is a dynamic field.
+
+    Returns the set of node_ids that were force-fielded by this pass (i.e. the
+    AI/heuristic engine had left them FIXED/UNKNOWN) — the caller can use this
+    to target a follow-up AI description pass at exactly the fields that never
+    got the model's attention.
+    """
     cls_by_node = {c.node_id: c for c in result.classifications}
+    forced: set[str] = set()
 
     # Ensure every top-level node has a classification entry to mutate.
     for e in extraction.top_level_elements():
@@ -130,6 +148,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                         section=section,
                         text=joined,
                     )
+                    forced.add(_e.node_id)
             else:
                 e, c = chunk[0]
                 txt = e.text.strip()
@@ -148,6 +167,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                     section=section,
                     text=txt,
                 )
+                forced.add(e.node_id)
 
         for e, c in run:
             if c.field_name and (is_dynamic(c.classification) or c.classification == ClassificationType.REPEATABLE_SECTION):
@@ -160,6 +180,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 c.optional = False
                 if not (c.description or "").strip():
                     c.description = _synth_description(section, e.text)
+                _mark_tags_only(c)
             else:
                 unfielded.append((e, c))
         flush_unfielded()
@@ -178,6 +199,9 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 c.static_suffix = None
                 c.required = True
                 c.optional = False
+                if not (c.description or "").strip():
+                    c.description = _synth_description(section, e.text)
+                _mark_tags_only(c)
             else:
                 name = _unique(
                     slugify_field(section or "section", fallback="section") + "_title", used
@@ -191,6 +215,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                     section=section,
                     text=e.text.strip(),
                 )
+                forced.add(e.node_id)
             continue
 
         if e.type == ElementType.TABLE:
@@ -209,6 +234,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                     section=section,
                     text=", ".join(headers) or "table",
                 )
+                forced.add(e.node_id)
             continue
 
         if e.type in _GROUPABLE:
@@ -220,3 +246,29 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
         flush_pending()
 
     flush_pending()
+
+    # Final safety net: guarantee the invariant absolutely. Anything above could
+    # in principle miss an edge case (a new ElementType, an unusual walk order);
+    # this catches any surviving non-exempt node that still isn't a real field
+    # and force-tags it individually, so "every text is tagged" always holds.
+    for e in extraction.top_level_elements():
+        c = cls_by_node[e.node_id]
+        if _is_exempt(e, c):
+            continue
+        if needs_field(c.classification) and c.field_name:
+            continue
+        txt = e.text.strip()
+        ftype = FieldType.MULTILINE_TEXT if len(txt) > _MULTILINE_THRESHOLD else FieldType.TEXT
+        name = _unique(slugify_field(section or txt, fallback="content") + "_content", used)
+        used.add(name)
+        _force_dynamic(
+            c,
+            classification=ClassificationType.DYNAMIC_TEXT,
+            field_type=ftype,
+            name=name,
+            section=section,
+            text=txt,
+        )
+        forced.add(e.node_id)
+
+    return forced

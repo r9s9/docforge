@@ -5,13 +5,15 @@ from __future__ import annotations
 from io import BytesIO
 
 from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 from docforge.ai_router import route_structured, route_unstructured_heuristic
 from docforge.assembler import assemble
+from docforge.assembler.assembler import _image_bytes, build_render_context
 from docforge.schemas.enums import FieldType
 from docforge.schemas.template import FieldDefinition
 from docforge.template_builder import build_template_from_examples
-from docforge.assembler.assembler import _image_bytes, build_render_context
 from docforge.template_builder.builder import (
     _PIC_NS,
     _neutralize_run,
@@ -20,9 +22,8 @@ from docforge.template_builder.builder import (
     _run_has_image,
     _tag_picture,
     _templatize_paragraph,
+    _templatize_table,
 )
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
 
 
 def _fields():
@@ -48,6 +49,53 @@ def test_route_unstructured_matches_labels_and_prose():
     assert "summary" in by  # leftover prose routed to the free-text field
 
 
+def test_route_unstructured_distributes_prose_across_many_fields():
+    """A tags-only template has MANY text fields — leftover prose should spread
+    across whichever fields it topically matches, not dump into the first one."""
+    fields = [
+        FieldDefinition(
+            field_name="session_goals", label="Session Goals", field_type=FieldType.MULTILINE_TEXT,
+            description="The training session's learning goals and objectives.", required=True,
+        ),
+        FieldDefinition(
+            field_name="logistics_notes", label="Logistics Notes", field_type=FieldType.MULTILINE_TEXT,
+            description="Room booking, projector and equipment logistics for the session.", required=True,
+        ),
+    ]
+    text = (
+        "Our main learning goals and objectives this quarter are to improve onboarding.\n"
+        "We booked the room and projector equipment for logistics ahead of time."
+    )
+    res = route_unstructured_heuristic(fields, text, "t", 1)
+    by = {p.field_name: p.value for p in res.placements}
+    assert "goals" in by["session_goals"].lower()
+    assert "projector" in by["logistics_notes"].lower()
+    # Neither field absorbed the other's sentence.
+    assert "projector" not in by["session_goals"].lower()
+    assert "goals" not in by["logistics_notes"].lower()
+
+
+def test_route_unstructured_fallback_prefers_multiline_over_title_field():
+    """When nothing clears the match threshold (e.g. generic tags-only-mode
+    descriptions with AI off), the last-resort dump should prefer a
+    multiline/body field over a short title-style TEXT field."""
+    fields = [
+        FieldDefinition(
+            field_name="section_title", label="Section Title", field_type=FieldType.TEXT,
+            description="Content for this section.", required=True,
+        ),
+        FieldDefinition(
+            field_name="section_body", label="Section Body", field_type=FieldType.MULTILINE_TEXT,
+            description="Content for this section.", required=True,
+        ),
+    ]
+    text = "Some unrelated prose that shares no keywords with either field description."
+    res = route_unstructured_heuristic(fields, text, "t", 1)
+    by = {p.field_name: p.value for p in res.placements}
+    assert "section_body" in by
+    assert "section_title" not in by
+
+
 def test_build_then_assemble_roundtrip(project_docs):
     template_bytes, _, _, fields = build_template_from_examples([str(p) for p in project_docs])
     context = {
@@ -66,6 +114,26 @@ def test_build_then_assemble_roundtrip(project_docs):
     assert "Report Date: 2026-07-01" in texts
     # header + exactly one rendered data row
     assert len(doc.tables[0].rows) == 2
+
+
+def test_templatize_table_single_row_becomes_loop():
+    # A table with only one row (no separate header) used to be left completely
+    # untouched by _templatize_table (it bailed on len(rows) < 2), so its cell
+    # text was never tagged AND never removed. That single row must itself
+    # become the repeatable loop template.
+    doc = Document()
+    t = doc.add_table(rows=1, cols=2)
+    t.rows[0].cells[0].text = "Item"
+    t.rows[0].cells[1].text = "Owner"
+
+    _templatize_table(t, "rows", [])
+
+    body_xml = t._tbl.xml
+    assert "{%tr for item in rows %}" in body_xml
+    assert "{%tr endfor %}" in body_xml
+    assert "{{ item.col1 }}" in body_xml
+    assert "{{ item.col2 }}" in body_xml
+    assert "Item" not in body_xml and "Owner" not in body_xml
 
 
 def test_templatize_paragraph_preserves_images():
@@ -104,7 +172,7 @@ def test_tag_picture_sets_replace_key():
     assert _tag_picture(para, "company_logo")
     # docxtpl.replace_pic matches a picture by its cNvPr title — that's the key.
     assert cnvpr.get("title") == "company_logo"
-    assert para._p.findall(".//{%s}cNvPr" % _PIC_NS)
+    assert para._p.findall(f".//{{{_PIC_NS}}}cNvPr")
 
 
 def test_image_bytes_decodes_inputs():

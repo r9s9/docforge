@@ -8,6 +8,7 @@ from io import BytesIO
 from docx import Document
 
 from docforge.ai_classifier import classify, derive_field_definitions
+from docforge.ai_classifier.describe import describe_forced_fields
 from docforge.ai_classifier.tags_only import enforce_tags_only
 from docforge.assembler import assemble
 from docforge.schemas.enums import ClassificationType, ElementType, FieldType, needs_field
@@ -107,6 +108,126 @@ def test_tags_only_template_contains_no_original_text(tmp_path):
     out_text = "\n".join(p.text for p in Document(BytesIO(out)).paragraphs)
     assert "NEWVALUE" in out_text and "NEWPARA1" in out_text and "NEWPARA2" in out_text
     assert "overall goals" not in out_text
+
+
+def test_tags_only_single_row_table_gets_tagged(tmp_path):
+    # A table with only one row (common for an "info bar" style layout) used to
+    # be silently left completely untouched: classified as REPEATABLE_TABLE but
+    # the builder's row-1-required assumption meant its text was never
+    # templatized. Regression covering the fix end-to-end.
+    doc = Document()
+    doc.add_heading("Details", level=1)
+    t = doc.add_table(rows=1, cols=2)
+    t.rows[0].cells[0].text = "Trainer"
+    t.rows[0].cells[1].text = "John Smith"
+    path = tmp_path / "single_row.docx"
+    doc.save(str(path))
+
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")
+    fields = derive_field_definitions(ext, result)
+    template_bytes = build_template_docx(path, result, fields)
+    tpl_texts = Document(BytesIO(template_bytes)).element.body.xml
+    assert "Trainer" not in tpl_texts and "John Smith" not in tpl_texts
+    assert "{%tr for" in tpl_texts
+
+
+def test_tags_only_unfilled_field_paragraph_is_deleted_not_blank(tmp_path):
+    # A tags-only template forces EVERY paragraph into a required field; when a
+    # generation doesn't supply a value for one, the paragraph should vanish
+    # from the output entirely rather than leave a blank line.
+    path = _make_doc(tmp_path)
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")
+    fields = derive_field_definitions(ext, result)
+    template_bytes = build_template_docx(path, result, fields)
+
+    heading_field = next(f for f in fields if f.field_name.endswith("_title"))
+    ctx = {f.field_name: "" for f in fields}  # nothing filled
+    # A body/table field would naturally vanish via empty-list coercion; the
+    # heading is the plain scalar case this fix specifically targets.
+    ctx[heading_field.field_name] = ""
+
+    out = assemble(template_bytes, ctx, fields)
+    out_paras = [p.text for p in Document(BytesIO(out)).paragraphs]
+    assert not any(t == "" for t in out_paras), f"blank leftover paragraph found: {out_paras}"
+
+    # Now fill it and confirm the paragraph reappears with the new content —
+    # one more paragraph than the fully-unfilled render.
+    ctx[heading_field.field_name] = "New Section Title"
+    out2 = assemble(template_bytes, ctx, fields)
+    out2_paras = [p.text for p in Document(BytesIO(out2)).paragraphs]
+    assert "New Section Title" in out2_paras
+    assert len(out2_paras) == len(out_paras) + 1
+
+
+def test_describe_forced_fields_writes_ai_description(tmp_path, monkeypatch):
+    from docforge.ai.client import LLMClient
+    from docforge.ai.prompts import LLMFieldDescription, LLMFieldDescriptions
+    from docforge.settings_store import AIConfig
+
+    path = _make_doc(tmp_path)
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")  # heuristic engine (AI off) -> deterministic descriptions
+
+    heading = next(e for e in ext.top_level_elements() if e.type == ElementType.HEADING)
+    cls = next(c for c in result.classifications if c.node_id == heading.node_id)
+    deterministic = cls.description
+    assert deterministic  # the templated fallback is already in place
+
+    client = LLMClient(
+        AIConfig(provider="openai", enabled=True, base_url="http://x", api_key="k", model="m")
+    )
+
+    def fake_complete_json(*, system, developer, user, schema, cancel_event=None):
+        return LLMFieldDescriptions(
+            descriptions=[
+                LLMFieldDescription(node_id=heading.node_id, description="A crisp, AI-written blurb.")
+            ]
+        )
+
+    monkeypatch.setattr(client, "complete_json", fake_complete_json)
+    n = describe_forced_fields(client, ext, result, {heading.node_id})
+    assert n == 1
+    assert cls.description == "A crisp, AI-written blurb."
+    assert cls.description != deterministic
+
+
+def test_describe_forced_fields_applies_one_description_to_grouped_nodes(tmp_path, monkeypatch):
+    from docforge.ai.client import LLMClient
+    from docforge.ai.prompts import LLMFieldDescription, LLMFieldDescriptions
+    from docforge.settings_store import AIConfig
+
+    path = _make_doc(tmp_path)
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")
+
+    body = [
+        c for c in result.classifications
+        if c.classification == ClassificationType.REPEATABLE_SECTION
+    ]
+    assert len(body) >= 2
+    name = body[0].field_name
+    node_ids = {c.node_id for c in body}
+
+    client = LLMClient(
+        AIConfig(provider="openai", enabled=True, base_url="http://x", api_key="k", model="m")
+    )
+    calls = {"n": 0}
+
+    def fake_complete_json(*, system, developer, user, schema, cancel_event=None):
+        calls["n"] += 1
+        # Only one representative node_id should have been asked about.
+        rep_node = next(iter(node_ids))
+        return LLMFieldDescriptions(
+            descriptions=[LLMFieldDescription(node_id=rep_node, description="Shared AI description.")]
+        )
+
+    monkeypatch.setattr(client, "complete_json", fake_complete_json)
+    n = describe_forced_fields(client, ext, result, node_ids)
+    assert calls["n"] == 1  # one request covers the whole shared-name group
+    assert n == len(body)
+    assert all(c.description == "Shared AI description." for c in body if c.field_name == name)
 
 
 def test_enforce_tags_only_respects_ai_named_fields(tmp_path):

@@ -67,7 +67,9 @@ _KIND_HINT = {
 }
 
 
-def _fallback_description(label: str, classification: ElementClassification) -> str:
+def _fallback_description(
+    label: str, classification: ElementClassification, example_text: str = ""
+) -> str:
     """A deterministic, still-useful description when the AI left one blank.
 
     The routing/compose agents lean on ``description`` as their main semantic
@@ -81,6 +83,11 @@ def _fallback_description(label: str, classification: ElementClassification) -> 
         parts.append(f"In the document it follows the label \"{classification.static_prefix.strip()}\".")
     if classification.enum_values:
         parts.append(f"Allowed values: {', '.join(classification.enum_values)}.")
+    sample = " ".join((example_text or "").split())
+    if sample:
+        if len(sample) > 120:
+            sample = sample[:120].rstrip() + "…"
+        parts.append(f"Original example: “{sample}”")
     return " ".join(parts)
 
 
@@ -125,13 +132,16 @@ def derive_field_definitions(
             columns = _table_columns(headers)
 
         label = _label_from(c.field_name, c)
+        example_el = by_id.get(c.node_id)
+        example_text = (example_el.text if example_el else "") or ""
         fields.append(
             FieldDefinition(
                 field_name=c.field_name,
                 label=label,
                 field_type=c.field_type or FieldType.TEXT,
                 classification=c.classification,
-                description=(c.description or "").strip() or _fallback_description(label, c),
+                description=(c.description or "").strip()
+                or _fallback_description(label, c, example_text),
                 required=c.required and not c.optional,
                 enum_values=c.enum_values,
                 node_ids=[c.node_id],
