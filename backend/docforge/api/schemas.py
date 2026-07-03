@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -82,6 +82,9 @@ class AnalyzeRefsRequest(BaseModel):
     """Start analysis from already-uploaded source files (direct-to-storage)."""
 
     sources: list[SourceRef]
+    # "tags_only": every text block becomes a field (template keeps only tags);
+    # "smart": only the parts that vary across examples become fields.
+    mode: Literal["tags_only", "smart"] = "tags_only"
 
 
 class DocRefRequest(SourceRef):

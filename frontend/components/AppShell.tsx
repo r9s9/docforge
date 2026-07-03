@@ -10,6 +10,11 @@ import Sidebar from "@/components/Sidebar";
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app">
+      <div className="aurora" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
       <Sidebar />
       <main className="main">
         <div className="main-inner">{children}</div>

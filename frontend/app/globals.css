@@ -32,6 +32,11 @@
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --font-serif: var(--font-serif-loaded), "Iowan Old Style", "Palatino Linotype", Georgia,
     "Times New Roman", serif;
+  /* Aurora background — soft drifting color washes behind the content. */
+  --aurora-1: rgba(99, 140, 255, 0.5);
+  --aurora-2: rgba(186, 120, 255, 0.4);
+  --aurora-3: rgba(80, 200, 180, 0.35);
+  --aurora-opacity: 0.5;
 }
 
 /* Dark mode — near-black surfaces, white ink accent. */
@@ -59,6 +64,10 @@
   --red-soft: #2a1714;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.45);
+  --aurora-1: rgba(70, 100, 220, 0.35);
+  --aurora-2: rgba(140, 80, 220, 0.3);
+  --aurora-3: rgba(40, 150, 140, 0.28);
+  --aurora-opacity: 0.35;
 }
 
 * {
@@ -1783,4 +1792,161 @@ tr.low-conf td {
 }
 .user-menu .signout:hover {
   background: var(--card-2);
+}
+
+/* ---- Aurora background (animated, theme-aware, reduced-motion safe) ---- */
+.aurora {
+  position: fixed;
+  inset: -20%;
+  z-index: -1; /* above the body canvas background, below all content */
+  pointer-events: none;
+  overflow: hidden;
+  filter: blur(70px); /* static blur on the container — never animated */
+  opacity: var(--aurora-opacity);
+}
+.aurora i {
+  position: absolute;
+  display: block;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  will-change: transform;
+}
+.aurora i:nth-child(1) {
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(circle, var(--aurora-1) 0%, transparent 70%);
+  animation: aurora-drift-1 45s ease-in-out infinite alternate;
+}
+.aurora i:nth-child(2) {
+  top: 20%;
+  right: -15%;
+  background: radial-gradient(circle, var(--aurora-2) 0%, transparent 70%);
+  animation: aurora-drift-2 60s ease-in-out infinite alternate;
+  animation-delay: -20s;
+}
+.aurora i:nth-child(3) {
+  bottom: -15%;
+  left: 25%;
+  background: radial-gradient(circle, var(--aurora-3) 0%, transparent 70%);
+  animation: aurora-drift-3 75s ease-in-out infinite alternate;
+  animation-delay: -40s;
+}
+@keyframes aurora-drift-1 {
+  from { transform: translate(0, 0) rotate(0deg) scale(1); }
+  to { transform: translate(8vw, 6vh) rotate(40deg) scale(1.15); }
+}
+@keyframes aurora-drift-2 {
+  from { transform: translate(0, 0) rotate(0deg) scale(1.1); }
+  to { transform: translate(-7vw, 8vh) rotate(-30deg) scale(0.95); }
+}
+@keyframes aurora-drift-3 {
+  from { transform: translate(0, 0) rotate(0deg) scale(0.95); }
+  to { transform: translate(6vw, -7vh) rotate(25deg) scale(1.2); }
+}
+
+/* ---- Entrance micro-animations ---- */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-anim {
+  animation: rise-in 0.3s ease-out both;
+}
+.field-card {
+  animation: rise-in 0.3s ease-out both;
+}
+.field-card:nth-child(2) { animation-delay: 0.03s; }
+.field-card:nth-child(3) { animation-delay: 0.06s; }
+.field-card:nth-child(4) { animation-delay: 0.09s; }
+.field-card:nth-child(5) { animation-delay: 0.12s; }
+.field-card:nth-child(6) { animation-delay: 0.15s; }
+.field-card:nth-child(7) { animation-delay: 0.18s; }
+.field-card:nth-child(8) { animation-delay: 0.21s; }
+
+/* ---- Analysis phase checklist (under the progress bar) ---- */
+.progress-steps {
+  display: flex;
+  gap: 18px;
+  margin-top: 10px;
+  font-size: 12.5px;
+}
+.progress-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+}
+.progress-step.done {
+  color: var(--green);
+}
+.progress-step.current {
+  color: var(--text);
+  font-weight: 600;
+}
+.progress-step-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+}
+.progress-step .spinner {
+  width: 11px;
+  height: 11px;
+}
+
+/* ---- Analysis mode selector (upload step) ---- */
+.mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+  max-width: 720px;
+}
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.mode-card:hover {
+  border-color: var(--border-strong);
+}
+.mode-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.mode-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.mode-card .muted {
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+@media (max-width: 720px) {
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Reduced motion: disable decorative animation ---- */
+@media (prefers-reduced-motion: reduce) {
+  .aurora i,
+  .page-anim,
+  .field-card {
+    animation: none !important;
+  }
 }

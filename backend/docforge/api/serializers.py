@@ -66,6 +66,8 @@ def analysis_job_dto(job: AnalysisJob, db=None) -> dict[str, Any]:
         "status": job.status,
         "progress": job.progress,
         "stage": job.stage,
+        "stage_code": getattr(job, "stage_code", None),
+        "mode": getattr(job, "mode", None) or "smart",
         "name": job.name,
         "document_type_guess": job.document_type_guess,
         "representative_document_id": job.representative_document_id,

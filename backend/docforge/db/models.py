@@ -92,6 +92,12 @@ class AnalysisJob(Base, UUIDMixin, TimestampMixin):
     status: Mapped[str] = mapped_column(String(40), default="pending")  # JobStatus
     progress: Mapped[int] = mapped_column(Integer, default=0)  # 0..100
     stage: Mapped[str | None] = mapped_column(String(200), nullable=True)  # live status text
+    # Machine-readable phase code for the live progress checklist:
+    # extract | diff | understand | classify | verify | fields | done
+    stage_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Analysis mode: "smart" (detect what varies) | "tags_only" (every text
+    # block becomes a field; the template keeps only placeholders).
+    mode: Mapped[str] = mapped_column(String(20), default="smart")
     name: Mapped[str | None] = mapped_column(String(300), nullable=True)
     source_document_ids: Mapped[list] = mapped_column(JSON, default=list)
     representative_document_id: Mapped[str | None] = mapped_column(String(32), nullable=True)

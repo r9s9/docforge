@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -79,7 +79,12 @@ def _get_template(db: Session, template_id: str, user: CurrentUser) -> Template:
     return t
 
 
-def _start_and_run(db: Session, sources: list, settings: Settings, user: CurrentUser) -> dict:
+_ANALYSIS_MODES = {"tags_only", "smart"}
+
+
+def _start_and_run(
+    db: Session, sources: list, settings: Settings, user: CurrentUser, mode: str = "tags_only"
+) -> dict:
     """Create the analysis job and kick it off (background, or inline on serverless).
 
     On a long-running server the heavy work (which may call a slow LLM) runs in a
@@ -88,7 +93,9 @@ def _start_and_run(db: Session, sources: list, settings: Settings, user: Current
     would never finish — we run it inline and return the finished job instead
     (the client's poll then immediately sees it done).
     """
-    job = start_analysis(db, sources, owner_id=user.id)
+    if mode not in _ANALYSIS_MODES:
+        raise HTTPException(status_code=400, detail=f"invalid analysis mode {mode!r}")
+    job = start_analysis(db, sources, owner_id=user.id, mode=mode)
     if settings.serverless:
         run_analysis_job(job.id)
         db.expire_all()
@@ -101,6 +108,7 @@ def _start_and_run(db: Session, sources: list, settings: Settings, user: Current
 @router.post("/templates/analyze", status_code=202)
 def analyze_templates(
     files: list[UploadFile] = File(...),
+    mode: str = Form("tags_only"),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
     user: CurrentUser = Depends(get_current_user),
@@ -128,7 +136,7 @@ def analyze_templates(
         except IngestError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return _start_and_run(db, sources, settings, user)
+    return _start_and_run(db, sources, settings, user, mode=mode)
 
 
 @router.post("/templates/analyze-refs", status_code=202)
@@ -163,7 +171,7 @@ def analyze_templates_refs(
         except IngestError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return _start_and_run(db, sources, settings, user)
+    return _start_and_run(db, sources, settings, user, mode=req.mode)
 
 
 @router.post("/templates", status_code=201)

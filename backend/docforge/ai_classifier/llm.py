@@ -178,10 +178,12 @@ def _summarize_understanding(u: LLMUnderstanding) -> str:
 
 
 def _run_understanding(
-    client: LLMClient, extraction, diff, tools, learned_hints, cancel_event
+    client: LLMClient, extraction, diff, tools, learned_hints, cancel_event, tags_only=False
 ) -> LLMUnderstanding | None:
     """Pass A — holistic read (reasoning tier). Best-effort: None on failure."""
-    system, developer, user = build_understanding_prompt(extraction, diff, learned_hints=learned_hints)
+    system, developer, user = build_understanding_prompt(
+        extraction, diff, learned_hints=learned_hints, tags_only=tags_only
+    )
     try:
         return client.complete_agentic(
             system=system, developer=developer, user=user, schema=LLMUnderstanding,
@@ -268,17 +270,19 @@ def _apply_corrections(result: ClassificationResult, resp: LLMCritiqueResponse, 
 
 
 def _self_critique(
-    client, extraction, diff, result, tools, understanding_summary, learned_hints, on_progress, cancel_event
+    client, extraction, diff, result, tools, understanding_summary, learned_hints,
+    on_progress, cancel_event, tags_only=False,
 ) -> None:
     """Pass C — re-examine the questionable nodes and apply corrections."""
     flagged = [c for c in result.classifications if _questionable(c)][:CRITIQUE_LIMIT]
     if not flagged:
         return
     if on_progress is not None:
-        on_progress("AI reviewing its classification…", 0.96)
+        on_progress("AI double-checking its work…", 0.96, "verify")
     system, developer, user = build_critique_prompt(
         _draft_view(extraction, diff, flagged),
         understanding_summary=understanding_summary, learned_hints=learned_hints,
+        tags_only=tags_only,
     )
     try:
         resp = client.complete_agentic(
@@ -302,6 +306,7 @@ def classify_llm(
     cancel_event=None,
     *,
     learned_hints: str = "",
+    mode: str = "smart",
 ) -> ClassificationResult:
     """Agentic classification: understand (A) -> classify with tools (B) -> critique (C).
 
@@ -311,9 +316,14 @@ def classify_llm(
     itself falls back to single-shot JSON when the endpoint lacks tool support.
     """
     tools = classify_tools(extraction, diff)
+    tags_only = mode == "tags_only"
 
     # Pass A — holistic understanding (informs classification).
-    understanding = _run_understanding(client, extraction, diff, tools, learned_hints, cancel_event)
+    if on_progress is not None:
+        on_progress("AI reading the document…", 0.02, "understand")
+    understanding = _run_understanding(
+        client, extraction, diff, tools, learned_hints, cancel_event, tags_only=tags_only
+    )
     understanding_summary = _summarize_understanding(understanding) if understanding else ""
 
     # Pass B — classify in batches via the agentic tool loop (workhorse tier).
@@ -329,11 +339,16 @@ def classify_llm(
             raise LLMCancelled("cancelled before classify batch")
         first = bi == 0
         if on_progress is not None:
-            on_progress(f"AI classifying… batch {bi + 1}/{n_batches}", 0.35 + 0.55 * bi / n_batches)
+            on_progress(
+                f"AI naming fields… batch {bi + 1}/{n_batches}",
+                0.35 + 0.55 * bi / n_batches,
+                "classify",
+            )
         system, developer, user = build_classify_prompt(
             extraction, diff, node_ids=set(batch_ids),
             include_sections=first and understanding is None,
             understanding_summary=understanding_summary, learned_hints=learned_hints,
+            tags_only=tags_only,
         )
         resp = client.complete_agentic(
             system=system, developer=developer, user=user, schema=LLMClassifyResponse,
@@ -354,9 +369,10 @@ def classify_llm(
     _self_critique(
         client, extraction, diff, result, tools,
         understanding_summary, learned_hints, on_progress, cancel_event,
+        tags_only=tags_only,
     )
 
     _apply_optional_from_diff(result, diff)
     if on_progress is not None:
-        on_progress("AI classification complete", 1.0)
+        on_progress("AI classification complete", 1.0, "verify")
     return result

@@ -46,14 +46,17 @@ def _execute_analysis(
 ) -> None:
     """Run the pipeline and fill ``job`` (caller commits).
 
-    ``report(pct:int, stage:str|None, force:bool)`` (optional) emits live progress.
+    ``report(pct:int, stage:str|None, force:bool, code:str|None)`` (optional)
+    emits live progress; ``code`` is the machine-readable phase for the UI's
+    step checklist (extract | diff | understand | classify | verify | fields).
     """
-    def rp(pct, stage=None, force=False):
+    def rp(pct, stage=None, force=False, code=None):
         if report:
-            report(pct, stage, force)
+            report(pct, stage, force, code)
 
-    log_event(logger, "analysis.start", job=job.id, files=len(sources))
-    rp(5, f"Extracting {len(sources)} document(s)…", True)
+    mode = getattr(job, "mode", None) or "smart"
+    log_event(logger, "analysis.start", job=job.id, files=len(sources), mode=mode)
+    rp(5, f"Extracting {len(sources)} document(s)…", True, "extract")
     extractions: list[DocumentExtraction] = []
     for i, sd in enumerate(sources):
         rec = extract_source_document(db, sd)
@@ -66,12 +69,12 @@ def _execute_analysis(
         )
         rp(5 + int(20 * (i + 1) / max(1, len(sources))), force=True)
 
-    rp(28, "Comparing documents…", True)
+    rp(28, "Comparing documents…", True, "diff")
     diff = diff_documents(extractions) if len(extractions) >= 2 else None
     rep_index = pick_representative(extractions) if len(extractions) >= 2 else 0
     rep = extractions[rep_index]
 
-    rp(35, "Classifying content…", True)
+    rp(35, "Classifying content…", True, "classify")
 
     # The classify call blocks (the AI can be slow and may not stream). A
     # heartbeat advances the bar 35->85 using the real streamed fraction when
@@ -79,7 +82,7 @@ def _execute_analysis(
     # It is the SOLE progress writer during classify (separate DB connection),
     # so it never races the worker session.
     n_nodes = max(1, len(rep.top_level_elements()))
-    shared = {"frac": None, "stage": "Classifying with AI…"}
+    shared = {"frac": None, "stage": "Classifying with AI…", "code": "classify"}
     stop = threading.Event()
 
     def heartbeat():
@@ -94,18 +97,20 @@ def _execute_analysis(
                 with engine.connect() as conn:
                     conn.execute(
                         text(
-                            "UPDATE analysis_jobs SET progress=:p, stage=:s "
+                            "UPDATE analysis_jobs SET progress=:p, stage=:s, stage_code=:c "
                             "WHERE id=:id AND progress < :p"
                         ),
-                        {"p": pct, "s": shared["stage"], "id": job.id},
+                        {"p": pct, "s": shared["stage"], "c": shared["code"], "id": job.id},
                     )
                     conn.commit()
             except Exception:  # pragma: no cover - best effort heartbeat
                 pass
 
-    def cls_progress(detail, fraction):
+    def cls_progress(detail, fraction, code=None):
         shared["frac"] = fraction
         shared["stage"] = detail
+        if code:
+            shared["code"] = code
 
     # Few-shot guidance from this user's prior corrections (learning loop). Keyed
     # by owner across recent types — the document type isn't known until classify
@@ -120,7 +125,7 @@ def _execute_analysis(
         with track_usage() as usage:
             result = classify(
                 rep, diff, settings=settings, on_progress=cls_progress,
-                cancel_event=cancel_event, learned_hints=learned_hints,
+                cancel_event=cancel_event, learned_hints=learned_hints, mode=mode,
             )
     finally:
         stop.set()
@@ -138,7 +143,7 @@ def _execute_analysis(
         ai_warning=bool(result.ai_warning),
     )
 
-    rp(88, "Deriving fields & rules…", True)
+    rp(88, "Deriving fields & rules…", True, "fields")
     fields = derive_field_definitions(rep, result)
     rules = derive_validation_rules(fields)
     log_event(
@@ -179,6 +184,7 @@ def analyze_documents(
     settings: Settings | None = None,
     name: str | None = None,
     workspace_id: str | None = None,
+    mode: str = "smart",
 ) -> AnalysisJob:
     """Run the full analysis pipeline synchronously over 1–5 stored documents."""
     settings = settings or get_settings()
@@ -192,6 +198,7 @@ def analyze_documents(
         name=name,
         source_document_ids=[s.id for s in sources],
         workspace_id=workspace_id,
+        mode=mode,
     )
     db.add(job)
     db.flush()
@@ -218,6 +225,7 @@ def start_analysis(
     name: str | None = None,
     workspace_id: str | None = None,
     owner_id: str | None = None,
+    mode: str = "smart",
 ) -> AnalysisJob:
     """Create a PENDING analysis job (the work is run later by run_analysis_job)."""
     settings = settings or get_settings()
@@ -232,6 +240,7 @@ def start_analysis(
         source_document_ids=[s.id for s in sources],
         workspace_id=workspace_id,
         owner_id=owner_id,
+        mode=mode,
     )
     db.add(job)
     db.commit()
@@ -265,10 +274,14 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
 
         last_commit = [time.monotonic()]
 
-        def report(pct: int, stage: str | None = None, force: bool = False) -> None:
+        def report(
+            pct: int, stage: str | None = None, force: bool = False, code: str | None = None
+        ) -> None:
             job.progress = max(0, min(100, int(pct)))
             if stage is not None:
                 job.stage = stage
+            if code is not None:
+                job.stage_code = code
             now = time.monotonic()
             if force or now - last_commit[0] >= 0.5:  # throttle writes
                 db.commit()
@@ -289,6 +302,7 @@ def run_analysis_job(job_id: str, settings: Settings | None = None) -> None:
             increment_free_use(job.owner_id)
         job.progress = 100
         job.stage = "Done"
+        job.stage_code = "done"
         db.commit()
     except LLMCancelled:
         log_event(logger, "analysis.cancelled", job=job_id)

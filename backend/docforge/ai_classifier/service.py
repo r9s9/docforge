@@ -11,6 +11,7 @@ from ..schemas.diff import DiffRunResult
 from ..schemas.extraction import DocumentExtraction
 from .heuristic import classify_heuristic
 from .llm import classify_llm
+from .tags_only import enforce_tags_only
 
 logger = logging.getLogger("docforge.ai_classifier")
 
@@ -24,6 +25,7 @@ def classify(
     on_progress=None,
     cancel_event=None,
     learned_hints: str = "",
+    mode: str = "smart",
 ) -> ClassificationResult:
     """Classify a document. Uses the LLM if configured, with a heuristic fallback.
 
@@ -36,14 +38,19 @@ def classify(
 
     ``learned_hints`` (optional) is a few-shot block of the user's prior
     corrections for this document type, injected into the agentic prompts.
+
+    ``mode`` — "smart" (default: detect what varies) or "tags_only" (every text
+    block becomes a field; enforced deterministically after ANY engine so the
+    published template contains only placeholders).
     """
     client = client or LLMClient()
 
+    result: ClassificationResult | None = None
     if client.active:
         try:
-            return classify_llm(
+            result = classify_llm(
                 extraction, diff, client, on_progress=on_progress,
-                cancel_event=cancel_event, learned_hints=learned_hints,
+                cancel_event=cancel_event, learned_hints=learned_hints, mode=mode,
             )
         except LLMCancelled:
             raise  # surfaced to the job runner, which marks the job cancelled
@@ -52,6 +59,10 @@ def classify(
             result = classify_heuristic(extraction, diff)
             result.source = "heuristic_fallback"
             result.ai_warning = f"AI was skipped — used built-in heuristics instead. {exc}"
-            return result
 
-    return classify_heuristic(extraction, diff)
+    if result is None:
+        result = classify_heuristic(extraction, diff)
+
+    if mode == "tags_only":
+        enforce_tags_only(extraction, result)
+    return result

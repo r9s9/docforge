@@ -98,17 +98,18 @@ async function uploadAllDirect(files: File[]): Promise<SourceRef[] | null> {
 export const api = {
   health: () => request<Health>("/health"),
 
-  analyze: async (files: File[]) => {
+  analyze: async (files: File[], mode: "tags_only" | "smart" = "tags_only") => {
     const refs = await uploadAllDirect(files);
     if (refs) {
       return request<AnalysisJob>("/templates/analyze-refs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sources: refs }),
+        body: JSON.stringify({ sources: refs, mode }),
       });
     }
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
+    form.append("mode", mode);
     return request<AnalysisJob>("/templates/analyze", { method: "POST", body: form });
   },
 

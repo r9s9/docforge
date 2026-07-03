@@ -110,6 +110,14 @@ def derive_field_definitions(
         ):
             continue
 
+        # Several classifications may share one field name (a grouped repeatable
+        # section in tags-only mode) — merge them into one field spanning all nodes.
+        existing = next((f for f in fields if f.field_name == c.field_name), None)
+        if existing is not None:
+            if c.node_id not in existing.node_ids:
+                existing.node_ids.append(c.node_id)
+            continue
+
         columns: list[TableColumn] = []
         if c.classification == ClassificationType.REPEATABLE_TABLE:
             el = by_id.get(c.node_id)

@@ -90,6 +90,8 @@ export interface AnalysisJob {
   status: string;
   progress: number;
   stage: string | null;
+  stage_code?: string | null;
+  mode?: string;
   elements: ReviewElement[];
   name: string | null;
   document_type_guess: string | null;

@@ -273,6 +273,16 @@ def _templatize_repeatable_paragraph(paragraph: Paragraph, field_name: str) -> N
     _insert_marker_after(paragraph, "{%p endfor %}")
 
 
+def _remove_paragraph(paragraph: Paragraph) -> None:
+    """Delete a paragraph from the document body (used for grouped sections:
+    only the first paragraph of a repeatable-section field becomes the loop
+    template; the rest of the original example text is removed)."""
+    p = paragraph._p
+    parent = p.getparent()
+    if parent is not None:
+        parent.remove(p)
+
+
 def _wrap_optional(paragraph: Paragraph, include_name: str) -> None:
     """Wrap a paragraph so it only renders when ``include_name`` is truthy."""
     _insert_marker_before(paragraph, f"{{%p if {include_name} %}}")
@@ -302,6 +312,7 @@ def build_template_docx(
         for nid in f.node_ids:
             fd_by_node[nid] = f
 
+    seen_section_fields: set[str] = set()
     for wn in nodes:
         cls = cls_by_node.get(wn.node_id)
         if cls is None:
@@ -333,6 +344,12 @@ def build_template_docx(
         if cls.classification == ClassificationType.REPEATABLE_SECTION:
             name = _safe_ident(fd.field_name if fd else cls.field_name)
             if name:
+                if name in seen_section_fields:
+                    # Later paragraph of a grouped section — the first one already
+                    # carries the loop; drop this original example text entirely.
+                    _remove_paragraph(para)
+                    continue
+                seen_section_fields.add(name)
                 _templatize_repeatable_paragraph(para, name)
         elif is_dynamic(cls.classification):
             name = _safe_ident(fd.field_name if fd else cls.field_name)

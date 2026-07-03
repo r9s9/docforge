@@ -28,10 +28,18 @@ function uniqueName(base: string, used: Set<string>): string {
   return `${base}_${i}`;
 }
 
+/** Phases of the agentic analysis shown as a live checklist while the AI works. */
+const AI_STEPS = [
+  { code: "understand", label: "Understand" },
+  { code: "classify", label: "Classify" },
+  { code: "verify", label: "Verify" },
+];
+
 export default function NewTemplate() {
   const router = useRouter();
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [files, setFiles] = useState<File[]>([]);
+  const [analysisMode, setAnalysisMode] = useState<"tags_only" | "smart">("tags_only");
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -42,6 +50,7 @@ export default function NewTemplate() {
   const [fields, setFields] = useState<EditableField[]>([]);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<string | null>(null);
+  const [stageCode, setStageCode] = useState<string | null>(null);
   // Retained for field-card highlighting; click-to-jump was tied to the removed
   // color-coded view, so there is no setter wired up right now.
   const [selectedField] = useState<string | null>(null);
@@ -95,13 +104,15 @@ export default function NewTemplate() {
     setError("");
     setProgress(0);
     setStage("Uploading…");
+    setStageCode(null);
     cancelledRef.current = false;
     try {
       // Analysis runs in the background (the LLM can be slow); poll for live progress.
-      let result = await api.analyze(files);
+      let result = await api.analyze(files, analysisMode);
       activeJobId.current = result.id;
       setProgress(result.progress || 0);
       setStage(result.stage);
+      setStageCode(result.stage_code ?? null);
       let tries = 0;
       while ((result.status === "pending" || result.status === "running") && tries < 480) {
         if (cancelledRef.current) break;
@@ -110,6 +121,7 @@ export default function NewTemplate() {
         result = await api.getAnalysis(result.id);
         setProgress(result.progress || 0);
         setStage(result.stage);
+        setStageCode(result.stage_code ?? null);
         tries += 1;
       }
       if (cancelledRef.current || result.status === "cancelled") {
@@ -296,6 +308,35 @@ export default function NewTemplate() {
             <div>Up to 5 files. More examples → better fixed vs dynamic detection.</div>
           </div>
 
+          <div className="mode-cards" role="radiogroup" aria-label="Template mode">
+            <label className={`mode-card ${analysisMode === "tags_only" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="analysis-mode"
+                checked={analysisMode === "tags_only"}
+                onChange={() => setAnalysisMode("tags_only")}
+              />
+              <strong>Full template</strong>
+              <span className="muted">
+                Every text becomes a fillable tag — headings, paragraphs, tables. New
+                documents get 100% new text.
+              </span>
+            </label>
+            <label className={`mode-card ${analysisMode === "smart" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="analysis-mode"
+                checked={analysisMode === "smart"}
+                onChange={() => setAnalysisMode("smart")}
+              />
+              <strong>Smart detect</strong>
+              <span className="muted">
+                Keep boilerplate fixed; only the parts that vary become fields. Best with
+                multiple example documents.
+              </span>
+            </label>
+          </div>
+
           {files.length > 0 && (
             <div className="section" style={{ marginTop: 18 }}>
               <table>
@@ -337,7 +378,13 @@ export default function NewTemplate() {
                 )}
                 {busy && (
                   <div style={{ marginTop: 16 }}>
-                    <ProgressBar percent={progress} stage={stage} busy />
+                    <ProgressBar
+                      percent={progress}
+                      stage={stage}
+                      busy
+                      steps={AI_STEPS}
+                      currentCode={stageCode}
+                    />
                     <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
                       Local AI models can take a minute or two — you can watch it work above. It
                       falls back to the fast heuristic engine if the model is too slow.
@@ -361,46 +408,6 @@ export default function NewTemplate() {
                 The template below was built with built-in heuristics. Fix the issue
                 above and re-run to use AI.
               </div>
-            </div>
-          )}
-
-          <label className="field" style={{ maxWidth: 440 }}>
-            <span>Template name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-
-          <label className="field" style={{ maxWidth: 440 }}>
-            <span>Project (optional)</span>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            {projectId && (
-              <span className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                This template will inherit the project’s metadata at generation.
-              </span>
-            )}
-          </label>
-
-          <div className="row section" style={{ gap: 8 }}>
-            <span className="muted">Detected type:</span>
-            <strong>{job.document_type_guess}</strong>
-            <span className="muted">· {job.source_document_ids.length} doc(s)</span>
-            <span className="muted">· engine: {job.model_used || "heuristic"}</span>
-            {job.token_usage ? <TokenUsageLine usage={job.token_usage} /> : null}
-          </div>
-
-          {job.diff_summary && (
-            <div className="pill-list section">
-              {Object.entries(job.diff_summary).map(([k, v]) => (
-                <span className="chip" key={k}>
-                  {k.replace(/_/g, " ")}: {v}
-                </span>
-              ))}
             </div>
           )}
 
@@ -513,6 +520,46 @@ export default function NewTemplate() {
               })()}
             </div>
           </div>
+
+          <label className="field" style={{ maxWidth: 440, marginTop: 22 }}>
+            <span>Template name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+
+          <label className="field" style={{ maxWidth: 440 }}>
+            <span>Project (optional)</span>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="">No project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            {projectId && (
+              <span className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                This template will inherit the project’s metadata at generation.
+              </span>
+            )}
+          </label>
+
+          <div className="row section" style={{ gap: 8 }}>
+            <span className="muted">Detected type:</span>
+            <strong>{job.document_type_guess}</strong>
+            <span className="muted">· {job.source_document_ids.length} doc(s)</span>
+            <span className="muted">· engine: {job.model_used || "heuristic"}</span>
+            {job.token_usage ? <TokenUsageLine usage={job.token_usage} /> : null}
+          </div>
+
+          {job.diff_summary && (
+            <div className="pill-list section">
+              {Object.entries(job.diff_summary).map(([k, v]) => (
+                <span className="chip" key={k}>
+                  {k.replace(/_/g, " ")}: {v}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="row" style={{ marginTop: 22 }}>
             <button className="btn" disabled={busy} onClick={publish}>

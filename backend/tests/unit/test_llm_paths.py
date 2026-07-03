@@ -146,10 +146,17 @@ def test_classify_llm_reports_progress(project_docs):
         sections=[],
     )
     progress: list[float] = []
-    res = classify_llm(ext, None, _FakeClient(resp), on_progress=lambda d, f: progress.append(f))
+    codes: list[str | None] = []
+
+    def on_progress(detail, fraction, code=None):
+        progress.append(fraction)
+        codes.append(code)
+
+    res = classify_llm(ext, None, _FakeClient(resp), on_progress=on_progress)
     assert res.document_type_guess == "Reported"
     assert any(c.field_name == "foo" for c in res.classifications)
     assert progress and progress[-1] == 1.0  # progress runs to completion
+    assert "understand" in codes and "classify" in codes  # phase codes emitted
 
 
 def test_classify_llm_batches_large_documents(tmp_path):

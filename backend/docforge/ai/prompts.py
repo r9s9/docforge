@@ -250,6 +250,7 @@ def build_classify_prompt(
     *,
     understanding_summary: str = "",
     learned_hints: str = "",
+    tags_only: bool = False,
 ) -> tuple[str, str, str]:
     """Build the (system, developer, user) classify prompt.
 
@@ -284,7 +285,41 @@ def build_classify_prompt(
         + f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
         + f"{tail}"
     )
-    return _CLASSIFY_SYSTEM, _CLASSIFY_DEVELOPER, user
+    developer = _CLASSIFY_DEVELOPER + (_TAGS_ONLY_RULES if tags_only else "")
+    return _CLASSIFY_SYSTEM, developer, user
+
+
+# --- Tags-only mode: shared instruction block --------------------------------
+
+_TAGS_ONLY_RULES = """\
+
+TAGS-ONLY MODE — the final template must contain ONLY placeholders, no original text:
+- Classify EVERY non-empty text element as DYNAMIC_* or REPEATABLE_* — nothing is
+  FIXED except Word auto-fields (page numbers, TOC) and images.
+- Headings => DYNAMIC_TEXT with field_type "text": the heading text itself is
+  replaced by a tag. Name it after the heading's role, e.g. "project_overview_title".
+- Body paragraphs => DYNAMIC_TEXT with field_type "multiline_text". When several
+  CONSECUTIVE paragraphs cover ONE topic under the same heading, give them ALL the
+  SAME field_name — they will be merged into one repeatable multi-paragraph field.
+- List items => same rule as consecutive paragraphs (one shared field_name per list).
+- Tables => REPEATABLE_TABLE.
+- static_prefix and static_suffix MUST be null — no literal text survives.
+- field_name: meaningful snake_case derived from the element's role in the document.
+- description: describe what content belongs there and cite the original text as an
+  example, e.g. "The report's executive summary (2-3 paragraphs). Example: 'During
+  Q3 the team…'". These descriptions drive AI routing later — make them specific.
+"""
+
+_TAGS_ONLY_UNDERSTAND = (
+    "\n\nTAGS-ONLY MODE: the user wants a fully-tagged template — assume every text "
+    "element will become a fillable field. Your section read should propose good, "
+    "role-based field names per section."
+)
+
+_TAGS_ONLY_CRITIQUE = (
+    "\n\nTAGS-ONLY MODE: do NOT correct anything back to FIXED — every text element "
+    "must remain a dynamic field. Focus on better names, types, and descriptions."
+)
 
 
 # --- Pass A: holistic document understanding -------------------------------
@@ -317,6 +352,7 @@ def build_understanding_prompt(
     diff: DiffRunResult | None,
     *,
     learned_hints: str = "",
+    tags_only: bool = False,
 ) -> tuple[str, str, str]:
     """Pass A: a holistic read of the document (reasoning tier)."""
     nodes = _node_payload(extraction, diff, None)
@@ -329,7 +365,8 @@ def build_understanding_prompt(
         + f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
         + "Read the whole document and produce the understanding object."
     )
-    return _UNDERSTAND_SYSTEM, _UNDERSTAND_DEVELOPER, user
+    developer = _UNDERSTAND_DEVELOPER + (_TAGS_ONLY_UNDERSTAND if tags_only else "")
+    return _UNDERSTAND_SYSTEM, developer, user
 
 
 # --- Pass C: self-critique of the draft classification ----------------------
@@ -375,6 +412,7 @@ def build_critique_prompt(
     *,
     understanding_summary: str = "",
     learned_hints: str = "",
+    tags_only: bool = False,
 ) -> tuple[str, str, str]:
     """Pass C: review the draft classification and return only the corrections.
 
@@ -393,7 +431,8 @@ def build_critique_prompt(
         + f"{json.dumps(draft, ensure_ascii=False, indent=2)}\n\n"
         + "Return corrections for the nodes that need fixing."
     )
-    return _CRITIQUE_SYSTEM, _CRITIQUE_DEVELOPER, user
+    developer = _CRITIQUE_DEVELOPER + (_TAGS_ONLY_CRITIQUE if tags_only else "")
+    return _CRITIQUE_SYSTEM, developer, user
 
 
 # ---------------------------------------------------------------------------
