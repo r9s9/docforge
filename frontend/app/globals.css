@@ -37,6 +37,12 @@
   --aurora-2: rgba(186, 120, 255, 0.4);
   --aurora-3: rgba(80, 200, 180, 0.35);
   --aurora-opacity: 0.5;
+  /* Liquid-glass sidebar: translucent tint + blur so the aurora bleeds through,
+     plus a bright/dark rim pair that reads as light catching a glass edge. */
+  --glass-tint: rgba(255, 255, 255, 0.55);
+  --glass-rim-light: rgba(255, 255, 255, 0.7);
+  --glass-rim-dark: rgba(20, 20, 30, 0.06);
+  --glass-shine: rgba(255, 255, 255, 0.5);
 }
 
 /* Dark mode — near-black surfaces, white ink accent. */
@@ -68,6 +74,10 @@
   --aurora-2: rgba(140, 80, 220, 0.3);
   --aurora-3: rgba(40, 150, 140, 0.28);
   --aurora-opacity: 0.35;
+  --glass-tint: rgba(20, 20, 22, 0.45);
+  --glass-rim-light: rgba(255, 255, 255, 0.14);
+  --glass-rim-dark: rgba(0, 0, 0, 0.35);
+  --glass-shine: rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -121,8 +131,16 @@ a:hover {
   bottom: 0; /* span the full viewport (reliable under root zoom; 100vh is not) */
   width: 66px;
   z-index: 50;
-  background: var(--sidebar);
-  border-right: 1px solid var(--border);
+  /* Liquid glass: a translucent tint over a blurred, saturated sample of
+     whatever sits behind the panel (the aurora), with a bright/dark rim pair
+     standing in for light catching the edge of a pane of glass. */
+  background: linear-gradient(180deg, var(--glass-shine), transparent 220px), var(--glass-tint);
+  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+  backdrop-filter: blur(28px) saturate(1.7);
+  border-top: 1px solid var(--glass-rim-light);
+  border-right: 1px solid var(--glass-rim-dark);
+  border-radius: 0 22px 22px 0;
+  box-shadow: inset -1px 0 0 var(--glass-rim-light), inset 1px 0 0 var(--glass-shine);
   padding: 18px 13px;
   display: flex;
   flex-direction: column;
@@ -133,7 +151,8 @@ a:hover {
 /* Expand on hover (when not pinned) — overlays content, no layout shift. */
 .sidebar:not(.pinned):hover {
   width: 248px;
-  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.18);
+  box-shadow: inset -1px 0 0 var(--glass-rim-light), inset 1px 0 0 var(--glass-shine),
+    16px 0 40px rgba(0, 0, 0, 0.18);
 }
 .sidebar.pinned {
   width: 248px;
