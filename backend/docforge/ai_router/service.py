@@ -27,6 +27,7 @@ def route(
     data: dict | None = None,
     client: LLMClient | None = None,
     settings: Settings | None = None,
+    template_context: dict | None = None,
 ) -> RoutingResult:
     client = client or LLMClient(generation_ai_config())
 
@@ -43,6 +44,7 @@ def route(
                 client=client,
                 template_id=template_id,
                 version=version,
+                template_context=template_context,
             )
         except LLMError as exc:
             logger.warning("LLM routing failed, falling back to heuristic: %s", exc)
@@ -51,7 +53,8 @@ def route(
         else:
             # Compose: format/normalise values and draft missing required ones.
             return compose_values(
-                routing, fields, source_text=raw_text or "", structured_data=data, client=client
+                routing, fields, source_text=raw_text or "", structured_data=data,
+                client=client, template_context=template_context,
             )
 
     return route_unstructured_heuristic(fields, raw_text or "", template_id, version)

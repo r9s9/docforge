@@ -30,6 +30,7 @@ def route_llm(
     template_id: str,
     version: int,
     from_document: bool = False,
+    template_context: dict | None = None,
 ) -> RoutingResult:
     batches = _chunk(fields, ROUTE_BATCH_SIZE)
     valid = {f.field_name for f in fields}
@@ -41,7 +42,11 @@ def route_llm(
     for batch in batches:
         batch_valid = {f.field_name for f in batch}
         system, developer, user = build_route_prompt(
-            batch, raw_text=raw_text, structured_data=data, from_document=from_document
+            batch,
+            raw_text=raw_text,
+            structured_data=data,
+            from_document=from_document,
+            template_context=template_context,
         )
         resp = client.complete_json(
             system=system, developer=developer, user=user, schema=LLMRouteResponse

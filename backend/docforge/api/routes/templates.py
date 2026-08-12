@@ -555,6 +555,8 @@ def route_content(
     from ...ai.usage import track_usage
     from ...ai_quota import plan_ai_for_owner, use_ai_plan
 
+    from ...services.generation import template_context_for
+
     with track_usage() as usage, use_ai_plan(plan_ai_for_owner(user.id, allow_free=False)):
         result = route(
             fields,
@@ -563,6 +565,7 @@ def route_content(
             raw_text=req.raw_text,
             data=req.data,
             settings=settings,
+            template_context=template_context_for(registry, template_id, version, fields),
         )
     if usage.calls:
         result.token_usage = usage.as_dict()

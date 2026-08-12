@@ -218,6 +218,7 @@ def route_document_content(
     template_id: str,
     version: int,
     client: LLMClient | None = None,
+    template_context: dict | None = None,
 ) -> RoutingResult:
     """Map extracted document content onto template fields (LLM, heuristic fallback)."""
     from ..settings_store import generation_ai_config
@@ -234,6 +235,7 @@ def route_document_content(
                 template_id=template_id,
                 version=version,
                 from_document=True,
+                template_context=template_context,
             )
         except LLMError as exc:
             logger.warning("LLM document routing failed, falling back to heuristic: %s", exc)
@@ -242,5 +244,8 @@ def route_document_content(
         else:
             from .compose import compose_values
 
-            return compose_values(routing, fields, source_text=source_text, client=client)
+            return compose_values(
+                routing, fields, source_text=source_text, client=client,
+                template_context=template_context,
+            )
     return route_document_heuristic(fields, content, template_id, version)

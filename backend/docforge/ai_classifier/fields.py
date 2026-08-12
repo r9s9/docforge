@@ -95,11 +95,17 @@ def derive_field_definitions(
     extraction: DocumentExtraction, result: ClassificationResult
 ) -> list[FieldDefinition]:
     """Build the ordered list of fillable fields from classifications."""
-    # Map field_name -> section_key (from section understanding).
+    # Map field_name -> section_key (from section understanding). The model
+    # writes section membership from memory, so its names routinely differ in
+    # case or punctuation from the slugified names we actually keep — match on
+    # the slug, not the raw string, or every field silently ends up section-less.
     field_section: dict[str, str] = {}
     for s in result.sections:
         for fname in s.field_names:
-            field_section[fname] = s.section_key
+            field_section[slugify_field(fname, fallback="")] = s.section_key
+
+    def section_for(name: str) -> str | None:
+        return field_section.get(slugify_field(name, fallback=""))
 
     by_id = {e.node_id: e for e in extraction.elements}
     fields: list[FieldDefinition] = []
@@ -145,7 +151,7 @@ def derive_field_definitions(
                 required=c.required and not c.optional,
                 enum_values=c.enum_values,
                 node_ids=[c.node_id],
-                section_key=field_section.get(c.field_name),
+                section_key=section_for(c.field_name),
                 columns=columns,
                 confidence=c.confidence,
             )
@@ -189,7 +195,7 @@ def derive_field_definitions(
                 description="Replace this picture per document, or keep the original.",
                 required=False,
                 node_ids=[e.node_id],
-                section_key=field_section.get(name),
+                section_key=section_for(name),
                 confidence=0.5,
             )
         )
@@ -221,7 +227,7 @@ def derive_field_definitions(
                 required=False,
                 default=True,
                 node_ids=[c.node_id],
-                section_key=field_section.get(c.field_name),
+                section_key=section_for(c.field_name),
                 confidence=c.confidence,
             )
         )

@@ -16,6 +16,7 @@ from ..ai_router import (
     route,
     route_document_content,
 )
+from ..ai_router.context import build_template_context
 from ..assembler import assemble
 from ..common.textutil import slugify_field
 from ..config import Settings, get_settings
@@ -63,15 +64,59 @@ def _merge_with_project(base_meta: dict, context: dict) -> dict:
     return merged
 
 
-def resolve_routing(template_id, version, gen_input: GenerationInput, fields, settings) -> RoutingResult:
+def template_context_for(
+    registry: TemplateRegistry | None, template_id: str, version: int, fields
+) -> dict:
+    """Describe the template as a document (type, sections, where fields sit).
+
+    Best-effort and read-only: a template package missing its intelligence or
+    representative simply yields less context, never an error. Skipped entirely
+    when there is no registry to read from.
+    """
+    if registry is None:
+        return {}
+    try:
+        intelligence = registry.load_intelligence(template_id, version)
+    except Exception:  # older/partial packages — routing still works without it
+        logger.debug("no template intelligence for %s v%s", template_id, version, exc_info=True)
+        return {}
+    representative = None
+    try:
+        raw = registry.load_representative(template_id, version)
+        if raw:
+            representative = DocumentExtraction.model_validate(raw)
+    except Exception:
+        logger.debug("no representative extraction for %s v%s", template_id, version, exc_info=True)
+    return build_template_context(
+        document_type=intelligence.document_type_guess,
+        sections=intelligence.sections,
+        classifications=intelligence.classifications,
+        fields=fields,
+        representative=representative,
+    )
+
+
+def resolve_routing(
+    template_id,
+    version,
+    gen_input: GenerationInput,
+    fields,
+    settings,
+    *,
+    registry: TemplateRegistry | None = None,
+) -> RoutingResult:
     """Shared routing step used by both generate and preview."""
     if gen_input.placements:
         return RoutingResult(
             template_id=template_id, version=version, placements=gen_input.placements, source="user"
         )
     if gen_input.mode == GenerationMode.UNSTRUCTURED_TEXT:
+        # Only the AI paths read the document's structure; structured input is
+        # mapped key-by-key and never reaches a model, so don't pay to load it.
         return route(
-            fields, template_id=template_id, version=version, raw_text=gen_input.raw_text, settings=settings
+            fields, template_id=template_id, version=version, raw_text=gen_input.raw_text,
+            settings=settings,
+            template_context=template_context_for(registry, template_id, version, fields),
         )
     return route(
         fields, template_id=template_id, version=version, data=gen_input.data or {}, settings=settings
@@ -134,6 +179,8 @@ def route_document(
     # to fuzzy AI text-routing when structural alignment covers little (truly
     # different document).
     routing = None
+    rep: DocumentExtraction | None = None
+    intelligence = None
     with track_usage() as usage, use_ai_plan(plan):
         rep_raw = registry.load_representative(template.id, version)
         if rep_raw:
@@ -141,9 +188,10 @@ def route_document(
                 from ..ai_router.document import route_document_structural
 
                 rep = DocumentExtraction.model_validate(rep_raw)
-                classifications = registry.load_intelligence(template.id, version).classifications
+                intelligence = registry.load_intelligence(template.id, version)
                 structural = route_document_structural(
-                    rep, classifications, fields, doc, template_id=template.id, version=version
+                    rep, intelligence.classifications, fields, doc,
+                    template_id=template.id, version=version,
                 )
                 mappable = max(1, len([f for f in fields if f.field_type.value != "boolean"]))
                 coverage = len(structural.placements) / mappable
@@ -157,8 +205,24 @@ def route_document(
                 logger.exception("structural document mapping failed; trying AI routing")
 
         if routing is None:
+            # Reuse the reads the structural attempt already made rather than
+            # fetching the same package files a second time.
+            context = (
+                build_template_context(
+                    document_type=intelligence.document_type_guess,
+                    sections=intelligence.sections,
+                    classifications=intelligence.classifications,
+                    fields=fields,
+                    representative=rep,
+                )
+                if intelligence is not None
+                else template_context_for(registry, template.id, version, fields)
+            )
             content = document_content(doc)
-            routing = route_document_content(fields, content, template_id=template.id, version=version)
+            routing = route_document_content(
+                fields, content, template_id=template.id, version=version,
+                template_context=context,
+            )
 
     if plan.counts_against_free and routing.source == "llm":
         increment_free_use(owner_id)
@@ -206,7 +270,7 @@ def render_preview_docx(
     # Previews never spend a free-tier credit (allow_free=False): own-key users
     # get full AI routing, free-tier users get the deterministic heuristic.
     with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
-        routing = resolve_routing(template.id, version, gen_input, fields, settings)
+        routing = resolve_routing(template.id, version, gen_input, fields, settings, registry=registry)
     context = _merge_with_project(_project_metadata(db, template), routing.to_context())
     return assemble(template_bytes, context, fields)
 
@@ -233,7 +297,7 @@ def preview_document(
 
     # Previews never spend a free-tier credit (see render_preview_docx).
     with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
-        routing = resolve_routing(template.id, version, gen_input, fields, settings)
+        routing = resolve_routing(template.id, version, gen_input, fields, settings, registry=registry)
     context = _merge_with_project(_project_metadata(db, template), routing.to_context())
 
     from ..validator import validate
@@ -289,7 +353,7 @@ def generate_document(
         # project's inherited metadata (defaults; explicit values already win).
         # Unstructured routing may hit the model under this user's AI plan.
         with track_usage() as usage, use_ai_plan(plan):
-            routing = resolve_routing(template.id, version, gen_input, fields, settings)
+            routing = resolve_routing(template.id, version, gen_input, fields, settings, registry=registry)
         context = _merge_with_project(_project_metadata(db, template), routing.to_context())
         req.routing = routing.model_dump(mode="json")
         req.token_usage = usage.as_dict() if usage.calls else None

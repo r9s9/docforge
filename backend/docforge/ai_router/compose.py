@@ -37,6 +37,7 @@ def compose_values(
     structured_data: dict | None = None,
     client: LLMClient,
     cancel_event=None,
+    template_context: dict | None = None,
 ) -> RoutingResult:
     """Refine ``routing``'s values via the compose agent; return an updated result.
 
@@ -49,6 +50,7 @@ def compose_values(
         fields, routing.placements,
         source_text=source_text, structured_data=structured_data,
         missing_required=routing.missing_required,
+        template_context=template_context,
     )
     try:
         resp = client.complete_agentic(

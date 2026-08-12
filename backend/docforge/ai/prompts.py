@@ -534,7 +534,10 @@ Rules:
 """ + RICH_FORMAT_SPEC + "\n"
 
 
-def _fields_payload(fields: list[FieldDefinition]) -> list[dict]:
+def _fields_payload(
+    fields: list[FieldDefinition], template_context: dict | None = None
+) -> list[dict]:
+    places = (template_context or {}).get("field_places") or {}
     out = []
     for f in fields:
         item: dict[str, Any] = {
@@ -552,8 +555,30 @@ def _fields_payload(fields: list[FieldDefinition]) -> list[dict]:
                 {"field_name": c.field_name, "label": c.label, "type": c.field_type.value}
                 for c in f.columns
             ]
+        # Where this field sits in the document — the difference between filling
+        # a form and writing into a specific place in a specific document.
+        item.update(places.get(f.field_name, {}))
         out.append(item)
     return out
+
+
+def _template_structure_block(template_context: dict | None) -> str:
+    """A compact description of the document being filled, for the AI prompts."""
+    if not template_context:
+        return ""
+    parts: list[str] = []
+    doc_type = template_context.get("document_type")
+    if doc_type:
+        parts.append(f"The document you are filling in is: {doc_type}.")
+    sections = template_context.get("sections") or []
+    if sections:
+        parts.append(
+            "The document is organised into these sections, in order — place "
+            "content where it belongs, and write each section to serve its "
+            "stated purpose:\n"
+            + json.dumps(sections, ensure_ascii=False, indent=2)
+        )
+    return "\n\n".join(parts)
 
 
 def build_route_prompt(
@@ -562,11 +587,16 @@ def build_route_prompt(
     raw_text: str | None = None,
     structured_data: dict | None = None,
     from_document: bool = False,
+    template_context: dict | None = None,
 ) -> tuple[str, str, str]:
-    parts = [
+    parts = []
+    structure = _template_structure_block(template_context)
+    if structure:
+        parts.append(structure)
+    parts.append(
         "Template fields:\n"
-        + json.dumps(_fields_payload(fields), ensure_ascii=False, indent=2)
-    ]
+        + json.dumps(_fields_payload(fields, template_context), ensure_ascii=False, indent=2)
+    )
     if structured_data:
         parts.append(
             "Structured input (map/validate against the fields):\n"
@@ -651,19 +681,27 @@ def build_compose_prompt(
     source_text: str = "",
     structured_data: dict | None = None,
     missing_required: list[str] | None = None,
+    template_context: dict | None = None,
 ) -> tuple[str, str, str]:
     """Build the (system, developer, user) compose prompt.
 
     ``placements`` is the routed values to refine (objects with ``field_name`` /
     ``value``). ``source_text`` is the content they came from (notes or an
     extracted document), used to draft missing values and verify facts.
+    ``template_context`` describes the document's sections so values are written
+    to fit where they will actually appear.
     """
     current = {p.field_name: p.value for p in placements}
-    parts = [
-        "Template fields:\n" + json.dumps(_fields_payload(fields), ensure_ascii=False, indent=2),
+    parts = []
+    structure = _template_structure_block(template_context)
+    if structure:
+        parts.append(structure)
+    parts.extend([
+        "Template fields:\n"
+        + json.dumps(_fields_payload(fields, template_context), ensure_ascii=False, indent=2),
         "Currently routed values (refine these):\n"
         + json.dumps(current, ensure_ascii=False, default=str, indent=2),
-    ]
+    ])
     if missing_required:
         parts.append(
             "Required fields still missing a value (draft from the content if supported):\n"
