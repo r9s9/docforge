@@ -303,6 +303,12 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     for (const name of result.removed) next[name] = blankValue(
       fields.find((f) => f.field_name === name)!,
     );
+    // A section dropped by name rides along with the values, so the preview and
+    // the final document both leave it out.
+    if (result.skip_sections?.length) {
+      const dropped = new Set([...(next._skipped_sections ?? []), ...result.skip_sections]);
+      next._skipped_sections = [...dropped];
+    }
     setValues(next);
     setPreviewKey((k) => k + 1);
   }

@@ -25,6 +25,7 @@ from docx.text.paragraph import Paragraph
 
 from ..ai_classifier import classify, derive_field_definitions
 from ..ai_classifier.fields import include_field_name
+from ..common.textutil import slugify_field
 from ..multi_doc_differ import diff_documents, pick_representative
 from ..schemas.classification import ClassificationResult
 from ..schemas.enums import ClassificationType, FieldType, is_dynamic
@@ -312,6 +313,84 @@ def _is_tags_only_forced(cls) -> bool:
 
 
 # --- main builder -----------------------------------------------------------
+def section_toggle_name(section_key: str) -> str | None:
+    """The Jinja variable that decides whether a section renders at all.
+
+    ``None`` for a key that slugifies to nothing: a bare ``_show_`` is a valid
+    identifier, so every unnamed section would silently share one toggle.
+    """
+    slug = slugify_field(section_key, fallback="")
+    return _safe_ident(f"_show_{slug}") if slug else None
+
+
+def _wrap_section_spans(
+    nodes: list,
+    fields: list[FieldDefinition],
+    sections: list,
+) -> list[str]:
+    """Wrap each section's paragraphs in ``{%p if _show_x %}`` … ``{%p endif %}``.
+
+    A section is a set of fields, not a range of the document, so its span is
+    inferred: from the first paragraph of its earliest field (or the heading
+    immediately above it) to the paragraph before the next section starts.
+
+    That inference can be wrong on an unusual document, and a wrong span means a
+    malformed template — so every span is checked before use and simply skipped
+    when it does not hold. A section that cannot be hidden is a missing feature;
+    a template that will not render is a broken product.
+    """
+    if not sections:
+        return []
+    position = {wn.node_id: i for i, wn in enumerate(nodes)}
+    body = [i for i, wn in enumerate(nodes) if wn.scope is None and wn.parent_node_id is None]
+    if not body:
+        return []
+
+    starts: list[tuple[int, str]] = []
+    for section in sections:
+        key = getattr(section, "section_key", "") or ""
+        member_nodes = [
+            position[nid]
+            for f in fields
+            if f.section_key == key
+            for nid in f.node_ids
+            if nid in position and nid not in {n.node_id for n in nodes if n.scope is not None}
+        ]
+        member_nodes = [i for i in member_nodes if i in body]
+        if not member_nodes:
+            continue
+        first = min(member_nodes)
+        # Take the heading directly above the first field with the section: a
+        # section hidden without its own title leaves a stranded heading.
+        prev = body[body.index(first) - 1] if body.index(first) > 0 else None
+        if prev is not None and nodes[prev].kind == "paragraph":
+            style = (getattr(nodes[prev].obj, "style", None) and nodes[prev].obj.style.name) or ""
+            if style.lower().startswith(("heading", "title")):
+                first = prev
+        starts.append((first, key))
+
+    starts.sort()
+    wrapped: list[str] = []
+    for n, (start, key) in enumerate(starts):
+        name = section_toggle_name(key)
+        if not name:
+            continue
+        end = starts[n + 1][0] - 1 if n + 1 < len(starts) else body[-1]
+        span = [i for i in body if start <= i <= end]
+        # Both ends must be plain body paragraphs: a marker cannot open before a
+        # table row or close inside another section's loop.
+        if not span or nodes[span[0]].kind != "paragraph" or nodes[span[-1]].kind != "paragraph":
+            logger.warning("skipping section toggle for %r — span is not paragraph-bounded", key)
+            continue
+        # Default to showing: an undefined variable renders falsy in Jinja, so a
+        # bare "if" would make any caller that forgot to supply the toggles
+        # silently produce an empty document. Only an explicit False hides.
+        _insert_marker_before(nodes[span[0]].obj, f"{{%p if {name} is not defined or {name} %}}")
+        _insert_marker_after(nodes[span[-1]].obj, "{%p endif %}")
+        wrapped.append(key)
+    return wrapped
+
+
 def build_template_docx(
     representative_docx_path: str,
     result: ClassificationResult,
@@ -408,6 +487,13 @@ def build_template_docx(
                 wn = node_by_id.get(nid)
                 if wn and wn.kind == "paragraph" and _tag_picture(wn.obj, key):
                     break
+
+    # Section toggles go in last, so the spans are measured against the nodes as
+    # walked (marker paragraphs inserted here are new siblings, never renumbering
+    # anything the extraction already named).
+    wrapped = _wrap_section_spans(nodes, fields, result.sections)
+    if wrapped:
+        logger.info("section toggles added for: %s", ", ".join(wrapped))
 
     bio = BytesIO()
     doc.save(bio)

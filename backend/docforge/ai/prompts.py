@@ -797,6 +797,9 @@ Write the document, not the fields:
   before it already established.
 - A section with no real content is SKIPPED (list it in skipped_sections with a
   reason), never padded with filler or restated content from elsewhere.
+- A boolean field named "include_…" switches an optional block on or off. Set it
+  to false when the content clearly has nothing for that block; leave it alone
+  otherwise.
 - Only use field_name values from the template. Never invent fields.
 - For REPEATABLE_TABLE fields, "value" MUST be a list of objects keyed by the
   table's column field_names.

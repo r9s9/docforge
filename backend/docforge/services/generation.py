@@ -52,6 +52,30 @@ def _project_metadata(db: Session | None, template: Template) -> dict:
     return dict(proj.meta or {}) if proj else {}
 
 
+def _section_toggles(fields, routing: RoutingResult, context: dict) -> dict:
+    """Which sections render. Every section is on unless something asked otherwise.
+
+    Deliberately *not* inferred from empty fields: a section vanishing because
+    the content happened to be thin is the scarier failure — the document looks
+    complete and silently isn't. Hiding is therefore always an explicit decision,
+    by the writer (which reports a reason), by Refine, or by the user.
+    """
+    from ..template_builder.builder import section_toggle_name
+
+    skipped = {
+        s.get("section_key")
+        for s in (routing.skipped_sections or [])
+        if isinstance(s, dict) and s.get("section_key")
+    }
+    skipped.update(str(k) for k in (context.get("_skipped_sections") or []))
+    toggles: dict[str, bool] = {}
+    for key in {f.section_key for f in fields if f.section_key}:
+        name = section_toggle_name(key)
+        if name:
+            toggles[name] = key not in skipped
+    return toggles
+
+
 def _merge_with_project(base_meta: dict, context: dict) -> dict:
     """Project metadata as defaults; explicit (non-None) per-document values win.
 
@@ -334,6 +358,7 @@ def render_preview_docx(
     with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
         routing = resolve_routing(template.id, version, gen_input, fields, settings, registry=registry)
     context = _merge_with_project(_project_metadata(db, template), routing.to_context())
+    context.update(_section_toggles(fields, routing, context))
     return assemble(template_bytes, context, fields)
 
 
@@ -361,6 +386,7 @@ def preview_document(
     with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
         routing = resolve_routing(template.id, version, gen_input, fields, settings, registry=registry)
     context = _merge_with_project(_project_metadata(db, template), routing.to_context())
+    context.update(_section_toggles(fields, routing, context))
 
     from ..validator import validate
 
@@ -432,6 +458,7 @@ def generate_document(
                 ),
             )
         context = _merge_with_project(_project_metadata(db, template), routing.to_context())
+        context.update(_section_toggles(fields, routing, context))
         req.routing = routing.model_dump(mode="json")
         req.token_usage = usage.as_dict() if usage.calls else None
 
