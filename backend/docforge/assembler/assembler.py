@@ -3,6 +3,13 @@
 No intelligence here: it takes a render context (already-resolved field values)
 and produces the final DOCX via docxtpl. Field definitions are used only to
 *coerce* values into render-safe shapes (strings; table fields -> list[dict]).
+
+One exception to "a value is just text": a value written in the markdown-lite
+rich format (see :mod:`.richtext`) stands for several paragraphs or a list,
+which a single Jinja placeholder cannot express. Those values are rendered as a
+sentinel token and expanded into real paragraphs afterwards by
+:mod:`.postprocess` — still deterministic, and still driven entirely by the
+template's own formatting.
 """
 
 from __future__ import annotations
@@ -18,6 +25,12 @@ from jinja2.runtime import Undefined
 
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
+from .postprocess import apply_rich_values, sentinel
+from .richtext import RichBlock, is_rich, parse_rich_blocks, strip_markers
+
+# Field types whose value is prose the user may structure into paragraphs and
+# lists. Dates, numbers, enums and people stay single-valued on purpose.
+_RICH_FIELD_TYPES = (FieldType.TEXT, FieldType.MULTILINE_TEXT)
 
 
 class _SilentUndefined(Undefined):
@@ -52,13 +65,19 @@ def _coerce_bool(value: Any) -> bool:
 
 
 def _coerce_str_list(value: Any) -> list[str]:
-    """Coerce a repeatable-section value into a list of non-empty strings."""
+    """Coerce a repeatable-section value into a list of non-empty strings.
+
+    Each entry becomes one rendered paragraph via the template's own
+    ``{%p for %}`` loop, so markdown-lite markers a user (or the AI) wrote here
+    are redundant — strip them rather than let a literal "- " reach Word.
+    """
     if value is None:
         return []
     if isinstance(value, str):
-        return [ln.strip() for ln in value.splitlines() if ln.strip()]
+        lines = [strip_markers(ln) for ln in value.splitlines()]
+        return [ln for ln in lines if ln.strip()]
     if isinstance(value, list):
-        out = [_coerce_scalar(x) for x in value]
+        out = [strip_markers(_coerce_scalar(x)) for x in value]
         return [s for s in out if s.strip()]
     return [_coerce_scalar(value)]
 
@@ -127,6 +146,40 @@ def build_render_context(fields: list[FieldDefinition], raw: dict[str, Any]) -> 
     return ctx
 
 
+def _extract_rich(render_ctx: dict[str, Any], fields: list[FieldDefinition]) -> dict[str, list[RichBlock]]:
+    """Swap structured prose values for sentinels; return the blocks they stand for.
+
+    Only prose fields qualify, and only when the value actually carries
+    structure — a one-line value renders through the ordinary path untouched,
+    so the common case is byte-for-byte identical to before this existed.
+    Repeatable sections are skipped: the template already loops them.
+    """
+    rich: dict[str, list[RichBlock]] = {}
+    for f in fields:
+        if f.field_type not in _RICH_FIELD_TYPES:
+            continue
+        if f.classification == ClassificationType.REPEATABLE_SECTION:
+            continue
+        value = render_ctx.get(f.field_name)
+        if not is_rich(value):
+            continue
+        blocks = parse_rich_blocks(value)
+        if not blocks:
+            render_ctx[f.field_name] = ""
+            continue
+        only = blocks[0] if len(blocks) == 1 else None
+        if only is not None and only.kind == "paragraph" and not any(
+            s.bold or s.italic for s in only.spans
+        ):
+            # One unadorned paragraph is just text — skip the post-pass entirely.
+            render_ctx[f.field_name] = only.text
+            continue
+        token = sentinel(len(rich))
+        rich[token] = blocks
+        render_ctx[f.field_name] = token
+    return rich
+
+
 def assemble(
     template: str | bytes,
     context: dict[str, Any],
@@ -146,6 +199,9 @@ def assemble(
                 data = _image_bytes(render_ctx.pop(f.field_name, None))
                 if data:
                     tpl.replace_pic(f.field_name, BytesIO(data))
+    # Structured prose is rendered as a sentinel and expanded below: docxtpl can
+    # only place a value inside one run, which cannot hold several paragraphs.
+    rich_map = _extract_rich(render_ctx, fields) if fields else {}
     # autoescape is required: field values can contain &, <, > (e.g. "R&D",
     # "Smith & Jones"). Without it those land raw in the document XML and either
     # corrupt it (xmlParseEntityRef) or get silently dropped.
@@ -153,4 +209,4 @@ def assemble(
     tpl.render(render_ctx, jinja_env=jinja_env)
     out = BytesIO()
     tpl.save(out)
-    return out.getvalue()
+    return apply_rich_values(out.getvalue(), rich_map)

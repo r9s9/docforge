@@ -1403,6 +1403,19 @@ tr.low-conf td {
   resize: vertical;
   line-height: 1.5;
 }
+.fc-format-hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--faint);
+}
+.fc-format-hint code {
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card-2);
+  font-size: 11px;
+}
 .field-card input,
 .field-card select {
   width: 100%;

@@ -356,9 +356,18 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     });
   }
 
+  // The text to look for in the rendered document. A structured value spans
+  // several paragraphs there, and no single one contains the whole string — so
+  // match on its first line, with the markdown-lite markers removed.
   function valueText(f: FieldDefinition): string {
     const v = values[f.field_name];
-    return typeof v === "string" ? v : "";
+    if (typeof v !== "string") return "";
+    const first = v.split("\n").find((ln) => ln.trim()) ?? "";
+    return first
+      .replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .trim();
   }
 
   // Anchors for click-to-jump: each field's value (preferred) then its label as a
@@ -687,17 +696,26 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                                   <span className="muted">Include this content</span>
                                 </label>
                               ) : f.field_type === "multiline_text" ? (
-                                <textarea
-                                  value={values[f.field_name] || ""}
-                                  onChange={(e) =>
-                                    setValues({ ...values, [f.field_name]: e.target.value })
-                                  }
-                                  placeholder={
-                                    f.classification === "REPEATABLE_SECTION"
-                                      ? "One item per line…"
-                                      : ""
-                                  }
-                                />
+                                <>
+                                  <textarea
+                                    value={values[f.field_name] || ""}
+                                    onChange={(e) =>
+                                      setValues({ ...values, [f.field_name]: e.target.value })
+                                    }
+                                    placeholder={
+                                      f.classification === "REPEATABLE_SECTION"
+                                        ? "One item per line…"
+                                        : "Blank line starts a new paragraph…"
+                                    }
+                                  />
+                                  {f.classification !== "REPEATABLE_SECTION" ? (
+                                    <p className="fc-format-hint muted">
+                                      Blank line = new paragraph · <code>- </code> bullet ·{" "}
+                                      <code>1. </code> numbered · <code>**bold**</code> ·{" "}
+                                      <code>*italic*</code>
+                                    </p>
+                                  ) : null}
+                                </>
                               ) : (
                                 <input
                                   value={values[f.field_name] || ""}

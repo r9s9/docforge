@@ -12,6 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
+from ..assembler.richtext import RICH_FORMAT_SPEC
 from ..schemas.diff import DiffRunResult
 from ..schemas.enums import ElementType
 from ..schemas.extraction import DocumentExtraction
@@ -529,7 +530,8 @@ Rules:
 - If a required field has no corresponding content, list it in missing_required.
 - Set ambiguous=true and populate alternatives when content could fit >1 field.
 - Output valid JSON only. No prose, no markdown.
-"""
+
+""" + RICH_FORMAT_SPEC + "\n"
 
 
 def _fields_payload(fields: list[FieldDefinition]) -> list[dict]:
@@ -629,7 +631,8 @@ Rules:
 - NEVER fabricate specific facts (names, totals, dates) not supported by the content.
 - Use normalize_date / normalize_number / validate_value to check before finalizing.
 - Output valid JSON only. No prose, no markdown.
-"""
+
+""" + RICH_FORMAT_SPEC + "\n"
 
 
 # The routing step (build_route_prompt) sends raw_text/document content in full
