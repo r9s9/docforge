@@ -1063,6 +1063,21 @@ tr.low-conf td {
   }
 }
 
+.auto-update {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.auto-update input {
+  width: auto;
+  margin: 0;
+}
+
 /* ---- Refine panel (conversational editing beside the preview) ---- */
 .refine-panel {
   display: flex;

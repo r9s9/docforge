@@ -162,6 +162,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   const [docMismatch, setDocMismatch] = useState(false); // uploaded doc didn't match this template
   const [refineOpen, setRefineOpen] = useState(false);
   const [undoValues, setUndoValues] = useState<FormValues | null>(null); // one step back
+  const [autoUpdate, setAutoUpdate] = useState(true);
   const [docFile, setDocFile] = useState<File | null>(null);
   const [extracted, setExtracted] = useState<PreviewBlock[] | null>(null);
   const [routeUsage, setRouteUsage] = useState<TokenUsage | null>(null);
@@ -316,6 +317,16 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   function refreshPreview() {
     setPreviewKey((k) => k + 1);
   }
+
+  // Re-render the preview a beat after typing stops. Each refresh is a real
+  // round-trip that re-renders the DOCX, so this waits for a pause rather than
+  // firing per keystroke — and stays opt-out for slow backends.
+  useEffect(() => {
+    if (!autoUpdate || !detail || busy) return;
+    const t = setTimeout(() => setPreviewKey((k) => k + 1), 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values, autoUpdate]);
 
   // --- value-card density (compact list + per-card expand, like FieldCards) ---
   function toggleField(name: string) {
@@ -625,6 +636,14 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                           <MessageSquare size={14} strokeWidth={1.9} /> Refine with AI
                         </button>
                       )}
+                      <label className="auto-update" title="Re-render the preview shortly after you stop typing">
+                        <input
+                          type="checkbox"
+                          checked={autoUpdate}
+                          onChange={(e) => setAutoUpdate(e.target.checked)}
+                        />
+                        Auto-update
+                      </label>
                       <button className="btn secondary small" disabled={busy} onClick={refreshPreview}>
                         <RotateCw size={14} strokeWidth={1.9} /> Update preview
                       </button>
