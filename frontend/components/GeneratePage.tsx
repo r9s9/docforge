@@ -384,7 +384,13 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   function buildBody(): Record<string, unknown> {
     if (mode === "json") return { mode: "structured_json", data: JSON.parse(jsonText) };
     if (mode === "raw") return { mode: "unstructured_text", raw_text: rawText };
-    return { mode: "structured_json", data: values };
+    // Send the AI's original draft alongside the edited values: the difference
+    // between them is how the AI learns what this user actually wants.
+    return {
+      mode: "structured_json",
+      data: values,
+      ...(routing ? { prior_placements: routing.placements } : {}),
+    };
   }
 
   async function generate() {

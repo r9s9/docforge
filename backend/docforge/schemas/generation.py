@@ -27,6 +27,9 @@ class GenerationInput(BaseModel):
     placements: list[PlacementInstruction] | None = None
     version: int | None = None  # specific template version; default = latest
     skip_validation: bool = False
+    # What the AI proposed before the user edited it. Sent by the review screen
+    # so the difference can be learned from; never used to render.
+    prior_placements: list[PlacementInstruction] | None = None
 
 
 class GenerationResult(BaseModel):

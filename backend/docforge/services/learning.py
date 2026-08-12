@@ -61,6 +61,57 @@ def record_correction(
         db.rollback()
 
 
+def _shorten(text: str, limit: int = 60) -> str:
+    flat = " ".join(str(text).split())
+    return flat if len(flat) <= limit else flat[:limit].rstrip() + "…"
+
+
+def diff_placements(prior: list, final_context: dict) -> list[str]:
+    """Describe how the user changed what the AI wrote, as replayable lines.
+
+    Only the shape of each edit is kept, never the content: what matters for
+    next time is that this user shortens summaries or always rewrites a field,
+    not the particular words they used once.
+    """
+    summaries: list[str] = []
+    for placement in prior or []:
+        name = getattr(placement, "field_name", None) or (
+            placement.get("field_name") if isinstance(placement, dict) else None
+        )
+        if not name:
+            continue
+        was = getattr(placement, "value", None) if not isinstance(placement, dict) else placement.get("value")
+        now = final_context.get(name)
+        if not isinstance(was, str) or not isinstance(now, str):
+            continue  # tables/images: no meaningful text delta to learn from
+        was_text, now_text = was.strip(), now.strip()
+        if was_text == now_text:
+            continue
+        if not now_text:
+            summaries.append(f'the user cleared "{name}" — the AI should not have filled it')
+            continue
+        if not was_text:
+            summaries.append(f'the user filled "{name}" in by hand — the AI left it empty')
+            continue
+        ratio = len(now_text) / max(1, len(was_text))
+        if ratio <= 0.6:
+            summaries.append(
+                f'the user cut "{name}" to {round(ratio * 100)}% of its length — '
+                "write it more briefly"
+            )
+        elif ratio >= 1.6:
+            summaries.append(
+                f'the user expanded "{name}" — write it in more detail than the draft did'
+            )
+        elif now_text.count("\n") > was_text.count("\n"):
+            summaries.append(f'the user broke "{name}" into more paragraphs or bullets')
+        elif now_text.count("\n") < was_text.count("\n"):
+            summaries.append(f'the user merged "{name}" into fewer blocks')
+        else:
+            summaries.append(f'the user rewrote "{name}" (kept: "{_shorten(now_text)}")')
+    return summaries
+
+
 def recent_corrections(
     db: Session,
     owner_id: str | None,

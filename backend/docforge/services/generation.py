@@ -164,6 +164,7 @@ def resolve_routing(
     settings,
     *,
     registry: TemplateRegistry | None = None,
+    learned_hints: str = "",
 ) -> RoutingResult:
     """Shared routing step used by both generate and preview."""
     if gen_input.placements:
@@ -177,6 +178,7 @@ def resolve_routing(
             fields, template_id=template_id, version=version, raw_text=gen_input.raw_text,
             settings=settings,
             template_context=template_context_for(registry, template_id, version, fields),
+            learned_hints=learned_hints,
         )
     return route(
         fields, template_id=template_id, version=version, data=gen_input.data or {}, settings=settings
@@ -418,9 +420,17 @@ def generate_document(
     try:
         # 1) Resolve a routing result -> render context, then overlay the
         # project's inherited metadata (defaults; explicit values already win).
-        # Unstructured routing may hit the model under this user's AI plan.
+        # Unstructured routing may hit the model under this user's AI plan,
+        # guided by how this user has edited earlier drafts of this doc type.
+        from .learning import corrections_fewshot
+
         with track_usage() as usage, use_ai_plan(plan):
-            routing = resolve_routing(template.id, version, gen_input, fields, settings, registry=registry)
+            routing = resolve_routing(
+                template.id, version, gen_input, fields, settings, registry=registry,
+                learned_hints=corrections_fewshot(
+                    db, owner_id, template.document_type, kind="write"
+                ),
+            )
         context = _merge_with_project(_project_metadata(db, template), routing.to_context())
         req.routing = routing.model_dump(mode="json")
         req.token_usage = usage.as_dict() if usage.calls else None
@@ -528,6 +538,18 @@ def generate_document(
         placed=len(routing.placements), missing=len(routing.missing_required),
         validation=(report.status if report else None),
     )
+    # What the user changed about the AI's draft is the most direct signal we
+    # ever get about how they want documents written — keep it for next time.
+    if gen_input.prior_placements:
+        from .learning import diff_placements, record_correction
+
+        record_correction(
+            db,
+            owner_id=owner_id,
+            document_type=template.document_type,
+            kind="write",
+            summaries=diff_placements(gen_input.prior_placements, context),
+        )
     db.commit()
     db.refresh(gen_doc)
     if plan.counts_against_free and routing.used_ai:
