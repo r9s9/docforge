@@ -872,6 +872,101 @@ def build_writer_prompt(
 
 
 # ---------------------------------------------------------------------------
+# Refine: change the draft in the way the user just asked for, and only that
+# ---------------------------------------------------------------------------
+
+
+class LLMRefineResponse(_LenientLLMModel):
+    """A conversational edit: what changed, plus a sentence saying what you did."""
+
+    reply: str = ""
+    updates: list[LLMComposedValue] = Field(default_factory=list)
+    removed: list[str] = Field(default_factory=list)  # fields to clear
+    skip_sections: list[str] = Field(default_factory=list)  # sections to leave out
+
+
+_REFINE_SYSTEM = (
+    "You are DocForge's document editor, working with someone on a draft that is "
+    "already written. They tell you what to change; you change exactly that and "
+    "leave everything else alone. You reply the way an editor would — one or two "
+    "sentences saying what you did — never with the document itself."
+)
+
+_REFINE_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "reply": string,                  // 1-2 sentences to the user: what you changed
+  "updates": [
+    {"field_name": string,          // ONLY fields you are changing
+     "value": any,
+     "confidence": number 0..1,
+     "ai_drafted": boolean,
+     "note": string}
+  ],
+  "removed": [string],              // fields to clear entirely
+  "skip_sections": [string]         // section_keys to leave out of the document
+}
+
+Rules:
+- Change ONLY what was asked. A field you are not changing must NOT appear in
+  updates — an unchanged field echoed back is a bug, not a no-op.
+- "Shorten the summary" means rewrite that one field, not every field.
+- When the request is ambiguous, make the smallest reasonable change and say in
+  the reply what you assumed.
+- When a request cannot be satisfied (the content does not support it, or no
+  such field exists), change nothing and explain why in the reply.
+- Keep the document's established voice and tense; do not restyle untouched
+  parts by side effect.
+- Respect field types: dates as ISO (YYYY-MM-DD) unless the description says
+  otherwise, numbers normalised, enum values from allowed_values only.
+- NEVER invent facts (names, totals, dates) the content does not support.
+- Output valid JSON only. No prose, no markdown.
+
+""" + RICH_FORMAT_SPEC + "\n"
+
+
+def build_refine_prompt(
+    fields: list[FieldDefinition],
+    messages: list,
+    current_values: dict,
+    *,
+    template_context: dict | None = None,
+    source_context: str = "",
+) -> tuple[str, str, str]:
+    """Build the (system, developer, user) prompt for one refine turn.
+
+    ``messages`` is the conversation so far (objects with ``role``/``content``);
+    the last user message is the instruction to act on.
+    """
+    parts: list[str] = []
+    structure = _template_structure_block(template_context)
+    if structure:
+        parts.append(structure)
+    parts.append(
+        "Template fields:\n"
+        + json.dumps(_fields_payload(fields, template_context), ensure_ascii=False, indent=2)
+    )
+    parts.append(
+        "The current draft (what the document says right now):\n"
+        + json.dumps(current_values, ensure_ascii=False, default=str, indent=2)
+    )
+    if source_context:
+        parts.append(
+            "The content this draft was written from — stay faithful to it:\n"
+            + source_context[:_COMPOSE_SOURCE_TEXT_CAP]
+        )
+    history = [
+        f"{getattr(m, 'role', '') or m.get('role', '')}: "
+        f"{getattr(m, 'content', '') or m.get('content', '')}"
+        for m in messages
+    ]
+    if history:
+        parts.append("The conversation so far:\n" + "\n".join(history))
+    parts.append("Make the change the last message asks for.")
+    return _REFINE_SYSTEM, _REFINE_DEVELOPER, "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
 # Render review: read the assembled document back and find what reads wrong
 # ---------------------------------------------------------------------------
 

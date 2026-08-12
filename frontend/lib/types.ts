@@ -207,6 +207,31 @@ export interface SkippedSection {
   reason?: string;
 }
 
+/** One turn of the Refine conversation. */
+export interface RefineMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** A single field the AI changed in response to a refine instruction. */
+export interface RefineUpdate {
+  field_name: string;
+  value: unknown;
+  confidence: number;
+  ai_drafted: boolean;
+  note: string;
+}
+
+/** The result of one refine turn: what it says, and what it changed. */
+export interface RefineResult {
+  reply: string;
+  updates: RefineUpdate[];
+  removed: string[];
+  skip_sections: string[];
+  model_used: string | null;
+  token_usage?: TokenUsage | null;
+}
+
 /** Something a reader would notice in the assembled document. */
 export interface RenderFinding {
   kind: string; // empty_section | duplicate | misplaced | format | other

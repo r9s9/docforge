@@ -99,6 +99,26 @@ class RouteRequest(BaseModel):
     data: dict[str, Any] | None = None
 
 
+class RefineMessage(BaseModel):
+    """One turn of the refine conversation."""
+
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class RefineRequest(BaseModel):
+    """Ask the AI to change the current draft in a specific way.
+
+    Stateless: the whole conversation and the current values travel with each
+    request, so nothing has to be held server-side between turns.
+    """
+
+    version: int | None = None
+    messages: list[RefineMessage] = Field(default_factory=list)
+    current_values: dict[str, Any] = Field(default_factory=dict)
+    source_context: str | None = None  # the notes/document the draft came from
+
+
 class ValidateRequest(BaseModel):
     version: int | None = None
     context: dict[str, Any] = Field(default_factory=dict)

@@ -14,6 +14,7 @@ import type {
   Project,
   ProjectDetail,
   RouteDocumentResult,
+  RefineResult,
   RoutingResult,
   Template,
   TemplateDetail,
@@ -233,6 +234,13 @@ export const api = {
 
   route: (id: string, body: Record<string, unknown>) =>
     request<RoutingResult>(`/templates/${id}/route`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
+  refine: (id: string, body: Record<string, unknown>) =>
+    request<RefineResult>(`/templates/${id}/refine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

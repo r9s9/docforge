@@ -49,6 +49,7 @@ from ..schemas import (
     PublishRequest,
     RenameRequest,
     RepublishRequest,
+    RefineRequest,
     RouteRequest,
     ValidateRequest,
 )
@@ -570,6 +571,67 @@ def route_content(
     if usage.calls:
         result.token_usage = usage.as_dict()
     return result.model_dump(mode="json")
+
+
+@router.post("/templates/{template_id}/refine")
+def refine(
+    template_id: str,
+    req: RefineRequest,
+    db: Session = Depends(get_db),
+    registry: TemplateRegistry = Depends(get_registry),
+    settings: Settings = Depends(get_settings_dep),
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """Change the current draft in the way the last message asks for."""
+    t = _get_template(db, template_id, user)
+    from ...ai.usage import track_usage
+    from ...ai_quota import increment_free_use, plan_ai_for_owner, use_ai_plan
+    from ...services.refine import RefineUnavailable, refine_values
+
+    plan = plan_ai_for_owner(user.id)
+    try:
+        with track_usage() as usage, use_ai_plan(plan):
+            result = refine_values(
+                db,
+                t,
+                version=req.version,
+                messages=req.messages,
+                current_values=req.current_values,
+                source_context=req.source_context or "",
+                registry=registry,
+                settings=settings,
+                owner_id=user.id,
+            )
+    except RefineUnavailable as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("refine failed for template %s", template_id)
+        raise HTTPException(status_code=500, detail=f"refine failed: {exc}") from exc
+
+    # Each turn is a real model call, so it is charged like a generation.
+    if plan.counts_against_free:
+        increment_free_use(user.id)
+    if usage.calls:
+        result["token_usage"] = usage.as_dict()
+
+    # A refine instruction says how this user wants documents written — the same
+    # signal as editing a draft by hand, so it feeds the same learning loop.
+    changed = [u["field_name"] for u in result["updates"]] + result["removed"]
+    last_ask = next(
+        (m.content for m in reversed(req.messages) if m.role == "user"), ""
+    ).strip()
+    if changed and last_ask:
+        from ...services.learning import record_correction
+
+        record_correction(
+            db,
+            owner_id=user.id,
+            document_type=t.document_type,
+            kind="write",
+            summaries=[f'the user asked: "{last_ask[:120]}" (changed: {", ".join(changed)})'],
+        )
+        db.commit()
+    return result
 
 
 @router.post("/templates/{template_id}/validate")

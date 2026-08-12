@@ -9,6 +9,7 @@ import type {
   FieldDefinition,
   GenerationResult,
   PlacementInstruction,
+  RefineResult,
   PreviewBlock,
   RoutingResult,
   Template,
@@ -33,6 +34,7 @@ import {
   ChevronsUpDown,
   Download,
   FileText,
+  MessageSquare,
   Plus,
   RotateCw,
   Sparkles,
@@ -41,6 +43,7 @@ import {
 import DocBlocks from "@/components/DocBlocks";
 import DocxPreview from "@/components/DocxPreview";
 import ProgressBar from "@/components/ProgressBar";
+import RefinePanel from "@/components/RefinePanel";
 
 // Routing sources that mean "the AI genuinely ran" (vs. a heuristic fallback).
 const AI_ROUTING_SOURCES = new Set(["llm", "structural", "writer"]);
@@ -157,6 +160,8 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to re-render the Word preview
   const [docMismatch, setDocMismatch] = useState(false); // uploaded doc didn't match this template
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [undoValues, setUndoValues] = useState<FormValues | null>(null); // one step back
   const [docFile, setDocFile] = useState<File | null>(null);
   const [extracted, setExtracted] = useState<PreviewBlock[] | null>(null);
   const [routeUsage, setRouteUsage] = useState<TokenUsage | null>(null);
@@ -285,6 +290,27 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       setBusy(false);
       stopAiTimer();
     }
+  }
+
+  // Apply a refine turn's patch. One level of undo is enough: each turn is a
+  // small, named change the user just asked for, and the transcript above it
+  // says what happened — a deep history would be ceremony, not safety.
+  function applyRefine(result: RefineResult) {
+    setUndoValues(values);
+    const next = { ...values };
+    for (const u of result.updates) next[u.field_name] = u.value;
+    for (const name of result.removed) next[name] = blankValue(
+      fields.find((f) => f.field_name === name)!,
+    );
+    setValues(next);
+    setPreviewKey((k) => k + 1);
+  }
+
+  function undoRefine() {
+    if (!undoValues) return;
+    setValues(undoValues);
+    setUndoValues(null);
+    setPreviewKey((k) => k + 1);
   }
 
   function refreshPreview() {
@@ -585,13 +611,24 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   </div>
                 )}
 
-              <div className="review-grid">
+              <div className={`review-grid${refineOpen ? " with-refine" : ""}`}>
                 <div className="review-doc">
                   <div className="review-head">
                     <h2 className="section-h">Document preview</h2>
-                    <button className="btn secondary small" disabled={busy} onClick={refreshPreview}>
-                      <RotateCw size={14} strokeWidth={1.9} /> Update preview
-                    </button>
+                    <div className="row" style={{ gap: 6 }}>
+                      {!refineOpen && (
+                        <button
+                          className="btn secondary small"
+                          onClick={() => setRefineOpen(true)}
+                          title="Ask the AI to change the draft"
+                        >
+                          <MessageSquare size={14} strokeWidth={1.9} /> Refine with AI
+                        </button>
+                      )}
+                      <button className="btn secondary small" disabled={busy} onClick={refreshPreview}>
+                        <RotateCw size={14} strokeWidth={1.9} /> Update preview
+                      </button>
+                    </div>
                   </div>
                   <DocxPreview
                     load={() =>
@@ -603,6 +640,23 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                     highlights={previewHighlights}
                   />
                 </div>
+
+                {refineOpen && (
+                  <RefinePanel
+                    templateId={selectedId}
+                    version={detail.latest_version}
+                    fields={fields}
+                    values={values}
+                    // Raw mode routes then switches to the form, so the notes the
+                    // draft came from are still here — keep the AI faithful to them.
+                    sourceContext={rawText || undefined}
+                    onApply={applyRefine}
+                    onUndo={undoRefine}
+                    canUndo={undoValues !== null}
+                    onJumpToField={jumpToField}
+                    onClose={() => setRefineOpen(false)}
+                  />
+                )}
 
                 <div className="review-fields">
                   <div className="review-head">

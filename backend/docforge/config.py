@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # document + all template fields) to a local model, which can take a few
     # minutes — give it a real budget instead of falling back to heuristics early.
     ai_generation_timeout_seconds: int = 300
+    # A Refine chat turn: someone is watching it, so it can't take a generation's
+    # budget, but it reasons over the whole draft so 90s is too tight.
+    ai_refine_timeout_seconds: int = 120
     ai_max_retries: int = 2
     ai_max_output_tokens: int = 6000
     # Write every field of a document in one reasoning pass instead of routing
