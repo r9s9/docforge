@@ -121,14 +121,26 @@ function TableEditor({
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>
-              {cols.map((c) => (
-                <td key={c.field_name}>
-                  <input
-                    value={r[c.field_name] ?? ""}
-                    onChange={(e) => update(i, c.field_name, e.target.value)}
-                  />
-                </td>
-              ))}
+              {cols.map((c) =>
+                // A repeated block's body holds real prose, so it gets room to
+                // write in; ordinary table cells stay single-line.
+                c.field_type === "multiline_text" ? (
+                  <td key={c.field_name}>
+                    <textarea
+                      rows={3}
+                      value={r[c.field_name] ?? ""}
+                      onChange={(e) => update(i, c.field_name, e.target.value)}
+                    />
+                  </td>
+                ) : (
+                  <td key={c.field_name}>
+                    <input
+                      value={r[c.field_name] ?? ""}
+                      onChange={(e) => update(i, c.field_name, e.target.value)}
+                    />
+                  </td>
+                ),
+              )}
               <td>
                 <button
                   className="btn secondary small icon"

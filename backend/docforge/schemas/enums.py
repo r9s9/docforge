@@ -38,6 +38,10 @@ class ClassificationType(str, Enum):
     DYNAMIC_IMAGE = "DYNAMIC_IMAGE"
     REPEATABLE_TABLE = "REPEATABLE_TABLE"
     REPEATABLE_SECTION = "REPEATABLE_SECTION"
+    # A heading plus its body, repeated once per item (one block per project,
+    # per finding, per milestone). Unlike REPEATABLE_SECTION, which repeats a
+    # single paragraph, this repeats a titled group.
+    REPEATABLE_BLOCK = "REPEATABLE_BLOCK"
     AUTO_FIELD = "AUTO_FIELD"
     UNKNOWN = "UNKNOWN"
 
@@ -126,6 +130,7 @@ DYNAMIC_TYPES = {
 REPEATABLE_TYPES = {
     ClassificationType.REPEATABLE_TABLE,
     ClassificationType.REPEATABLE_SECTION,
+    ClassificationType.REPEATABLE_BLOCK,
 }
 
 
@@ -151,6 +156,8 @@ _FIELD_TYPE_MAP: dict[ClassificationType, FieldType] = {
     ClassificationType.DYNAMIC_IMAGE: FieldType.IMAGE,
     ClassificationType.REPEATABLE_TABLE: FieldType.TABLE,
     ClassificationType.REPEATABLE_SECTION: FieldType.MULTILINE_TEXT,
+    # Rows of {title, body} — the same shape as a table, so no new field type.
+    ClassificationType.REPEATABLE_BLOCK: FieldType.TABLE,
 }
 
 

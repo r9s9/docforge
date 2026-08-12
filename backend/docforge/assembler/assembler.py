@@ -32,6 +32,9 @@ from .richtext import RichBlock, is_rich, parse_rich_blocks, strip_markers
 # lists. Dates, numbers, enums and people stay single-valued on purpose.
 _RICH_FIELD_TYPES = (FieldType.TEXT, FieldType.MULTILINE_TEXT)
 
+# The body column of a repeated heading+body group (see ai_classifier.fields).
+_BLOCK_BODY = "body"
+
 
 class _SilentUndefined(Undefined):
     """Render missing variables as empty strings instead of raising."""
@@ -156,6 +159,21 @@ def _extract_rich(render_ctx: dict[str, Any], fields: list[FieldDefinition]) -> 
     """
     rich: dict[str, list[RichBlock]] = {}
     for f in fields:
+        # A repeated heading+body group renders each item's body through the same
+        # placeholder, so every item needs its own token or they would all expand
+        # to whichever content was seen last.
+        if f.classification == ClassificationType.REPEATABLE_BLOCK:
+            for row in render_ctx.get(f.field_name) or []:
+                body = row.get(_BLOCK_BODY) if isinstance(row, dict) else None
+                if not is_rich(body):
+                    continue
+                blocks = parse_rich_blocks(body)
+                if not blocks:
+                    continue
+                token = sentinel(len(rich))
+                rich[token] = blocks
+                row[_BLOCK_BODY] = token
+            continue
         if f.field_type not in _RICH_FIELD_TYPES:
             continue
         if f.classification == ClassificationType.REPEATABLE_SECTION:

@@ -16,6 +16,18 @@ from ..schemas.template import FieldDefinition, TableColumn, ValidationRule
 _NUMBER_HEADER_HINTS = ("qty", "quantity", "amount", "price", "total", "cost", "count", "rate", "no.")
 _DATE_HEADER_HINTS = ("date", "due")
 
+# The two parts of a repeated heading+body group. Named here so the builder,
+# the writer and the editor all agree on what an item looks like.
+BLOCK_TITLE = "title"
+BLOCK_BODY = "body"
+
+
+def BLOCK_COLUMNS() -> list[TableColumn]:
+    return [
+        TableColumn(field_name=BLOCK_TITLE, label="Heading", field_type=FieldType.TEXT),
+        TableColumn(field_name=BLOCK_BODY, label="Content", field_type=FieldType.MULTILINE_TEXT),
+    ]
+
 
 def _column_type(header: str) -> FieldType:
     h = header.lower()
@@ -120,6 +132,7 @@ def derive_field_definitions(
             ClassificationType.DYNAMIC_NUMBER,
             ClassificationType.REPEATABLE_TABLE,
             ClassificationType.REPEATABLE_SECTION,
+            ClassificationType.REPEATABLE_BLOCK,
         ):
             continue
 
@@ -136,6 +149,10 @@ def derive_field_definitions(
             el = by_id.get(c.node_id)
             headers = el.table_structure.headers if el and el.table_structure else []
             columns = _table_columns(headers)
+        elif c.classification == ClassificationType.REPEATABLE_BLOCK:
+            # A repeated heading+body group is a two-column shape, so it reuses
+            # the table machinery rather than introducing a parallel one.
+            columns = BLOCK_COLUMNS()
 
         label = _label_from(c.field_name, c)
         example_el = by_id.get(c.node_id)

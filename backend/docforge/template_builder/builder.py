@@ -37,6 +37,9 @@ logger = logging.getLogger("docforge.template_builder")
 
 # Jinja loop variable used inside repeatable tables/sections.
 _LOOP_VAR = "item"
+# The two parts of a repeated heading+body group (see ai_classifier.fields).
+_BLOCK_TITLE = "title"
+_BLOCK_BODY = "body"
 
 # A field name must be a valid Jinja/Python identifier to become a placeholder
 # ({{ name }}); anything else (spaces, dots, a leading digit) makes docxtpl fail
@@ -275,6 +278,27 @@ def _templatize_table(table: Table, field_name: str, columns: list) -> None:
     template_row._tr.addnext(endfor_row._tr)
 
 
+def _templatize_repeatable_block(
+    paragraphs: list[Paragraph], field_name: str
+) -> None:
+    """Repeat a heading and its body once per item.
+
+    The group's first paragraph carries the item's title and the second its
+    body; anything after that was example prose for one item and is removed, the
+    same way a grouped repeatable section keeps only its first paragraph as the
+    loop template.
+    """
+    head, *rest = paragraphs
+    _templatize_paragraph(head, "", f"{{{{ {_LOOP_VAR}.{_BLOCK_TITLE} }}}}", "")
+    body = rest[0] if rest else None
+    if body is not None:
+        _templatize_paragraph(body, "", f"{{{{ {_LOOP_VAR}.{_BLOCK_BODY} }}}}", "")
+        for extra in rest[1:]:
+            _remove_paragraph(extra)
+    _insert_marker_before(head, f"{{%p for {_LOOP_VAR} in {field_name} %}}")
+    _insert_marker_after(body if body is not None else head, "{%p endfor %}")
+
+
 def _templatize_repeatable_paragraph(paragraph: Paragraph, field_name: str) -> None:
     """Turn a paragraph into a repeated paragraph: one rendered per list item."""
     _templatize_paragraph(paragraph, "", f"{{{{ {_LOOP_VAR} }}}}", "")
@@ -391,6 +415,39 @@ def _wrap_section_spans(
     return wrapped
 
 
+def _templatize_blocks(nodes: list, cls_by_node: dict, fd_by_node: dict) -> set[str]:
+    """Convert each repeated heading+body group into a loop; returns nodes used.
+
+    The group is the set of consecutive paragraphs the classifier gave one
+    field name — the same grouping mechanism repeatable sections use, read here
+    as "a title and the body under it" rather than "one paragraph per item".
+    """
+    by_field: dict[str, list] = {}
+    for wn in nodes:
+        cls = cls_by_node.get(wn.node_id)
+        if cls is None or cls.classification != ClassificationType.REPEATABLE_BLOCK:
+            continue
+        if wn.kind != "paragraph" or wn.scope is not None:
+            continue
+        fd = fd_by_node.get(wn.node_id)
+        name = _safe_ident(fd.field_name if fd else cls.field_name)
+        if not name:
+            logger.warning("skipping repeatable block with unsafe name")
+            continue
+        by_field.setdefault(name, []).append(wn)
+
+    used: set[str] = set()
+    for name, group in by_field.items():
+        if len(group) < 2:
+            # A single paragraph is not a titled group; leave it to the ordinary
+            # repeatable-section path rather than inventing an empty body.
+            logger.info("repeatable block %r has no body paragraph — treating as a section", name)
+            continue
+        _templatize_repeatable_block([wn.obj for wn in group], name)
+        used.update(wn.node_id for wn in group)
+    return used
+
+
 def build_template_docx(
     representative_docx_path: str,
     result: ClassificationResult,
@@ -413,8 +470,14 @@ def build_template_docx(
         for nid in f.node_ids:
             fd_by_node[nid] = f
 
+    # Repeated heading+body groups are handled as a unit before the per-node
+    # pass, since one field owns several consecutive paragraphs.
+    handled_by_block = _templatize_blocks(nodes, cls_by_node, fd_by_node)
+
     seen_section_fields: set[str] = set()
     for wn in nodes:
+        if wn.node_id in handled_by_block:
+            continue
         cls = cls_by_node.get(wn.node_id)
         if cls is None:
             continue

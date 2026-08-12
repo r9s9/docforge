@@ -87,6 +87,10 @@ class Settings(BaseSettings):
     # review, and a serious one buys exactly one corrective rewrite.
     ai_verify_enabled: bool = True
     ai_verify_max_corrections: int = 1
+    # Let the classifier mark a repeating heading+body group as one field. It
+    # changes the template's structure rather than just its values, so it can be
+    # switched off if a document type keeps tripping it.
+    ai_repeatable_blocks_enabled: bool = True
 
     # --- Free-tier AI (shared, server-side key; never exposed to users) ---
     # A small allowance of AI actions every signed-in user gets for free, served

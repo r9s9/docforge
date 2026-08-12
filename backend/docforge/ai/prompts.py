@@ -217,7 +217,8 @@ Return ONLY a JSON object with this shape:
       "node_id": string,                  // must match an input node_id
       "classification": one of
         ["FIXED","DYNAMIC_TEXT","DYNAMIC_DATE","DYNAMIC_PERSON","DYNAMIC_ENUM",
-         "DYNAMIC_NUMBER","REPEATABLE_TABLE","REPEATABLE_SECTION","AUTO_FIELD","UNKNOWN"],
+         "DYNAMIC_NUMBER","REPEATABLE_TABLE","REPEATABLE_SECTION","REPEATABLE_BLOCK",
+         "AUTO_FIELD","UNKNOWN"],
       "field_name": snake_case string or null,   // only for DYNAMIC_* / REPEATABLE_*
       "field_type": one of
         ["text","multiline_text","date","person","number","enum","table","boolean"] or null,
@@ -247,6 +248,16 @@ Rules:
   for FIXED/AUTO content.
 - field_name must be snake_case and unique.
 - Output valid JSON only. No prose, no markdown.
+"""
+
+# Offered only when repeatable blocks are enabled: this classification changes
+# the template's structure, not just which text is variable.
+_REPEATABLE_BLOCK_RULE = """\
+- When a heading and the paragraph under it clearly repeat as a unit across the
+  document (one per project, per finding, per milestone), classify BOTH as
+  REPEATABLE_BLOCK with the SAME field_name — the heading is the item's title
+  and the paragraph its body. Use this only for a genuinely repeating group; a
+  one-off heading followed by prose is two ordinary elements.
 """
 
 
@@ -327,7 +338,13 @@ def build_classify_prompt(
         + f"{json.dumps(nodes, ensure_ascii=False, indent=2)}\n\n"
         + f"{tail}"
     )
-    developer = _CLASSIFY_DEVELOPER + (_TAGS_ONLY_RULES if tags_only else "")
+    from ..config import get_settings
+
+    developer = _CLASSIFY_DEVELOPER
+    if get_settings().ai_repeatable_blocks_enabled:
+        developer += _REPEATABLE_BLOCK_RULE
+    if tags_only:
+        developer += _TAGS_ONLY_RULES
     return _CLASSIFY_SYSTEM, developer, user
 
 
@@ -805,6 +822,9 @@ Write the document, not the fields:
   table's column field_names.
 - For REPEATABLE_SECTION fields, "value" SHOULD be a list of strings — one per
   distinct point — when the content naturally breaks into more than one.
+- For REPEATABLE_BLOCK fields, "value" MUST be a list of {"title", "body"}
+  objects — one per repeated group (one per project, per finding). The title is
+  that item's heading; the body may use the formatting below.
 - Respect field types: dates as ISO (YYYY-MM-DD) unless the description says
   otherwise, numbers normalised, enum values from allowed_values only.
 - Set ai_drafted=true with lower confidence for anything you wrote from context
