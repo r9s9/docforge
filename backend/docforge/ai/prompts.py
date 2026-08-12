@@ -605,13 +605,16 @@ def build_route_prompt(
     if raw_text:
         if from_document:
             parts.append(
-                "The text below was extracted from an uploaded document whose layout and "
-                "structure may NOT match this template. Ignore the source document's original "
-                "format, headings and ordering. Treat it purely as a pool of text and map only "
-                "the pieces of meaning that genuinely fit a template field; put anything that "
-                "doesn't fit into unmapped_content. Do not force-fit unrelated text into a field, "
-                "and do not dump large multi-topic blocks into a single field.\n\n"
-                "Extracted document text:\n" + raw_text
+                "Below is an outline of an uploaded document, with its own heading "
+                "hierarchy, lists and tables preserved (# marks a heading level). Its "
+                "structure will NOT match this template's, but it tells you what each "
+                "piece of content is *for* — use it to place content into the template "
+                "section that serves the same purpose, rather than matching on wording. "
+                "Map only what genuinely fits a field; put the rest into "
+                "unmapped_content, never force-fitting unrelated text or dumping a "
+                "multi-topic block into one field. Where a block is marked truncated, "
+                "call get_source_block with its id if you need the full text.\n\n"
+                "Uploaded document outline:\n" + raw_text
             )
         else:
             parts.append("Unstructured input to route:\n" + raw_text)

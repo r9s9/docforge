@@ -134,6 +134,67 @@ def render_content_text(content: dict) -> str:
     return "\n".join(lines)
 
 
+# Long paragraphs are truncated in the outline so a big source document can't
+# crowd out the template it is being mapped onto; the full text stays one tool
+# call away (see ``source_blocks``).
+_OUTLINE_PARA_CHARS = 600
+
+
+def _block_id(index: int) -> str:
+    return f"b{index}"
+
+
+def render_content_outline(doc: DocumentExtraction, *, max_para_chars: int = _OUTLINE_PARA_CHARS) -> str:
+    """Render an uploaded document as an indented outline that keeps its shape.
+
+    Flattening a source document to a pool of lines throws away exactly the
+    signal that says where its content belongs: which heading it sat under, what
+    was a list, what was a table. Preserving the hierarchy lets the model map
+    structure to structure — "their Background section is this template's
+    Overview" — instead of guessing from word overlap.
+    """
+    lines: list[str] = []
+    for index, element in enumerate(doc.top_level_elements()):
+        if element.type == ElementType.TABLE and element.table_structure:
+            ts = element.table_structure
+            lines.append("TABLE: " + " | ".join(ts.headers))
+            for row in (ts.rows[1:] if len(ts.rows) > 1 else []):
+                lines.append("  " + " | ".join(row))
+            continue
+        text = (element.text or "").strip()
+        if not text:
+            continue
+        if len(text) > max_para_chars:
+            text = (
+                text[:max_para_chars].rstrip()
+                + f"… [truncated — get_source_block {_block_id(index)}]"
+            )
+        if element.type == ElementType.HEADING:
+            level = element.subtype if (element.subtype or "").isdigit() else "1"
+            lines.append("")
+            lines.append("#" * min(6, int(level)) + " " + text)
+        elif element.type == ElementType.LIST_ITEM:
+            depth = (element.numbering_info.level if element.numbering_info else 0) or 0
+            marker = "1." if element.subtype == "ordered" else "-"
+            lines.append("  " * depth + f"{marker} {text}")
+        else:
+            lines.append(text)
+    return "\n".join(lines).strip()
+
+
+def source_blocks(doc: DocumentExtraction) -> dict[str, str]:
+    """Full, untruncated text per outline block id (backs ``get_source_block``)."""
+    blocks: dict[str, str] = {}
+    for index, element in enumerate(doc.top_level_elements()):
+        if element.type == ElementType.TABLE and element.table_structure:
+            ts = element.table_structure
+            rows = [" | ".join(r) for r in ts.rows]
+            blocks[_block_id(index)] = "\n".join([" | ".join(ts.headers), *rows])
+        elif (element.text or "").strip():
+            blocks[_block_id(index)] = element.text.strip()
+    return blocks
+
+
 def _header_match(headers: list[str], labels: list[str]) -> float:
     return similarity(" | ".join(headers).lower(), " | ".join(labels).lower())
 
@@ -219,12 +280,15 @@ def route_document_content(
     version: int,
     client: LLMClient | None = None,
     template_context: dict | None = None,
+    source_doc: DocumentExtraction | None = None,
 ) -> RoutingResult:
     """Map extracted document content onto template fields (LLM, heuristic fallback)."""
     from ..settings_store import generation_ai_config
 
     client = client or LLMClient(generation_ai_config())
-    source_text = render_content_text(content)
+    # Prefer the structure-preserving outline; fall back to the flat rendering
+    # when the caller only handed us extracted content (no source extraction).
+    source_text = render_content_outline(source_doc) if source_doc else render_content_text(content)
     if client.active:
         try:
             routing = route_llm(

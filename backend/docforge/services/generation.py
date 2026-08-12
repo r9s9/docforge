@@ -221,7 +221,7 @@ def route_document(
             content = document_content(doc)
             routing = route_document_content(
                 fields, content, template_id=template.id, version=version,
-                template_context=context,
+                template_context=context, source_doc=doc,
             )
 
     if plan.counts_against_free and routing.source == "llm":
