@@ -43,7 +43,7 @@ import DocxPreview from "@/components/DocxPreview";
 import ProgressBar from "@/components/ProgressBar";
 
 // Routing sources that mean "the AI genuinely ran" (vs. a heuristic fallback).
-const AI_ROUTING_SOURCES = new Set(["llm", "structural"]);
+const AI_ROUTING_SOURCES = new Set(["llm", "structural", "writer"]);
 
 type Mode = "form" | "raw" | "document" | "json";
 type FormValues = Record<string, any>;
@@ -517,6 +517,14 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
               {routing.unmapped_content.length > 0 && (
                 <div className="muted">Unmapped: {routing.unmapped_content.join(" · ")}</div>
               )}
+              {routing.skipped_sections?.length ? (
+                <div className="muted">
+                  Left empty on purpose:{" "}
+                  {routing.skipped_sections
+                    .map((s) => (s.reason ? `${s.section_key} (${s.reason})` : s.section_key))
+                    .join(" · ")}
+                </div>
+              ) : null}
               <div className="muted">Values applied to the form below — review and generate.</div>
               {routeUsage ? (
                 <div style={{ marginTop: 6 }}>
@@ -670,6 +678,11 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                           </div>
                           {open ? (
                             <div style={{ marginTop: 8 }}>
+                              {placement?.note ? (
+                                <p className="fc-ai-note">
+                                  <Sparkles size={11} strokeWidth={2} /> {placement.note}
+                                </p>
+                              ) : null}
                               {f.field_type === "table" ? (
                                 <TableEditor
                                   field={f}

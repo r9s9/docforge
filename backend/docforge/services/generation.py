@@ -224,14 +224,14 @@ def route_document(
                 template_context=context, source_doc=doc,
             )
 
-    if plan.counts_against_free and routing.source == "llm":
+    if plan.counts_against_free and routing.used_ai:
         increment_free_use(owner_id)
 
-    if routing.source == "llm":
+    if routing.used_ai:
         record_decision(
             db,
             kind="route",
-            source="llm",
+            source=routing.source,
             subject_type="template",
             subject_id=template.id,
             model_used=routing.model_used,
@@ -394,15 +394,19 @@ def generate_document(
         req.status = JobStatus.COMPLETED.value
         req.context_used = context
 
-        if routing.source == "llm":
+        if routing.used_ai:
             record_decision(
                 db,
                 kind="route",
-                source="llm",
+                source=routing.source,
                 subject_type="generation",
                 subject_id=req.id,
                 model_used=routing.model_used,
-                summary=f"Routed unstructured content into {len(routing.placements)} field(s).",
+                summary=(
+                    f"Wrote {len(routing.placements)} field(s) from the supplied content."
+                    if routing.source == "writer"
+                    else f"Routed unstructured content into {len(routing.placements)} field(s)."
+                ),
             )
     except Exception as exc:
         logger.exception("Generation failed")
@@ -421,6 +425,6 @@ def generate_document(
     )
     db.commit()
     db.refresh(gen_doc)
-    if plan.counts_against_free and routing.source == "llm":
+    if plan.counts_against_free and routing.used_ai:
         increment_free_use(owner_id)
     return gen_doc

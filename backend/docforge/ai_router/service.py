@@ -14,6 +14,7 @@ from ..settings_store import generation_ai_config
 from .compose import compose_values
 from .llm import route_llm
 from .router import route_structured, route_unstructured_heuristic
+from .writer import try_write_document
 
 logger = logging.getLogger("docforge.ai_router")
 
@@ -28,6 +29,7 @@ def route(
     client: LLMClient | None = None,
     settings: Settings | None = None,
     template_context: dict | None = None,
+    learned_hints: str = "",
 ) -> RoutingResult:
     client = client or LLMClient(generation_ai_config())
 
@@ -36,6 +38,20 @@ def route(
         return route_structured(fields, data, template_id, version)
 
     if client.active and (raw_text or data):
+        # Preferred path: one pass that sees the whole document and writes every
+        # field together. Returns None (never raises) when unavailable or failed.
+        written = try_write_document(
+            fields,
+            client=client,
+            template_id=template_id,
+            version=version,
+            template_context=template_context,
+            raw_text=raw_text,
+            structured_data=data,
+            learned_hints=learned_hints,
+        )
+        if written is not None:
+            return written
         try:
             routing = route_llm(
                 fields,

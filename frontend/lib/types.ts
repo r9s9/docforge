@@ -201,6 +201,12 @@ export interface PlacementInstruction {
   ai_drafted?: boolean;
 }
 
+/** A section the writer deliberately left empty rather than padding. */
+export interface SkippedSection {
+  section_key: string;
+  reason?: string;
+}
+
 export interface RoutingResult {
   template_id: string;
   version: number;
@@ -208,6 +214,7 @@ export interface RoutingResult {
   missing_required: string[];
   ambiguous_fields: string[];
   unmapped_content: string[];
+  skipped_sections?: SkippedSection[];
   model_used: string | null;
   source: string;
   token_usage?: TokenUsage | null;

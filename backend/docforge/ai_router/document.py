@@ -281,6 +281,7 @@ def route_document_content(
     client: LLMClient | None = None,
     template_context: dict | None = None,
     source_doc: DocumentExtraction | None = None,
+    learned_hints: str = "",
 ) -> RoutingResult:
     """Map extracted document content onto template fields (LLM, heuristic fallback)."""
     from ..settings_store import generation_ai_config
@@ -290,6 +291,20 @@ def route_document_content(
     # when the caller only handed us extracted content (no source extraction).
     source_text = render_content_outline(source_doc) if source_doc else render_content_text(content)
     if client.active:
+        from .writer import try_write_document
+
+        written = try_write_document(
+            fields,
+            client=client,
+            template_id=template_id,
+            version=version,
+            template_context=template_context,
+            source_outline=source_text,
+            source_doc=source_doc,
+            learned_hints=learned_hints,
+        )
+        if written is not None:
+            return written
         try:
             routing = route_llm(
                 fields,

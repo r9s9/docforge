@@ -141,6 +141,36 @@ class LLMComposeResponse(_LenientLLMModel):
     still_missing: list[str] = Field(default_factory=list)
 
 
+class LLMWrittenPlacement(_LenientLLMModel):
+    """One field written by the document-writer agent."""
+
+    field_name: str
+    value: Any = None
+    confidence: float = 0.8
+    source_excerpt: str = ""
+    ai_drafted: bool = False  # written from context rather than found verbatim
+    ambiguous: bool = False
+    alternatives: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+class LLMSectionSkip(_LenientLLMModel):
+    """A section the writer deliberately left empty, and why."""
+
+    section_key: str
+    reason: str = ""
+
+
+class LLMWriteResponse(_LenientLLMModel):
+    """Output of the single-pass document writer: the whole document at once."""
+
+    placements: list[LLMWrittenPlacement] = Field(default_factory=list)
+    skipped_sections: list[LLMSectionSkip] = Field(default_factory=list)
+    missing_required: list[str] = Field(default_factory=list)
+    unmapped_content: list[str] = Field(default_factory=list)
+    notes: str = ""
+
+
 class LLMComplianceVerdict(_LenientLLMModel):
     index: int
     material: bool = True  # a real compliance violation vs a benign/cosmetic diff
@@ -719,6 +749,126 @@ def build_compose_prompt(
         parts.append("Source content the values came from:\n" + source_text[:_COMPOSE_SOURCE_TEXT_CAP])
     parts.append("Return the refined values.")
     return _COMPOSE_SYSTEM, _COMPOSE_DEVELOPER, "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Document writer: read the whole template + all the content, write every field
+# ---------------------------------------------------------------------------
+
+_WRITER_SYSTEM = (
+    "You are DocForge's document writer. You are given a template — what kind of "
+    "document it is, its sections and what each is for — together with everything "
+    "the user has supplied, and you write the whole document in one pass. You are "
+    "not filling in a form field by field: you decide what belongs in each part of "
+    "this specific document, and you write it so the finished result reads as one "
+    "coherent piece. You never invent facts the supplied content does not support."
+)
+
+_WRITER_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "placements": [
+    {"field_name": string,        // must be one of the template field names
+     "value": any,                // the content; list of row-objects for table fields
+     "confidence": number 0..1,
+     "source_excerpt": string,    // the part of the input this came from
+     "ai_drafted": boolean,       // true when you wrote it rather than found it
+     "ambiguous": boolean,
+     "alternatives": [string],
+     "note": string}
+  ],
+  "skipped_sections": [
+    {"section_key": string, "reason": string}   // sections you left empty on purpose
+  ],
+  "missing_required": [string],
+  "unmapped_content": [string],
+  "notes": string
+}
+
+Write the document, not the fields:
+- Read everything first, then decide what belongs where. A field's place in the
+  document — its section, the heading above it, the label beside it — tells you
+  what it is for; the section's stated purpose tells you what to write there.
+- Say each thing ONCE. Never repeat the same sentence, fact or phrasing in two
+  fields; a summary summarises what the body says, it does not copy it.
+- Keep one voice across the whole document: consistent tense, person and
+  register, so the finished result does not read as assembled fragments.
+- Write each section to fit its neighbours — do not restate what the section
+  before it already established.
+- A section with no real content is SKIPPED (list it in skipped_sections with a
+  reason), never padded with filler or restated content from elsewhere.
+- Only use field_name values from the template. Never invent fields.
+- For REPEATABLE_TABLE fields, "value" MUST be a list of objects keyed by the
+  table's column field_names.
+- For REPEATABLE_SECTION fields, "value" SHOULD be a list of strings — one per
+  distinct point — when the content naturally breaks into more than one.
+- Respect field types: dates as ISO (YYYY-MM-DD) unless the description says
+  otherwise, numbers normalised, enum values from allowed_values only.
+- Set ai_drafted=true with lower confidence for anything you wrote from context
+  rather than found in the content. NEVER fabricate specific facts (names,
+  totals, dates) the content does not support — leave those out and list the
+  field in missing_required instead.
+- Output valid JSON only. No prose, no markdown.
+
+""" + RICH_FORMAT_SPEC + "\n"
+
+
+def build_writer_prompt(
+    fields: list[FieldDefinition],
+    *,
+    template_context: dict | None = None,
+    source_outline: str = "",
+    raw_text: str | None = None,
+    structured_data: dict | None = None,
+    learned_hints: str = "",
+    review_findings: list[dict] | None = None,
+    prior_values: dict | None = None,
+) -> tuple[str, str, str]:
+    """Build the (system, developer, user) prompt for the one-pass writer.
+
+    Everything needed is in the user message: tools are an optimisation, and the
+    agentic loop degrades to a single call on providers without tool support, so
+    the prompt must stand on its own.
+    """
+    parts: list[str] = []
+    structure = _template_structure_block(template_context)
+    if structure:
+        parts.append(structure)
+    if learned_hints:
+        parts.append(learned_hints)
+    parts.append(
+        "Template fields:\n"
+        + json.dumps(_fields_payload(fields, template_context), ensure_ascii=False, indent=2)
+    )
+    if structured_data:
+        parts.append(
+            "Values the user supplied directly (keep these unless they are clearly "
+            "malformed):\n" + json.dumps(structured_data, ensure_ascii=False, default=str, indent=2)
+        )
+    if source_outline:
+        parts.append(
+            "Content to work from — an outline of an uploaded document, with its own "
+            "heading hierarchy, lists and tables preserved (# marks a heading level). "
+            "Its structure will NOT match this template's; use it to understand what "
+            "each piece of content is for, then place it where it serves the same "
+            "purpose here. Where a block is marked truncated, call get_source_block "
+            "with its id if you need the full text.\n\n" + source_outline
+        )
+    elif raw_text:
+        parts.append("Content to work from (the user's notes):\n" + raw_text[:_COMPOSE_SOURCE_TEXT_CAP])
+    if prior_values:
+        parts.append(
+            "Your previous draft (revise it — keep what is good):\n"
+            + json.dumps(prior_values, ensure_ascii=False, default=str, indent=2)
+        )
+    if review_findings:
+        parts.append(
+            "A review of the document you just produced found these problems. Fix "
+            "every one of them in this revision:\n"
+            + json.dumps(review_findings, ensure_ascii=False, indent=2)
+        )
+    parts.append("Write the document now.")
+    return _WRITER_SYSTEM, _WRITER_DEVELOPER, "\n\n".join(parts)
 
 
 # ---------------------------------------------------------------------------

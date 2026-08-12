@@ -260,3 +260,62 @@ def compose_tools(fields) -> list[ToolSpec]:
         ToolSpec("get_field_spec", "Type, description, required flag, allowed values and columns for a field.", _FIELD_PARAM, get_field_spec),
         ToolSpec("validate_value", "Check whether a value satisfies a field's type and allowed values.", _VALIDATE_PARAM, validate_value),
     ]
+
+
+_SECTION_PARAM = {
+    "type": "object",
+    "properties": {"section_key": {"type": "string", "description": "A section_key from the template."}},
+    "required": ["section_key"],
+}
+_BLOCK_PARAM = {
+    "type": "object",
+    "properties": {"block_id": {"type": "string", "description": "A block id such as 'b7' from the outline."}},
+    "required": ["block_id"],
+}
+
+
+def writer_tools(fields, template_context: dict | None = None, source_doc=None) -> list[ToolSpec]:
+    """Compose's tools plus the two lookups a whole-document writer needs.
+
+    ``get_section_context`` answers "what is this part of the document for, and
+    what else lives in it"; ``get_source_block`` recovers the full text behind an
+    outline entry the prompt had to truncate.
+    """
+    sections = {s["section_key"]: s for s in (template_context or {}).get("sections", [])}
+    blocks: dict[str, str] = {}
+    if source_doc is not None:
+        from ..ai_router.document import source_blocks
+
+        blocks = source_blocks(source_doc)
+
+    def get_section_context(args: dict) -> dict:
+        section = sections.get(args.get("section_key"))
+        if not section:
+            return {"error": "unknown section_key", "known": list(sections)}
+        return {
+            **section,
+            "other_sections": [k for k in sections if k != section["section_key"]],
+        }
+
+    def get_source_block(args: dict) -> dict:
+        if not blocks:
+            return {"error": "no source document for this generation"}
+        text = blocks.get(args.get("block_id"))
+        if text is None:
+            return {"error": "unknown block_id"}
+        return {"block_id": args.get("block_id"), "text": text}
+
+    return compose_tools(fields) + [
+        ToolSpec(
+            "get_section_context",
+            "What a section of the document is for, what content belongs there, and which other sections exist.",
+            _SECTION_PARAM,
+            get_section_context,
+        ),
+        ToolSpec(
+            "get_source_block",
+            "Full untruncated text of a block from the uploaded document's outline, by its id.",
+            _BLOCK_PARAM,
+            get_source_block,
+        ),
+    ]

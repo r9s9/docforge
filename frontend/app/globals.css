@@ -1403,6 +1403,23 @@ tr.low-conf td {
   resize: vertical;
   line-height: 1.5;
 }
+.fc-ai-note {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-2);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.fc-ai-note svg {
+  flex: none;
+  transform: translateY(1px);
+}
 .fc-format-hint {
   margin: 6px 0 0;
   font-size: 11.5px;

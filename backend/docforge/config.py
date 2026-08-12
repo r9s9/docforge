@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     ai_generation_timeout_seconds: int = 300
     ai_max_retries: int = 2
     ai_max_output_tokens: int = 6000
+    # Write every field of a document in one reasoning pass instead of routing
+    # then composing field by field — the only way the AI can judge across
+    # fields (say a thing once, keep one voice, skip an empty section). Falls
+    # back to route+compose automatically, so turning it off only costs quality.
+    ai_writer_enabled: bool = True
 
     # --- Free-tier AI (shared, server-side key; never exposed to users) ---
     # A small allowance of AI actions every signed-in user gets for free, served

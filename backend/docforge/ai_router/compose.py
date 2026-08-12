@@ -29,6 +29,31 @@ def _clamp(x: float) -> float:
         return 0.6
 
 
+def apply_validation_flags(
+    placements: list[PlacementInstruction], fields: list[FieldDefinition]
+) -> int:
+    """Re-check every final value and flag the ones that fail; returns the count.
+
+    The model's own confidence is self-rated with nothing independently checking
+    it, so a wrong date, number or enum can arrive stated confidently. Running
+    the same deterministic check the tool loop had access to — but over the
+    *final* values — is what makes those surface for review.
+    """
+    by_name = {f.field_name: f for f in fields}
+    flagged = 0
+    for p in placements:
+        f = by_name.get(p.field_name)
+        if f is None or p.value in (None, ""):
+            continue
+        check = validate_field_value(f, p.value)
+        if not check.get("ok", True):
+            flagged += 1
+            p.confidence = min(p.confidence, 0.3)
+            note = f"Needs review — {check.get('reason') or 'failed validation'}."
+            p.note = f"{p.note} {note}".strip() if p.note else note
+    return flagged
+
+
 def compose_values(
     routing: RoutingResult,
     fields: list[FieldDefinition],
@@ -82,24 +107,7 @@ def compose_values(
                 p.note = cv.note
 
     placements = list(existing.values())
-
-    # Deterministic cross-check: the model's confidence/ambiguous fields are
-    # self-rated with nothing independently verifying them. Re-run the same
-    # type/enum check the compose tool loop had access to against every FINAL
-    # value and downgrade confidence when it fails — so a wrong date/number/enum
-    # value is flagged for review even if the model was confidently wrong.
-    by_name = {f.field_name: f for f in fields}
-    n_flagged = 0
-    for p in placements:
-        f = by_name.get(p.field_name)
-        if f is None or p.value in (None, ""):
-            continue
-        check = validate_field_value(f, p.value)
-        if not check.get("ok", True):
-            n_flagged += 1
-            p.confidence = min(p.confidence, 0.3)
-            flag = f"Needs review — {check.get('reason') or 'failed validation'}."
-            p.note = f"{p.note} {flag}".strip() if p.note else flag
+    n_flagged = apply_validation_flags(placements, fields)
 
     placed = {p.field_name for p in placements if p.value not in (None, "")}
     missing = [f.field_name for f in fields if f.required and f.field_name not in placed]

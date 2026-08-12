@@ -27,6 +27,12 @@ class PlacementInstruction(BaseModel):
     ai_drafted: bool = False
 
 
+# Sources that mean a model was actually called. "structural" aligns an upload
+# to the template deterministically and "heuristic"/"structured"/"user" never
+# touch a model, so none of them cost an AI credit.
+AI_SOURCES = frozenset({"llm", "writer"})
+
+
 class RoutingResult(BaseModel):
     """Output of routing structured or unstructured content into a template."""
 
@@ -36,10 +42,22 @@ class RoutingResult(BaseModel):
     missing_required: list[str] = Field(default_factory=list)
     ambiguous_fields: list[str] = Field(default_factory=list)
     unmapped_content: list[str] = Field(default_factory=list)
+    # Sections the writer deliberately left empty: [{section_key, reason}].
+    skipped_sections: list[dict] = Field(default_factory=list)
     model_used: str | None = None
     source: str = "heuristic"
     # AI token usage for this routing+compose pass (set by the preview endpoint).
     token_usage: dict | None = None
+
+    @property
+    def used_ai(self) -> bool:
+        """Whether a model actually produced this result.
+
+        Gates free-tier accounting and audit records, so it must name every
+        model-backed source — "structural" and "heuristic" are deterministic and
+        deliberately excluded.
+        """
+        return self.source in AI_SOURCES
 
     def to_context(self) -> dict[str, Any]:
         """Collapse placements into a flat ``{field_name: value}`` render context."""
