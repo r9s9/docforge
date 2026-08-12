@@ -872,6 +872,87 @@ def build_writer_prompt(
 
 
 # ---------------------------------------------------------------------------
+# Render review: read the assembled document back and find what reads wrong
+# ---------------------------------------------------------------------------
+
+
+class LLMRenderFinding(_LenientLLMModel):
+    kind: str = "other"  # empty_section | duplicate | misplaced | format | other
+    field_name: str | None = None
+    section_key: str | None = None
+    message: str = ""
+    severity: str = "warning"  # error | warning | info
+
+
+class LLMRenderReview(_LenientLLMModel):
+    """What a reader notices when the finished document is read back."""
+
+    findings: list[LLMRenderFinding] = Field(default_factory=list)
+
+
+_REVIEW_SYSTEM = (
+    "You are DocForge's final reader. You are shown a document that has just been "
+    "assembled from a template and you read it the way its recipient would, "
+    "reporting only what would actually bother them: a section left empty, the "
+    "same thing said twice, content sitting under the wrong heading, or text "
+    "whose shape is wrong for where it is. You do not rewrite it and you do not "
+    "nitpick wording."
+)
+
+_REVIEW_DEVELOPER = """\
+Return ONLY a JSON object with this shape:
+{
+  "findings": [
+    {"kind": one of ["empty_section","duplicate","misplaced","format","other"],
+     "field_name": string or null,     // the field responsible, when you can tell
+     "section_key": string or null,
+     "message": short string,          // what is wrong, in plain words
+     "severity": one of ["error","warning","info"]}
+  ]
+}
+
+Rules:
+- Report a problem only if a reader would notice it. An empty document with
+  nothing supplied is not a finding; a section that promises content and
+  delivers none is.
+- "duplicate" means the same substance appears twice, not two mentions of the
+  same subject.
+- Do not report the template's own fixed boilerplate as a problem.
+- severity "error" is reserved for things that make the document unusable or
+  self-contradictory. Prefer "warning" or "info".
+- An empty findings list is the correct answer for a good document.
+- Output valid JSON only. No prose, no markdown.
+"""
+
+
+def build_render_review_prompt(
+    blocks: list[dict],
+    *,
+    template_context: dict | None = None,
+    placed_fields: list[str] | None = None,
+    skipped_sections: list[dict] | None = None,
+) -> tuple[str, str, str]:
+    """Build the (system, developer, user) prompt for reviewing rendered output."""
+    parts: list[str] = []
+    structure = _template_structure_block(template_context)
+    if structure:
+        parts.append(structure)
+    parts.append(
+        "The assembled document, in order:\n"
+        + json.dumps(blocks, ensure_ascii=False, indent=2)[:_COMPOSE_SOURCE_TEXT_CAP]
+    )
+    if placed_fields:
+        parts.append("Fields that were filled in: " + ", ".join(placed_fields))
+    if skipped_sections:
+        parts.append(
+            "Sections deliberately left empty (do NOT report these as problems):\n"
+            + json.dumps(skipped_sections, ensure_ascii=False)
+        )
+    parts.append("Read it and report what a recipient would notice.")
+    return _REVIEW_SYSTEM, _REVIEW_DEVELOPER, "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
 # Compliance judge: is each difference a MATERIAL violation or benign?
 # ---------------------------------------------------------------------------
 

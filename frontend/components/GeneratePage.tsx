@@ -820,6 +820,7 @@ function RoutedChip({ p }: { p: PlacementInstruction }) {
 
 function ResultPanel({ result }: { result: GenerationResult }) {
   const v = result.validation;
+  const review = result.routing?.render_review ?? [];
   const [pdfMsg, setPdfMsg] = useState("");
 
   async function downloadPdf() {
@@ -884,6 +885,23 @@ function ResultPanel({ result }: { result: GenerationResult }) {
         <p className="muted" style={{ marginTop: -6, marginBottom: 12 }}>
           {pdfMsg}
         </p>
+      )}
+
+      {review.length > 0 && (
+        <div className="banner warn" style={{ display: "block", marginBottom: 16 }} role="status">
+          <div style={{ marginBottom: 6 }}>
+            <AlertTriangle size={14} strokeWidth={2} />{" "}
+            <strong>Reading the finished document back</strong> — worth a look before you send it:
+          </div>
+          <ul className="review-findings">
+            {review.map((f, i) => (
+              <li key={i}>
+                {f.message}
+                {f.field_name ? <span className="muted"> · {f.field_name}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {v && v.issues.length > 0 && (

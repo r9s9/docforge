@@ -1403,6 +1403,14 @@ tr.low-conf td {
   resize: vertical;
   line-height: 1.5;
 }
+.review-findings {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.65;
+}
+.review-findings li + li {
+  margin-top: 3px;
+}
 .fc-ai-note {
   display: flex;
   align-items: baseline;

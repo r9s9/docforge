@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     # fields (say a thing once, keep one voice, skip an empty section). Falls
     # back to route+compose automatically, so turning it off only costs quality.
     ai_writer_enabled: bool = True
+    # Read the assembled document back and report what a recipient would notice
+    # (an empty section, the same point twice). Advisory: findings are shown for
+    # review, and a serious one buys exactly one corrective rewrite.
+    ai_verify_enabled: bool = True
+    ai_verify_max_corrections: int = 1
 
     # --- Free-tier AI (shared, server-side key; never exposed to users) ---
     # A small allowance of AI actions every signed-in user gets for free, served

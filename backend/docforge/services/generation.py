@@ -17,6 +17,7 @@ from ..ai_router import (
     route_document_content,
 )
 from ..ai_router.context import build_template_context
+from ..ai_router.verify import has_correctable, review_rendered_output
 from ..assembler import assemble
 from ..common.textutil import slugify_field
 from ..config import Settings, get_settings
@@ -93,6 +94,65 @@ def template_context_for(
         classifications=intelligence.classifications,
         fields=fields,
         representative=representative,
+    )
+
+
+def review_output(
+    blocks: list[dict],
+    routing: RoutingResult,
+    *,
+    settings: Settings,
+    template_context: dict | None = None,
+) -> list[dict]:
+    """Read the assembled document back for problems no per-field check can see.
+
+    Only worth doing when a model wrote the content: deterministic mapping
+    produces exactly what it was given, so there is nothing to second-guess.
+    """
+    if not settings.ai_verify_enabled or not routing.used_ai:
+        return []
+    from ..ai.client import LLMClient
+    from ..settings_store import generation_ai_config
+
+    return review_rendered_output(
+        blocks, routing, client=LLMClient(generation_ai_config()),
+        template_context=template_context,
+    )
+
+
+def _rewrite_after_review(
+    routing: RoutingResult,
+    findings: list[dict],
+    fields,
+    *,
+    template: Template,
+    version: int,
+    gen_input: GenerationInput,
+    template_context: dict,
+    settings: Settings,
+) -> RoutingResult | None:
+    """One corrective writer pass over the findings. ``None`` = keep the original.
+
+    Bounded to a single attempt on purpose: a rewrite loop chasing a reviewer's
+    taste costs real money and converges on nothing.
+    """
+    if settings.ai_verify_max_corrections < 1:
+        return None
+    from ..ai.client import LLMClient
+    from ..ai_router.writer import try_write_document
+    from ..settings_store import generation_ai_config
+
+    logger.info("rewriting once to fix %d review finding(s)", len(findings))
+    return try_write_document(
+        fields,
+        client=LLMClient(generation_ai_config()),
+        template_id=template.id,
+        version=version,
+        template_context=template_context,
+        raw_text=gen_input.raw_text,
+        structured_data=gen_input.data,
+        review_findings=findings,
+        prior_values=routing.to_context(),
     )
 
 
@@ -304,8 +364,15 @@ def preview_document(
 
     report = None if gen_input.skip_validation else validate(context, fields, rules)
     output_bytes = assemble(template_bytes, context, fields)
+    blocks = _parse_docx_blocks(output_bytes)
+    with use_ai_plan(plan_ai_for_owner(owner_id, allow_free=False)):
+        review = review_output(
+            blocks, routing, settings=settings,
+            template_context=template_context_for(registry, template.id, version, fields),
+        )
     return {
-        "blocks": _parse_docx_blocks(output_bytes),
+        "blocks": blocks,
+        "review": review,
         "validation": report.model_dump(mode="json") if report else None,
         "routing": routing.model_dump(mode="json"),
         "context_used": context,
@@ -367,6 +434,44 @@ def generate_document(
 
         # 3) Assemble the final DOCX deterministically.
         output_bytes = assemble(template_bytes, context, fields)
+
+        # 4) Read the finished document back. Problems that only exist at the
+        # whole-document level (an empty section, a point made twice) are
+        # invisible to per-field validation, so this is the only place they can
+        # be caught — and a serious one buys exactly one rewrite.
+        with track_usage() as review_usage, use_ai_plan(plan):
+            tpl_context = template_context_for(registry, template.id, version, fields)
+            review = review_output(
+                _parse_docx_blocks(output_bytes), routing,
+                settings=settings, template_context=tpl_context,
+            )
+            if review and has_correctable(review) and routing.source == "writer":
+                rewritten = _rewrite_after_review(
+                    routing, review, fields, template=template, version=version,
+                    gen_input=gen_input, template_context=tpl_context, settings=settings,
+                )
+                if rewritten is not None:
+                    routing = rewritten
+                    context = _merge_with_project(
+                        _project_metadata(db, template), routing.to_context()
+                    )
+                    if not gen_input.skip_validation:
+                        report = validate(context, fields, rules)
+                    output_bytes = assemble(template_bytes, context, fields)
+                    review = review_output(
+                        _parse_docx_blocks(output_bytes), routing,
+                        settings=settings, template_context=tpl_context,
+                    )
+        req.routing = {**routing.model_dump(mode="json"), "render_review": review}
+        if review_usage.calls:
+            merged = dict(req.token_usage or {})
+            for key, value in review_usage.as_dict().items():
+                if isinstance(value, (int, float)) and isinstance(merged.get(key), (int, float)):
+                    merged[key] = merged[key] + value
+                else:
+                    merged.setdefault(key, value)
+            req.token_usage = merged
+
         out_name = f"{slugify_field(template.name, fallback='document')}-{req.id[:8]}.docx"
         out_key = join_key(GENERATED, out_name)
         get_storage().put_bytes(out_key, output_bytes, content_type=_DOCX_CONTENT_TYPE)

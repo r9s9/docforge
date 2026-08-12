@@ -207,6 +207,15 @@ export interface SkippedSection {
   reason?: string;
 }
 
+/** Something a reader would notice in the assembled document. */
+export interface RenderFinding {
+  kind: string; // empty_section | duplicate | misplaced | format | other
+  field_name?: string | null;
+  section_key?: string | null;
+  message: string;
+  severity: string; // error | warning | info
+}
+
 export interface RoutingResult {
   template_id: string;
   version: number;
@@ -215,6 +224,8 @@ export interface RoutingResult {
   ambiguous_fields: string[];
   unmapped_content: string[];
   skipped_sections?: SkippedSection[];
+  /** Set on a completed generation: what reading the finished document found. */
+  render_review?: RenderFinding[];
   model_used: string | null;
   source: string;
   token_usage?: TokenUsage | null;
