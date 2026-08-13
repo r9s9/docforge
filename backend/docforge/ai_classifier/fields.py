@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from ..common.textutil import slugify_field
 from ..schemas.classification import ClassificationResult, ElementClassification
-from ..schemas.enums import ClassificationType, FieldType, IssueSeverity, RuleType
+from ..schemas.enums import (
+    ClassificationType,
+    ElementType,
+    FieldType,
+    IssueSeverity,
+    RuleType,
+)
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition, TableColumn, ValidationRule
 
@@ -79,6 +85,15 @@ _KIND_HINT = {
 }
 
 
+def _is_empty_layout_node(e) -> bool:
+    """A node that holds no text and no picture — spacing, not content."""
+    if e is None:
+        return False
+    if e.type in (ElementType.TABLE, ElementType.IMAGE) or e.image_ref is not None:
+        return False
+    return not (e.text or "").strip()
+
+
 def _fallback_description(
     label: str, classification: ElementClassification, example_text: str = ""
 ) -> str:
@@ -123,6 +138,11 @@ def derive_field_definitions(
     fields: list[FieldDefinition] = []
     for c in result.classifications:
         if not c.field_name:
+            continue
+        if _is_empty_layout_node(by_id.get(c.node_id)):
+            # A blank paragraph is spacing, not content. The model routinely
+            # names them ("spacer_1", "standard_spacer") and each one becomes a
+            # field nobody can fill and everybody has to scroll past.
             continue
         if c.classification not in (
             ClassificationType.DYNAMIC_TEXT,
@@ -216,10 +236,17 @@ def derive_field_definitions(
                 confidence=0.5,
             )
         )
-    # A picture node should be an image field, not a text field — drop any text
-    # field the classifier produced for the same node.
+    # A picture-only node is an image field, not a text field — drop the text
+    # field the classifier produced for it. A paragraph that holds a picture
+    # *and* words keeps both: the logo is swapped through its image field while
+    # the caption beside it stays editable as text.
     if image_nodes:
-        fields = [f for f in fields if not set(f.node_ids) & image_nodes]
+        text_bearing = {
+            e.node_id for e in extraction.elements
+            if e.node_id in image_nodes and (e.text or "").strip()
+        }
+        drop = image_nodes - text_bearing
+        fields = [f for f in fields if not set(f.node_ids) & drop]
     fields.extend(image_fields)
 
     # Boolean "include" toggles for optional content (present in some examples

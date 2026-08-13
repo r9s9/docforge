@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import zipfile
 from io import BytesIO
 
 from docx import Document
@@ -41,6 +42,8 @@ _SENTINEL_CLOSE = ""
 
 # Quarter-inch per list level, matching Word's default list indents.
 _INDENT_STEP = 360  # twips
+
+_SETTINGS_PART = "word/settings.xml"
 
 
 def sentinel(index: int) -> str:
@@ -212,6 +215,45 @@ def _flatten(paragraph: Paragraph, token: str, blocks: list[RichBlock]) -> None:
             run.text = (run.text or "").replace(token, plain)
             return
     logger.warning("rich sentinel %r vanished before expansion", token)
+
+
+def request_field_update(docx_bytes: bytes) -> bytes:
+    """Ask Word to rebuild its fields when the document is opened.
+
+    A table of contents, a list of figures and page references are Word *fields*:
+    the template carries the field code plus the text it last produced. Filling
+    the template changes the headings but not that cached text, so a generated
+    document would open showing the example's contents — the right mechanism
+    pointing at the wrong document. Setting ``w:updateFields`` makes Word
+    refresh them on open, which is the only place that can recompute page
+    numbers anyway.
+    """
+    try:
+        with zipfile.ZipFile(BytesIO(docx_bytes)) as source:
+            names = source.namelist()
+            if _SETTINGS_PART not in names:
+                return docx_bytes
+            settings = source.read(_SETTINGS_PART).decode("utf-8")
+            if "updateFields" in settings:
+                return docx_bytes
+            opening = settings.find("<w:settings")
+            marker = settings.find(">", opening) if opening != -1 else -1
+            if marker == -1:
+                return docx_bytes
+            patched = (
+                settings[: marker + 1]
+                + '<w:updateFields w:val="true"/>'
+                + settings[marker + 1 :]
+            )
+            out = BytesIO()
+            with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dest:
+                for item in source.infolist():
+                    data = patched.encode("utf-8") if item.filename == _SETTINGS_PART else source.read(item.filename)
+                    dest.writestr(item, data)
+            return out.getvalue()
+    except Exception:  # never fail a generation over a convenience flag
+        logger.debug("could not set updateFields", exc_info=True)
+        return docx_bytes
 
 
 def apply_rich_values(docx_bytes: bytes, rich_map: dict[str, list[RichBlock]]) -> bytes:

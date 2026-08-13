@@ -170,10 +170,10 @@ def test_tags_only_leaves_multi_paragraph_toc_field_untagged(tmp_path):
 
 
 def test_tags_only_single_row_table_gets_tagged(tmp_path):
-    # A table with only one row (common for an "info bar" style layout) used to
-    # be silently left completely untouched: classified as REPEATABLE_TABLE but
-    # the builder's row-1-required assumption meant its text was never
-    # templatized. Regression covering the fix end-to-end.
+    # A one-row "info bar" is page layout, not a list of anything: its cells
+    # each become their own field, and the table keeps its shape. (It was once
+    # left entirely untouched, with its text surviving into the template — the
+    # invariant this still guards.)
     doc = Document()
     doc.add_heading("Details", level=1)
     t = doc.add_table(rows=1, cols=2)
@@ -186,9 +186,13 @@ def test_tags_only_single_row_table_gets_tagged(tmp_path):
     result = classify(ext, None, mode="tags_only")
     fields = derive_field_definitions(ext, result)
     template_bytes = build_template_docx(path, result, fields)
-    tpl_texts = Document(BytesIO(template_bytes)).element.body.xml
+    built = Document(BytesIO(template_bytes))
+    tpl_texts = built.element.body.xml
     assert "Trainer" not in tpl_texts and "John Smith" not in tpl_texts
-    assert "{%tr for" in tpl_texts
+    assert "{%tr for" not in tpl_texts, "a one-row layout table must not become a loop"
+    # The row survives, and both cells are fillable.
+    assert [len(tbl.rows) for tbl in built.tables] == [1]
+    assert tpl_texts.count("{{ ") >= 2
 
 
 def test_tags_only_unfilled_field_paragraph_is_deleted_not_blank(tmp_path):

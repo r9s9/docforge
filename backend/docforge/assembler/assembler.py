@@ -25,7 +25,7 @@ from jinja2.runtime import Undefined
 
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
-from .postprocess import apply_rich_values, sentinel
+from .postprocess import apply_rich_values, request_field_update, sentinel
 from .richtext import RichBlock, is_rich, parse_rich_blocks, strip_markers
 
 # Field types whose value is prose the user may structure into paragraphs and
@@ -227,4 +227,4 @@ def assemble(
     tpl.render(render_ctx, jinja_env=jinja_env)
     out = BytesIO()
     tpl.save(out)
-    return apply_rich_values(out.getvalue(), rich_map)
+    return request_field_update(apply_rich_values(out.getvalue(), rich_map))

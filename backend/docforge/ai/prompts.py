@@ -246,6 +246,14 @@ Rules:
   label in static_prefix ("Invoice Date: ") and make ONLY the value dynamic.
 - Use AUTO_FIELD for page numbers, TOC and Word fields. Never invent field_names
   for FIXED/AUTO content.
+- A table is REPEATABLE_TABLE only when its rows are several of the same kind of
+  thing (line items, revisions). A table used to lay out a page — a cover block,
+  an address panel, a logo cell — is FIXED, however many cells it has: turning
+  it into a loop destroys the layout when a document has no rows for it.
+- Short labels that name a part of the document rather than say anything in it
+  ("TABLE OF CONTENTS", "REVISIONS", "FIGURES", "APPENDICES", "REFERENCES") are
+  FIXED. They are furniture, not content.
+- An empty paragraph is spacing. Leave it FIXED and never give it a field_name.
 - field_name must be snake_case and unique.
 - Output valid JSON only. No prose, no markdown.
 """

@@ -14,10 +14,11 @@ handful of section fields instead of 80 one-off fields.
 
 from __future__ import annotations
 
-from ..common.textutil import slugify_field
+from ..common.textutil import slugify_field, value_kind
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic, needs_field
 from ..schemas.extraction import DocumentExtraction, NormalizedElement
+from .heuristic import looks_like_data_table
 
 # Body text longer than this becomes a multiline field rather than a one-liner.
 _MULTILINE_THRESHOLD = 120
@@ -43,12 +44,39 @@ def _synth_description(section: str, text: str) -> str:
     return f"Content for {where}. Original example: “{sample}”"
 
 
+# Short labels that name a part of the document rather than say anything in it.
+# They belong to the template's furniture: replacing "TABLE OF CONTENTS" with a
+# sentence is never what anyone wanted.
+_STRUCTURAL_LABELS = frozenset({
+    "table of contents", "contents", "revisions", "revision history", "tables",
+    "figures", "appendices", "appendix", "references", "bibliography", "index",
+    "glossary", "abbreviations", "definitions", "annexes", "annex",
+    "list of tables", "list of figures", "table of figures", "document history",
+})
+_STRUCTURAL_STYLE_HINTS = ("contents", "toc", "table of figures", "index")
+_MAX_LABEL_CHARS = 24
+
+
+def _is_structural_label(e: NormalizedElement) -> bool:
+    """A section label that is part of the document's furniture, not its content."""
+    text = " ".join((e.text or "").split())
+    if not text or len(text) > _MAX_LABEL_CHARS:
+        return False
+    if text.strip(":").lower() in _STRUCTURAL_LABELS:
+        return True
+    style = (e.style_name or "").lower()
+    # A very short label in a contents/TOC style is furniture even if we don't
+    # know the word — corporate templates invent their own ("VERTEILER").
+    return any(h in style for h in _STRUCTURAL_STYLE_HINTS) and len(text.split()) <= 3
+
+
 def _is_exempt(e: NormalizedElement, c: ElementClassification | None) -> bool:
     """Nodes that keep their existing classification in tags-only mode."""
     if e.header_footer_scope is not None:
         return True  # headers/footers keep their (usually fixed/auto) content
-    if e.image_ref is not None or e.type == ElementType.IMAGE:
-        return True  # images are swapped via image fields, never text tags
+    if (e.image_ref is not None or e.type == ElementType.IMAGE) and not (e.text or "").strip():
+        return True  # a picture alone is swapped via its image field, not tagged
+
     if c is not None and c.classification == ClassificationType.AUTO_FIELD:
         return True  # page numbers / TOC render themselves
     if "auto_field" in e.semantic_hints or "toc" in e.semantic_hints:
@@ -56,6 +84,74 @@ def _is_exempt(e: NormalizedElement, c: ElementClassification | None) -> bool:
     if not (e.text or "").strip() and e.type != ElementType.TABLE:
         return True  # nothing to templatize
     return False
+
+
+def _keep_fixed(c: ElementClassification, reason: str) -> None:
+    """Return a node to boilerplate, discarding any field the model gave it."""
+    c.classification = ClassificationType.FIXED
+    c.field_name = None
+    c.field_type = None
+    c.required = False
+    c.optional = False
+    c.rationale = f"{(c.rationale or '').rstrip()} [{reason}]".strip()
+
+
+def _is_data_table(e: NormalizedElement) -> bool:
+    """Whether a table repeats rows of the same kind, or is page layout."""
+    return looks_like_data_table(e.table_structure)
+
+
+def _cell_name(text: str) -> str:
+    """Name a layout cell after what it *is*, not after the example's value.
+
+    A cell reading "Document number" names itself; one reading "01.01.2001"
+    would give "f_01_01_2001", which tells a later reader nothing. For those,
+    the kind of value is the more useful name.
+    """
+    kind = value_kind(text)
+    if kind != "text":
+        return kind  # date / number / person — _unique adds the suffix
+    return slugify_field(text, fallback="cell")
+
+
+def _field_table_cells(
+    extraction: DocumentExtraction,
+    result: ClassificationResult,
+    table: NormalizedElement,
+    cls_by_node: dict[str, ElementClassification],
+    used: set[str],
+    section: str,
+) -> set[str]:
+    """Turn each non-empty cell of a layout table into its own field."""
+    forced: set[str] = set()
+    label = slugify_field(section or table.text or "cell", fallback="cell")
+    for e in extraction.elements:
+        if e.parent_node_id != table.node_id:
+            continue
+        text = (e.text or "").strip()
+        if not text:
+            continue  # spacing, or a cell holding only a picture
+        c = cls_by_node.get(e.node_id)
+        if c is None:
+            c = ElementClassification(node_id=e.node_id, source=result.source or "heuristic")
+            result.classifications.append(c)
+            cls_by_node[e.node_id] = c
+        if c.field_name and is_dynamic(c.classification):
+            continue  # the model already named this cell
+        name = _unique(f"{label}_{_cell_name(text)}", used)
+        used.add(name)
+        _force_dynamic(
+            c,
+            classification=ClassificationType.DYNAMIC_TEXT,
+            field_type=(
+                FieldType.MULTILINE_TEXT if len(text) > _MULTILINE_THRESHOLD else FieldType.TEXT
+            ),
+            name=name,
+            section=section,
+            text=text,
+        )
+        forced.add(e.node_id)
+    return forced
 
 
 def _force_dynamic(
@@ -187,6 +283,13 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
 
     for e in extraction.top_level_elements():
         c = cls_by_node[e.node_id]
+        if _is_structural_label(e):
+            # "TABLE OF CONTENTS", "REVISIONS", "FIGURES" — these name a part of
+            # the document. Left as fields, a writer fills them with prose where
+            # a one-word label belongs.
+            flush_pending()
+            _keep_fixed(c, "structural label")
+            continue
         if _is_exempt(e, c):
             flush_pending()
             continue
@@ -220,7 +323,9 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
 
         if e.type == ElementType.TABLE:
             flush_pending()
-            if c.classification != ClassificationType.REPEATABLE_TABLE or not c.field_name:
+            if c.classification == ClassificationType.REPEATABLE_TABLE and c.field_name:
+                continue  # already a data table — the loop owns its cells
+            if _is_data_table(e):
                 name = c.field_name or _unique(
                     slugify_field(section or "rows", fallback="rows") + "_rows", used
                 )
@@ -235,6 +340,13 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                     text=", ".join(headers) or "table",
                 )
                 forced.add(e.node_id)
+            else:
+                # A layout table (a cover block, an address panel). Its shape is
+                # part of the design, so it keeps every row and each cell becomes
+                # its own field instead of the whole table becoming a loop.
+                forced.update(
+                    _field_table_cells(extraction, result, e, cls_by_node, used, section)
+                )
             continue
 
         if e.type in _GROUPABLE:
@@ -253,10 +365,12 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
     # and force-tags it individually, so "every text is tagged" always holds.
     for e in extraction.top_level_elements():
         c = cls_by_node[e.node_id]
-        if _is_exempt(e, c):
+        if _is_exempt(e, c) or _is_structural_label(e):
             continue
         if needs_field(c.classification) and c.field_name:
             continue
+        if e.type == ElementType.TABLE:
+            continue  # a layout table's cells carry its fields, not the table
         txt = e.text.strip()
         ftype = FieldType.MULTILINE_TEXT if len(txt) > _MULTILINE_THRESHOLD else FieldType.TEXT
         name = _unique(slugify_field(section or txt, fallback="content") + "_content", used)

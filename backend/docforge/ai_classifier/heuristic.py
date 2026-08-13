@@ -26,6 +26,31 @@ from ..schemas.diff import DiffRunResult, NodeDiff
 from ..schemas.enums import ClassificationType, DiffStatus, ElementType, FieldType
 from ..schemas.extraction import DocumentExtraction, NormalizedElement
 
+# Rows of data a headerless table needs before its shape alone says "this
+# repeats". Shared with the tags-only pass so both agree what data looks like.
+_MIN_ROWS_FOR_LOOP = 2
+
+
+def looks_like_data_table(ts) -> bool:
+    """Whether a table's rows are several of one thing, or page layout.
+
+    With a single example there is no evidence of anything repeating, so the
+    structure has to carry it. Two signatures say "data": real column headers
+    (several *different* labels across the top), or enough rows that they can
+    only be a list. A cover block fails both — one column, or a merged banner
+    repeating a single label across every column.
+
+    Guessing "repeats" wrongly is the expensive direction: the builder turns the
+    table into a loop, and a document with no rows for it then renders none —
+    losing the layout, and any logo sitting in it.
+    """
+    if ts is None or not ts.n_rows or ts.n_rows < 2 or (ts.n_cols or 0) < 2:
+        return False
+    distinct_headers = {h.strip() for h in (ts.headers or []) if h and h.strip()}
+    if len(distinct_headers) >= 2:
+        return True
+    return (ts.n_rows - 1) >= _MIN_ROWS_FOR_LOOP
+
 _PERSON_LABEL_HINTS = (
     "by", "author", "prepared", "auditor", "manager", "owner",
     "contact", "approver", "reviewer", "officer", "lead", "signed",
@@ -134,7 +159,7 @@ def _classify_table(
         )
         conf = nd.confidence
     else:
-        repeatable = n_data >= 1
+        repeatable = looks_like_data_table(ts)
         conf = 0.6 if n_data >= 2 else 0.45
 
     if not repeatable:

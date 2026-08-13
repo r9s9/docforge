@@ -415,6 +415,29 @@ def _wrap_section_spans(
     return wrapped
 
 
+def _nodes_inside_looped_tables(nodes: list, cls_by_node: dict) -> set[str]:
+    """Node ids living inside a table that will be rewritten as a row loop."""
+    looped = {
+        wn.node_id
+        for wn in nodes
+        if wn.kind == "table"
+        and (c := cls_by_node.get(wn.node_id)) is not None
+        and c.classification == ClassificationType.REPEATABLE_TABLE
+    }
+    if not looped:
+        return set()
+    owned: set[str] = set()
+    parent = {wn.node_id: wn.parent_node_id for wn in nodes}
+    for node_id in parent:
+        ancestor = parent.get(node_id)
+        while ancestor is not None:
+            if ancestor in looped:
+                owned.add(node_id)
+                break
+            ancestor = parent.get(ancestor)
+    return owned
+
+
 def _templatize_blocks(nodes: list, cls_by_node: dict, fd_by_node: dict) -> set[str]:
     """Convert each repeated heading+body group into a loop; returns nodes used.
 
@@ -461,11 +484,13 @@ def build_template_docx(
     nodes = walk_document(doc)
 
     cls_by_node = {c.node_id: c for c in result.classifications}
-    # Map node -> its VALUE field (skip the boolean "include_*" toggles, which
-    # also carry the node id but must not be used as the value placeholder).
+    # Map node -> its VALUE field. Boolean "include_*" toggles and image fields
+    # also carry the node id but are applied elsewhere (a conditional wrapper,
+    # and replace_pic), so neither may become the text placeholder — a paragraph
+    # holding a logo and a caption would otherwise render {{ image_1 }} as text.
     fd_by_node: dict[str, FieldDefinition] = {}
     for f in fields:
-        if f.field_type == FieldType.BOOLEAN:
+        if f.field_type in (FieldType.BOOLEAN, FieldType.IMAGE):
             continue
         for nid in f.node_ids:
             fd_by_node[nid] = f
@@ -474,9 +499,15 @@ def build_template_docx(
     # pass, since one field owns several consecutive paragraphs.
     handled_by_block = _templatize_blocks(nodes, cls_by_node, fd_by_node)
 
+    # A looped table owns every cell inside it: its rows are generated from the
+    # loop's items, so a cell that also carried its own {{ field }} would only
+    # render when the loop happened to have items — and never for the value the
+    # field was named after. One owner per node.
+    owned_by_loop = _nodes_inside_looped_tables(nodes, cls_by_node)
+
     seen_section_fields: set[str] = set()
     for wn in nodes:
-        if wn.node_id in handled_by_block:
+        if wn.node_id in handled_by_block or wn.node_id in owned_by_loop:
             continue
         cls = cls_by_node.get(wn.node_id)
         if cls is None:
@@ -496,10 +527,12 @@ def build_template_docx(
             continue
 
         para = wn.obj
-        # A paragraph that holds a picture is never rewritten into text — the
-        # image is kept as-is (and tagged below if it's a dynamic image field),
-        # so logos/figures survive instead of being replaced by a placeholder.
-        if _paragraph_has_picture(para):
+        # A paragraph holding only a picture has no text to templatize — leave
+        # it alone (it may be tagged below as a dynamic image field). One that
+        # holds a picture *and* text still gets its text replaced: _clear_runs
+        # keeps image runs, so the logo survives beside the placeholder. Without
+        # this, a caption sharing a paragraph with a logo stayed literal.
+        if _paragraph_has_picture(para) and not (para.text or "").strip():
             continue
         fd = fd_by_node.get(wn.node_id)
         # Compute the optional toggle name from the ORIGINAL text (before edits).
@@ -521,10 +554,12 @@ def build_template_docx(
                 _templatize_paragraph(
                     para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or ""
                 )
-                if _is_tags_only_forced(cls):
+                if _is_tags_only_forced(cls) and not _paragraph_has_picture(para):
                     # Unfilled -> the whole paragraph disappears instead of
                     # rendering a blank line (the field's own value is both
-                    # the condition and the content it guards).
+                    # the condition and the content it guards). Never for a
+                    # paragraph holding a picture: the logo beside the text is
+                    # content in its own right and must not vanish with it.
                     _wrap_optional(para, name)
             elif (fd and fd.field_name) or cls.field_name:
                 logger.warning(
