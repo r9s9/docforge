@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ...ai.client import LLMClient, LLMError
-from ...ai_quota import usage_snapshot
+from ...ai_quota import plan_ai_for_owner, usage_snapshot
 from ...db.models import AnalysisJob, ComplianceRun, GenerationRequest, UserAIConfig
 from ...settings_store import (
     ANTHROPIC_DEFAULT_BASE,
@@ -22,6 +22,7 @@ from ...settings_store import (
     GEMINI_WORKHORSE_MODEL,
     OPENAI_DEFAULT_BASE,
     AIConfig,
+    default_base_url,
 )
 from ..auth import CurrentUser, get_current_user
 from ..deps import get_db, get_settings_dep
@@ -57,15 +58,18 @@ def _ai_dto(row: UserAIConfig | None) -> dict:
             "no_think": False,
             "active": False,
         }
+    # "active" must mean exactly what the pipeline means by it, or the page can
+    # report a working key while every action quietly runs the offline engine.
+    plan = plan_ai_for_owner(row.owner_id)
     return {
         "provider": row.provider or "openai",
         "enabled": bool(row.enabled),
-        "base_url": row.base_url or OPENAI_DEFAULT_BASE,
+        "base_url": row.base_url or default_base_url(row.provider),
         "model": row.model or "gpt-4o-mini",
         "reasoning_model": (row.reasoning_model or "").strip(),
         "has_key": bool((row.api_key or "").strip()),
         "no_think": bool(row.no_think),
-        "active": bool(row.enabled and (row.api_key or "").strip()),
+        "active": plan.config.active,
     }
 
 
@@ -147,6 +151,10 @@ def put_settings_api(
     # A blank api_key never clobbers an existing stored key.
     if patch.get("api_key"):
         row.api_key = patch["api_key"].strip()
+    # Store where to reach the provider. Without it the config is inert, so
+    # saving a key would appear to work and change nothing.
+    if not (row.base_url or "").strip():
+        row.base_url = default_base_url(row.provider)
     db.commit()
     db.refresh(row)
     return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}

@@ -8,6 +8,7 @@ from ..ai.client import LLMClient
 from ..ai.prompts import LLMRouteResponse, build_route_prompt
 from ..schemas.routing import PlacementInstruction, RoutingResult
 from ..schemas.template import FieldDefinition
+from .naming import build_name_resolver
 
 # Route this many fields per LLM call. Routing output is naturally bounded (the
 # model only emits placements for content it actually found, not one per field),
@@ -51,12 +52,17 @@ def route_llm(
         resp = client.complete_json(
             system=system, developer=developer, user=user, schema=LLMRouteResponse
         )
+        resolve = build_name_resolver(batch)
         for p in resp.placements:
-            if p.field_name in batch_valid and p.field_name not in seen:
-                seen.add(p.field_name)
+            # Accept a near-miss on the name (a dropped suffix, the label, a
+            # tidied spelling) rather than discarding correct content because a
+            # machine-made field name was not reproduced character for character.
+            name = resolve(p.field_name)
+            if name in batch_valid and name not in seen:
+                seen.add(name)
                 placements.append(
                     PlacementInstruction(
-                        field_name=p.field_name,
+                        field_name=name,
                         value=p.value,
                         confidence=max(0.0, min(1.0, p.confidence)),
                         source_excerpt=p.source_excerpt,

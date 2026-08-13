@@ -68,10 +68,17 @@ def _row(owner_id: str | None):
 
 
 def _own_config(row, s) -> AIConfig:
+    from .settings_store import default_base_url
+
+    provider = row.provider or "openai"
     return AIConfig(
-        provider=row.provider or "openai",
+        provider=provider,
         enabled=True,
-        base_url=(row.base_url or "").strip(),
+        # A stored row can predate the base URL being filled in on save, and a
+        # blank one makes the whole config inert. Fall back to the provider's
+        # own endpoint so an existing key starts working rather than silently
+        # routing every action to the offline engine.
+        base_url=(row.base_url or "").strip() or default_base_url(provider),
         api_key=(row.api_key or "").strip(),
         model=row.model or "",
         reasoning_model=(getattr(row, "reasoning_model", "") or "").strip(),

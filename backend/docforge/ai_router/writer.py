@@ -29,6 +29,7 @@ from ..schemas.routing import PlacementInstruction, RoutingResult
 from ..schemas.template import FieldDefinition
 from ..settings_store import REASONING_TIER
 from .compose import apply_validation_flags
+from .naming import build_name_resolver
 
 logger = logging.getLogger("docforge.ai_router.writer")
 
@@ -83,17 +84,23 @@ def write_document(
     )
 
     valid = {f.field_name for f in fields}
+    resolve = build_name_resolver(fields)
     placements: list[PlacementInstruction] = []
     seen: set[str] = set()
+    unplaceable: list[str] = []
     for written in response.placements:
-        if written.field_name not in valid or written.field_name in seen:
+        name = resolve(written.field_name)
+        if name is None:
+            # Never silently: a whole response landing here is exactly how a
+            # document ends up empty with nothing to explain it.
+            unplaceable.append(written.field_name or "(unnamed)")
             continue
-        if written.value in (None, ""):
+        if name in seen or written.value in (None, ""):
             continue
-        seen.add(written.field_name)
+        seen.add(name)
         placements.append(
             PlacementInstruction(
-                field_name=written.field_name,
+                field_name=name,
                 value=written.value,
                 confidence=_clamp(written.confidence),
                 source_excerpt=written.source_excerpt,
@@ -102,6 +109,11 @@ def write_document(
                 note=written.note or ("AI-drafted" if written.ai_drafted else ""),
                 ai_drafted=written.ai_drafted,
             )
+        )
+    if unplaceable:
+        logger.warning(
+            "writer returned %d value(s) for fields this template does not have: %s",
+            len(unplaceable), ", ".join(unplaceable[:12]),
         )
 
     n_flagged = apply_validation_flags(placements, fields)
@@ -120,13 +132,21 @@ def write_document(
         len(skipped),
         len(missing),
     )
+    unmapped = list(response.unmapped_content)
+    if unplaceable:
+        unmapped.append(
+            "The AI wrote content for "
+            + ", ".join(unplaceable[:6])
+            + (" and others" if len(unplaceable) > 6 else "")
+            + " — no such field in this template, so it could not be placed."
+        )
     return RoutingResult(
         template_id=template_id,
         version=version,
         placements=placements,
         missing_required=missing,
         ambiguous_fields=[p.field_name for p in placements if p.ambiguous],
-        unmapped_content=response.unmapped_content,
+        unmapped_content=unmapped,
         skipped_sections=skipped,
         model_used=client.config.model_for_tier(REASONING_TIER),
         source="writer",

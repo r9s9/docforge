@@ -575,6 +575,21 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   below carefully, or try again.
                 </div>
               )}
+              {routing.placements.length === 0 && (
+                <div className="banner warn" style={{ display: "block", marginTop: 8 }} role="status">
+                  <div>
+                    <AlertTriangle size={14} strokeWidth={2} />{" "}
+                    <strong>Nothing was placed.</strong> Your content didn&apos;t match any field in
+                    this template.
+                  </div>
+                  <p className="muted" style={{ margin: "6px 0 0" }}>
+                    This usually means the template&apos;s fields don&apos;t describe the document
+                    you&apos;re writing — templates built from a blank corporate skeleton get
+                    machine-made names like <span className="mono">body_body</span>. Re-create the
+                    template from a filled-in example, or fill the fields below by hand.
+                  </p>
+                </div>
+              )}
               {routing.missing_required.length > 0 && (
                 <div style={{ color: "var(--amber)" }}>
                   Missing required: {routing.missing_required.join(", ")}

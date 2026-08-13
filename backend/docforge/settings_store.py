@@ -29,6 +29,17 @@ GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
 GEMINI_WORKHORSE_MODEL = "gemini-2.5-flash-lite"
 GEMINI_REASONING_MODEL = "gemini-2.5-flash"
 
+
+def default_base_url(provider: str | None) -> str:
+    """Where to reach ``provider`` when the user didn't type a base URL.
+
+    A config without a base URL is inert — ``AIConfig.active`` is false — so a
+    blank one silently turned every AI action into the offline engine while the
+    Settings page still reported the key as active. Filling it in is what makes
+    "I pasted my key" mean what the user expects.
+    """
+    return ANTHROPIC_DEFAULT_BASE if (provider or "").lower() == "anthropic" else OPENAI_DEFAULT_BASE
+
 # Logical tiers an agentic step can ask for. "reasoning" uses ``reasoning_model``
 # when configured; everything else uses the workhorse ``model``.
 WORKHORSE_TIER = "workhorse"
