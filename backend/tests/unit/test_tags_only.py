@@ -110,6 +110,55 @@ def test_tags_only_template_contains_no_original_text(tmp_path):
     assert "overall goals" not in out_text
 
 
+def test_tags_only_leaves_nothing_a_person_wrote_untagged(tmp_path):
+    """Full-template mode means it: the running header, a caption, a column
+    heading and a section label all become fields. The only text left behind is
+    what Word writes for itself."""
+    import re as _re
+
+    from docx.shared import Pt
+
+    doc = Document()
+    doc.sections[0].header.paragraphs[0].text = "PROJECT TITLE"
+    doc.add_paragraph("REVISIONS")  # a section label
+    table = doc.add_table(rows=3, cols=2)
+    table.cell(0, 0).text = "Item"  # a column heading
+    table.cell(0, 1).text = "Owner"
+    table.cell(1, 0).text = "Projector"
+    table.cell(1, 1).text = "Alice"
+    table.cell(2, 0).text = "Screen"
+    table.cell(2, 1).text = "Bob"
+    caption = doc.add_paragraph("Table 1: Equipment list")
+    caption.style = doc.styles["Caption"]
+    doc.add_paragraph("The session ran for ninety minutes.")
+    path = tmp_path / "everything.docx"
+    doc.save(str(path))
+
+    ext = build_extraction(path, "d0")
+    result = classify(ext, None, mode="tags_only")
+    fields = derive_field_definitions(ext, result)
+    built = Document(BytesIO(build_template_docx(path, result, fields)))
+
+    def leftover(text: str) -> str:
+        return _re.sub(r"\{\{.*?\}\}|\{%.*?%\}", "", text or "").strip()
+
+    survivors = [leftover(p.text) for p in built.paragraphs if leftover(p.text)]
+    survivors += [
+        leftover(p.text)
+        for t in built.tables
+        for row in t.rows
+        for c in row.cells
+        for p in c.paragraphs
+        if leftover(p.text)
+    ]
+    survivors += [
+        leftover(p.text)
+        for p in built.sections[0].header.paragraphs
+        if leftover(p.text)
+    ]
+    assert survivors == [], f"text left untagged: {survivors}"
+
+
 def test_tags_only_leaves_multi_paragraph_toc_field_untagged(tmp_path):
     # A genuine Word Table of Contents must stay a live field -- Word
     # regenerates its content from the document's real headings whenever

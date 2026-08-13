@@ -14,6 +14,8 @@ handful of section fields instead of 80 one-off fields.
 
 from __future__ import annotations
 
+import re
+
 from ..common.textutil import slugify_field, value_kind
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic, needs_field
@@ -70,30 +72,50 @@ def _is_structural_label(e: NormalizedElement) -> bool:
     return any(h in style for h in _STRUCTURAL_STYLE_HINTS) and len(text.split()) <= 3
 
 
+# Styles whose whole paragraph is written by Word from the document itself — a
+# table of contents, a list of figures, an index. Tagging these is pointless:
+# Word rebuilds them on open and overwrites whatever we put there.
+_GENERATED_STYLES = ("toc", "table of figures", "index ", "table of authorities")
+
+
+def _is_generated_listing(e: NormalizedElement) -> bool:
+    style = (e.style_name or "").lower()
+    if style.startswith(_GENERATED_STYLES):
+        return True
+    if style.startswith("caption"):
+        # A caption carries an auto number, but the words after it are the
+        # author's — the number is preserved and the text becomes a field.
+        return False
+    return "toc" in e.semantic_hints or "auto_field" in e.semantic_hints
+
+
 def _is_exempt(e: NormalizedElement, c: ElementClassification | None) -> bool:
-    """Nodes that keep their existing classification in tags-only mode."""
-    if e.header_footer_scope is not None:
-        return True  # headers/footers keep their (usually fixed/auto) content
+    """Nodes that keep their existing classification in tags-only mode.
+
+    Only two things are exempt, and neither is text a person wrote: a picture
+    with no words of its own, and content Word generates for itself (page
+    numbers, a table of contents, a list of figures). Everything else — including
+    the running header, the footer and every label — becomes a field, because
+    "full template" has to mean it.
+    """
     if (e.image_ref is not None or e.type == ElementType.IMAGE) and not (e.text or "").strip():
         return True  # a picture alone is swapped via its image field, not tagged
 
-    if c is not None and c.classification == ClassificationType.AUTO_FIELD:
-        return True  # page numbers / TOC render themselves
-    if "auto_field" in e.semantic_hints or "toc" in e.semantic_hints:
-        return True
+    if _is_generated_listing(e):
+        return True  # a contents list rebuilds itself; a tag there is overwritten
     if not (e.text or "").strip() and e.type != ElementType.TABLE:
         return True  # nothing to templatize
     return False
 
 
-def _keep_fixed(c: ElementClassification, reason: str) -> None:
-    """Return a node to boilerplate, discarding any field the model gave it."""
-    c.classification = ClassificationType.FIXED
-    c.field_name = None
-    c.field_type = None
-    c.required = False
-    c.optional = False
-    c.rationale = f"{(c.rationale or '').rstrip()} [{reason}]".strip()
+STRUCTURAL_MARK = "[structural]"
+
+
+def _mark_structural(c: ElementClassification) -> None:
+    """Flag a field as a document label so it can default to its own wording."""
+    if STRUCTURAL_MARK not in (c.rationale or ""):
+        c.rationale = f"{(c.rationale or '').rstrip()} {STRUCTURAL_MARK}".strip()
+    c.required = False  # it already has a value; nobody must be made to retype it
 
 
 def _is_data_table(e: NormalizedElement) -> bool:
@@ -121,12 +143,19 @@ def _field_table_cells(
     cls_by_node: dict[str, ElementClassification],
     used: set[str],
     section: str,
+    only_row: int | None = None,
 ) -> set[str]:
-    """Turn each non-empty cell of a layout table into its own field."""
+    """Turn each non-empty cell of a table into its own field.
+
+    ``only_row`` restricts this to one row — used for a data table, where the
+    loop owns every row but the header.
+    """
     forced: set[str] = set()
     label = slugify_field(section or table.text or "cell", fallback="cell")
     for e in extraction.elements:
         if e.parent_node_id != table.node_id:
+            continue
+        if only_row is not None and _cell_row(e) != only_row:
             continue
         text = (e.text or "").strip()
         if not text:
@@ -150,8 +179,18 @@ def _field_table_cells(
             section=section,
             text=text,
         )
+        if only_row == 0:
+            # Column headings label the rows below them. Editable, but they keep
+            # their own wording so a table never loses its headings.
+            _mark_structural(c)
         forced.add(e.node_id)
     return forced
+
+
+def _cell_row(e: NormalizedElement) -> int | None:
+    """Row index of a table-cell paragraph (the normalizer stores 'r0c1')."""
+    match = re.match(r"r(\d+)c\d+", e.subtype or "")
+    return int(match.group(1)) if match else None
 
 
 def _force_dynamic(
@@ -283,15 +322,30 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
 
     for e in extraction.top_level_elements():
         c = cls_by_node[e.node_id]
-        if _is_structural_label(e):
-            # "TABLE OF CONTENTS", "REVISIONS", "FIGURES" — these name a part of
-            # the document. Left as fields, a writer fills them with prose where
-            # a one-word label belongs.
-            flush_pending()
-            _keep_fixed(c, "structural label")
-            continue
         if _is_exempt(e, c):
             flush_pending()
+            continue
+
+        if _is_structural_label(e):
+            # "TABLE OF CONTENTS", "REVISIONS", "FIGURES" name a part of the
+            # document. They are still fields — every text is — but they keep
+            # their own wording as the default, so an untouched template renders
+            # the label rather than whatever prose an AI would invent for it.
+            flush_pending()
+            text = (e.text or "").strip()
+            if not (c.field_name and is_dynamic(c.classification)):
+                name = _unique(slugify_field(text, fallback="label") + "_label", used)
+                used.add(name)
+                _force_dynamic(
+                    c,
+                    classification=ClassificationType.DYNAMIC_TEXT,
+                    field_type=FieldType.TEXT,
+                    name=name,
+                    section=section,
+                    text=text,
+                )
+                forced.add(e.node_id)
+            _mark_structural(c)
             continue
 
         if e.type == ElementType.HEADING:
@@ -323,23 +377,33 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
 
         if e.type == ElementType.TABLE:
             flush_pending()
-            if c.classification == ClassificationType.REPEATABLE_TABLE and c.field_name:
-                continue  # already a data table — the loop owns its cells
-            if _is_data_table(e):
-                name = c.field_name or _unique(
-                    slugify_field(section or "rows", fallback="rows") + "_rows", used
+            already_looped = (
+                c.classification == ClassificationType.REPEATABLE_TABLE and bool(c.field_name)
+            )
+            if already_looped or _is_data_table(e):
+                if not already_looped:
+                    name = _unique(
+                        slugify_field(section or "rows", fallback="rows") + "_rows", used
+                    )
+                    used.add(name)
+                    headers = e.table_structure.headers if e.table_structure else []
+                    _force_dynamic(
+                        c,
+                        classification=ClassificationType.REPEATABLE_TABLE,
+                        field_type=FieldType.TABLE,
+                        name=name,
+                        section=section,
+                        text=", ".join(headers) or "table",
+                    )
+                    forced.add(e.node_id)
+                # The loop replaces the data rows; the header row above it stays
+                # put, so its column labels are the one part of a data table
+                # that still needs tagging.
+                forced.update(
+                    _field_table_cells(
+                        extraction, result, e, cls_by_node, used, section, only_row=0
+                    )
                 )
-                used.add(name)
-                headers = e.table_structure.headers if e.table_structure else []
-                _force_dynamic(
-                    c,
-                    classification=ClassificationType.REPEATABLE_TABLE,
-                    field_type=FieldType.TABLE,
-                    name=name,
-                    section=section,
-                    text=", ".join(headers) or "table",
-                )
-                forced.add(e.node_id)
             else:
                 # A layout table (a cover block, an address panel). Its shape is
                 # part of the design, so it keeps every row and each cell becomes
@@ -365,7 +429,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
     # and force-tags it individually, so "every text is tagged" always holds.
     for e in extraction.top_level_elements():
         c = cls_by_node[e.node_id]
-        if _is_exempt(e, c) or _is_structural_label(e):
+        if _is_exempt(e, c):
             continue
         if needs_field(c.classification) and c.field_name:
             continue

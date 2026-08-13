@@ -166,6 +166,21 @@ def _run_has_image(run) -> bool:
     )
 
 
+def _run_has_field(run) -> bool:
+    """True if a run carries a Word field (a caption's auto number, a page ref).
+
+    Word computes these; replacing one with a placeholder would break the
+    document's own numbering, so the field is kept and only the words around it
+    become editable.
+    """
+    el = run._element
+    return (
+        el.find(qn("w:fldChar")) is not None
+        or el.find(qn("w:instrText")) is not None
+        or el.find(qn("w:fldSimple")) is not None
+    )
+
+
 def _clear_runs(paragraph: Paragraph, *, keep_images: bool = True) -> None:
     """Remove a paragraph's runs.
 
@@ -176,7 +191,7 @@ def _clear_runs(paragraph: Paragraph, *, keep_images: bool = True) -> None:
     alongside the surviving image run.
     """
     for r in list(paragraph.runs):
-        if keep_images and _run_has_image(r):
+        if keep_images and (_run_has_image(r) or _run_has_field(r)):
             continue
         r._element.getparent().remove(r._element)
 
@@ -428,11 +443,15 @@ def _nodes_inside_looped_tables(nodes: list, cls_by_node: dict) -> set[str]:
         return set()
     owned: set[str] = set()
     parent = {wn.node_id: wn.parent_node_id for wn in nodes}
+    row_of = {wn.node_id: wn.row for wn in nodes}
     for node_id in parent:
         ancestor = parent.get(node_id)
         while ancestor is not None:
             if ancestor in looped:
-                owned.add(node_id)
+                # Row 0 stays put as the table's heading row — it is above the
+                # loop, so its cells keep their own placeholders.
+                if row_of.get(node_id) != 0:
+                    owned.add(node_id)
                 break
             ancestor = parent.get(ancestor)
     return owned

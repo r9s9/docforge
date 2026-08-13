@@ -18,6 +18,7 @@ from ..schemas.enums import (
 )
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition, TableColumn, ValidationRule
+from .tags_only import STRUCTURAL_MARK
 
 _NUMBER_HEADER_HINTS = ("qty", "quantity", "amount", "price", "total", "cost", "count", "rate", "no.")
 _DATE_HEADER_HINTS = ("date", "due")
@@ -177,6 +178,10 @@ def derive_field_definitions(
         label = _label_from(c.field_name, c)
         example_el = by_id.get(c.node_id)
         example_text = (example_el.text if example_el else "") or ""
+        # A document label ("TABLE OF CONTENTS") is editable like everything
+        # else, but starts as itself: left alone it renders the label, instead
+        # of vanishing or being filled with a sentence.
+        default = example_text.strip() if STRUCTURAL_MARK in (c.rationale or "") else None
         fields.append(
             FieldDefinition(
                 field_name=c.field_name,
@@ -187,6 +192,7 @@ def derive_field_definitions(
                 or _fallback_description(label, c, example_text),
                 required=c.required and not c.optional,
                 enum_values=c.enum_values,
+                default=default,
                 node_ids=[c.node_id],
                 section_key=section_for(c.field_name),
                 columns=columns,

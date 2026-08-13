@@ -137,10 +137,16 @@ def test_empty_paragraphs_do_not_become_fields(tmp_path):
     assert len(fields) <= 2, [f.field_name for f in fields]
 
 
-def test_structural_labels_stay_boilerplate(tmp_path):
-    """A word that names a part of the document is furniture, not a field."""
+def test_structural_labels_are_tagged_but_keep_their_wording(tmp_path):
+    """Full-template mode tags every text — including a section label.
+
+    A label is still editable, but it starts as itself: generating without
+    touching it renders "TABLE OF CONTENTS", not a blank line or whatever prose
+    an AI would invent for a one-word heading.
+    """
+    labels = ("TABLE OF CONTENTS", "REVISIONS", "FIGURES", "APPENDICES")
     doc = Document()
-    for label in ("TABLE OF CONTENTS", "REVISIONS", "FIGURES", "APPENDICES"):
+    for label in labels:
         doc.add_paragraph(label)
     doc.add_paragraph("The pilot ran for six weeks and met every milestone.")
     src = tmp_path / "labels.docx"
@@ -148,9 +154,18 @@ def test_structural_labels_stay_boilerplate(tmp_path):
 
     template, fields, _ = _build(str(src))
     body = Document(BytesIO(template)).element.body.xml
-    for label in ("TABLE OF CONTENTS", "REVISIONS", "FIGURES", "APPENDICES"):
-        assert label in body, f"{label} should have stayed in the template"
-    assert len(fields) == 1, [f.field_name for f in fields]
+    for label in labels:
+        assert label not in body, f"{label} was left as literal text, not tagged"
+
+    defaults = {f.default for f in fields if f.default}
+    assert set(labels) <= defaults, f"labels lost their wording: {defaults}"
+    assert all(not f.required for f in fields if f.default), "a defaulted label must not be required"
+
+    # Supplying nothing still produces the labels.
+    rendered = Document(BytesIO(assemble(template, {}, fields)))
+    text = [p.text.strip() for p in rendered.paragraphs]
+    for label in labels:
+        assert label in text, f"{label} vanished when nothing was supplied"
 
 
 def test_generated_documents_ask_word_to_rebuild_its_fields(tmp_path):

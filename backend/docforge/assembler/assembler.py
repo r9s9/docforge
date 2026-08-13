@@ -142,6 +142,11 @@ def build_render_context(fields: list[FieldDefinition], raw: dict[str, Any]) -> 
         elif f.classification == ClassificationType.REPEATABLE_SECTION:
             ctx[f.field_name] = _coerce_str_list(value)
         else:
+            # A field carrying a default stands for text the template already
+            # had (a section label). Supplying nothing means "leave it as it
+            # was", not "delete it".
+            if value in (None, "") and f.default not in (None, ""):
+                value = f.default
             ctx[f.field_name] = _coerce_scalar(value)
     for k, v in raw.items():
         if k not in defined:
