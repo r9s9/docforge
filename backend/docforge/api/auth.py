@@ -88,6 +88,22 @@ def _verify_token(token: str, settings: Settings) -> dict:
     )
 
 
+def get_optional_user(
+    authorization: str | None = Header(default=None),
+    settings: Settings = Depends(get_settings_dep),
+) -> CurrentUser | None:
+    """The signed-in user if the request carries a valid token, else ``None``.
+
+    For endpoints that must answer both before and after sign-in — the health
+    check is reached from the login screen — but that can say more once they
+    know who is asking.
+    """
+    try:
+        return get_current_user(authorization=authorization, settings=settings)
+    except HTTPException:
+        return None
+
+
 def get_current_user(
     authorization: str | None = Header(default=None),
     settings: Settings = Depends(get_settings_dep),

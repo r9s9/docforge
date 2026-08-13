@@ -452,12 +452,17 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     setBusy(true);
     setError("");
     setResult(null);
+    // Generating writes the document, checks it over and may rewrite it once,
+    // so it is far from instant — show that it is working rather than leaving
+    // the button spinning alone.
+    startAiTimer(mode === "raw" ? "Writing your document with AI…" : "Building your document…");
     try {
       const r = await api.generate(selectedId, buildBody());
       setResult(r);
     } catch (e: any) {
       setError(String(e.message || e));
     } finally {
+      stopAiTimer();
       setBusy(false);
     }
   }
@@ -919,6 +924,11 @@ function ResultPanel({ result }: { result: GenerationResult }) {
   const v = result.validation;
   const review = result.routing?.render_review ?? [];
   const [pdfMsg, setPdfMsg] = useState("");
+  // PDF conversion needs LibreOffice on the server, which a serverless host
+  // doesn't have. Offering a button that can only ever fail is worse than not
+  // offering one — say why instead.
+  const health = useHealth();
+  const pdfSupported = health?.pdf_export !== false;
 
   async function downloadPdf() {
     if (!result.download_url) return;
@@ -967,7 +977,7 @@ function ResultPanel({ result }: { result: GenerationResult }) {
             <Download size={15} strokeWidth={1.9} /> Download {result.output_filename}
           </button>
         )}
-        {result.download_url && (
+        {result.download_url && pdfSupported && (
           <button className="btn secondary" onClick={downloadPdf}>
             <Download size={15} strokeWidth={1.9} /> Download PDF
           </button>
@@ -981,6 +991,11 @@ function ResultPanel({ result }: { result: GenerationResult }) {
       {pdfMsg && (
         <p className="muted" style={{ marginTop: -6, marginBottom: 12 }}>
           {pdfMsg}
+        </p>
+      )}
+      {result.download_url && !pdfSupported && (
+        <p className="muted" style={{ marginTop: -6, marginBottom: 12, fontSize: 12 }}>
+          PDF export isn’t available on this server — open the DOCX in Word and save as PDF.
         </p>
       )}
 

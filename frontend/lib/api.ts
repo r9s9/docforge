@@ -379,7 +379,12 @@ export const api = {
   // browser. Needed because plain <a href> / window navigations can't send the
   // Authorization header. `url` may be absolute (already includes /api).
   download: async (url: string, filename?: string): Promise<void> => {
-    const res = await fetch(url, { headers: await withAuth() });
+    // The API hands back root-relative URLs ("/api/generations/…/download").
+    // When the backend is on its own origin those must be resolved against it,
+    // exactly as every other call is — otherwise the fetch goes to the site
+    // itself, which serves no such path.
+    const target = url.startsWith("/") ? `${API_ORIGIN}${url}` : url;
+    const res = await fetch(target, { headers: await withAuth() });
     if (!res.ok) await raiseForStatus(res);
     const cd = res.headers.get("Content-Disposition") || "";
     const m = cd.match(/filename="?([^"]+)"?/);

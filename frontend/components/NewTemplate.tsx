@@ -383,6 +383,11 @@ export default function NewTemplate() {
                   <div style={{ marginTop: 16 }}>
                     <ProgressBar
                       percent={progress}
+                      // Until the first poll reports real progress we genuinely
+                      // don't know how far along it is — on a serverless backend
+                      // the whole analysis runs inside the upload request, so a
+                      // frozen "0%" reads as broken. Show it moving instead.
+                      indeterminate={progress <= 0}
                       stage={stage}
                       busy
                       steps={analysisMode === "tags_only" ? AI_STEPS_TAGS_ONLY : AI_STEPS_SMART}

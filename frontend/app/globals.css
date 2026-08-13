@@ -2045,37 +2045,63 @@ tr.low-conf td {
   border-radius: 50%;
   will-change: transform;
 }
+/* Each blob wanders a closed loop rather than ping-ponging along one line, and
+   the three periods share no common factor — so they drift out of phase and the
+   picture takes hours to repeat instead of visibly cycling. Slow enough that you
+   notice it changed, not that it is moving. Transform and opacity only: both are
+   composited, so the whole thing costs nothing to run. */
 .aurora i:nth-child(1) {
   top: -10%;
   left: -10%;
   background: radial-gradient(circle, var(--aurora-1) 0%, transparent 70%);
-  animation: aurora-drift-1 45s ease-in-out infinite alternate;
+  animation:
+    aurora-drift-1 210s ease-in-out infinite,
+    aurora-breathe 97s ease-in-out infinite;
 }
 .aurora i:nth-child(2) {
   top: 20%;
   right: -15%;
   background: radial-gradient(circle, var(--aurora-2) 0%, transparent 70%);
-  animation: aurora-drift-2 60s ease-in-out infinite alternate;
-  animation-delay: -20s;
+  animation:
+    aurora-drift-2 260s ease-in-out infinite,
+    aurora-breathe 127s ease-in-out infinite;
+  animation-delay: -70s, -40s;
 }
 .aurora i:nth-child(3) {
   bottom: -15%;
   left: 25%;
   background: radial-gradient(circle, var(--aurora-3) 0%, transparent 70%);
-  animation: aurora-drift-3 75s ease-in-out infinite alternate;
-  animation-delay: -40s;
+  animation:
+    aurora-drift-3 330s ease-in-out infinite,
+    aurora-breathe 151s ease-in-out infinite;
+  animation-delay: -150s, -90s;
 }
 @keyframes aurora-drift-1 {
-  from { transform: translate(0, 0) rotate(0deg) scale(1); }
-  to { transform: translate(8vw, 6vh) rotate(40deg) scale(1.15); }
+  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+  25%  { transform: translate(7vw, 5vh) rotate(18deg) scale(1.12); }
+  50%  { transform: translate(3vw, 11vh) rotate(38deg) scale(1.04); }
+  75%  { transform: translate(-4vw, 6vh) rotate(20deg) scale(1.16); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes aurora-drift-2 {
-  from { transform: translate(0, 0) rotate(0deg) scale(1.1); }
-  to { transform: translate(-7vw, 8vh) rotate(-30deg) scale(0.95); }
+  0%   { transform: translate(0, 0) rotate(0deg) scale(1.1); }
+  25%  { transform: translate(-6vw, 7vh) rotate(-14deg) scale(0.97); }
+  50%  { transform: translate(-9vw, -3vh) rotate(-28deg) scale(1.14); }
+  75%  { transform: translate(-2vw, -8vh) rotate(-12deg) scale(1.02); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1.1); }
 }
 @keyframes aurora-drift-3 {
-  from { transform: translate(0, 0) rotate(0deg) scale(0.95); }
-  to { transform: translate(6vw, -7vh) rotate(25deg) scale(1.2); }
+  0%   { transform: translate(0, 0) rotate(0deg) scale(0.95); }
+  25%  { transform: translate(5vw, -6vh) rotate(12deg) scale(1.18); }
+  50%  { transform: translate(10vw, 2vh) rotate(26deg) scale(1.05); }
+  75%  { transform: translate(4vw, 8vh) rotate(10deg) scale(1.2); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(0.95); }
+}
+/* A gentle swell in intensity, on its own period, so the colours shift relative
+   to one another instead of the whole field moving as one piece. */
+@keyframes aurora-breathe {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
 }
 
 /* ---- Entrance micro-animations ---- */
