@@ -239,6 +239,13 @@ Return ONLY a JSON object with this shape:
 }
 
 Rules:
+- With only ONE sample document there is no diff evidence, and "no evidence of
+  change" is not evidence of boilerplate. Read it structurally instead: a
+  document's skeleton is its headings, labels and legal boilerplate; its
+  CONTENT — the paragraphs and bullet lists underneath those headings — is what
+  a new document of this type would replace, so classify that content as
+  DYNAMIC. A template whose body is all FIXED reproduces one document and
+  cannot be filled in.
 - Use the diff evidence as the primary signal: identical across samples => FIXED;
   values that change => DYNAMIC_*; a table whose row count or rows vary but whose
   header is stable => REPEATABLE_TABLE.

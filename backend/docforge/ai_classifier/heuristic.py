@@ -30,6 +30,9 @@ from ..schemas.extraction import DocumentExtraction, NormalizedElement
 # repeats". Shared with the tags-only pass so both agree what data looks like.
 _MIN_ROWS_FOR_LOOP = 2
 
+# Body text longer than this becomes a multiline field rather than a one-liner.
+_MULTILINE_THRESHOLD = 120
+
 
 def looks_like_data_table(ts) -> bool:
     """Whether a table's rows are several of one thing, or page layout.
@@ -193,7 +196,10 @@ def _classify_single_doc(
 ) -> ElementClassification:
     txt = e.text.strip()
     # Labeled "Key: value" lines -> dynamic value with the label kept static.
-    if ":" in txt:
+    # Not for bullets: a list item is prose that often contains a colon
+    # ("Key components: Topics, Triggers, Actions"), and reading it as metadata
+    # chops a coherent list into unrelated one-line fields.
+    if ":" in txt and e.type != ElementType.LIST_ITEM:
         label, _, value = txt.partition(":")
         value = value.strip()
         if value:
@@ -240,6 +246,28 @@ def _classify_single_doc(
             validation_hints=_validation_hints(kind, [txt]),
             source="heuristic",
             rationale="single-doc typed token",
+        )
+
+    # Body prose with no other signal. With one example there is no evidence of
+    # what varies, so the question is which reading is useful: a document's
+    # skeleton is its headings and labels, and its *content* is the paragraphs
+    # and bullets underneath them. Calling those fixed produces a template that
+    # reproduces one document and cannot be filled in at all — so content is
+    # treated as content. Consecutive runs are merged into one field by
+    # ``_group_single_doc_body`` rather than becoming a field per line.
+    if e.type in (ElementType.PARAGRAPH, ElementType.LIST_ITEM) and txt:
+        return ElementClassification(
+            node_id=e.node_id,
+            classification=ClassificationType.DYNAMIC_TEXT,
+            field_name=_unique(slugify_field(section_title or "body", fallback="body"), used),
+            field_type=(
+                FieldType.MULTILINE_TEXT if len(txt) > _MULTILINE_THRESHOLD else FieldType.TEXT
+            ),
+            description=f"Content for '{section_title or 'the document'}'",
+            required=True,
+            confidence=0.5,
+            source="heuristic",
+            rationale="single-doc body content",
         )
 
     return ElementClassification(
@@ -308,6 +336,44 @@ def _classify_element(
     return _classify_single_doc(e, section_title, used)
 
 
+def _group_single_doc_body(
+    top: list[NormalizedElement], by_node: dict[str, ElementClassification]
+) -> None:
+    """Merge each run of consecutive body nodes into one repeatable section.
+
+    Without this a page of bullets becomes a field per bullet, which is
+    unusable: the reviewer scrolls past forty cards to fill in one list. A run
+    under the same heading is one thing to write, so it gets one field whose
+    value is a list of lines.
+    """
+    run: list[ElementClassification] = []
+
+    def flush() -> None:
+        if len(run) < 2:
+            run.clear()
+            return
+        first = run[0]
+        for c in run:
+            c.classification = ClassificationType.REPEATABLE_SECTION
+            c.field_type = FieldType.MULTILINE_TEXT
+            c.field_name = first.field_name
+            c.rationale = "single-doc body run"
+        run.clear()
+
+    for e in top:
+        c = by_node.get(e.node_id)
+        is_body = (
+            c is not None
+            and c.rationale == "single-doc body content"
+            and e.type in (ElementType.PARAGRAPH, ElementType.LIST_ITEM)
+        )
+        if is_body:
+            run.append(c)
+        else:
+            flush()
+    flush()
+
+
 def classify_heuristic(
     extraction: DocumentExtraction, diff: DiffRunResult | None = None
 ) -> ClassificationResult:
@@ -346,6 +412,11 @@ def classify_heuristic(
         if c.field_name:
             used.add(c.field_name)
             sections[skey].field_names.append(c.field_name)
+
+    # One example only: consecutive body nodes are one thing to write, so they
+    # share a field instead of producing one card per line.
+    if diff is None:
+        _group_single_doc_body(top, {c.node_id: c for c in classifications})
 
     # Everything nested inside a table/cell is fixed (its table owns it).
     for e in extraction.elements:

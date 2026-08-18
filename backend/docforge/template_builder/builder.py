@@ -387,6 +387,50 @@ def section_toggle_name(section_key: str) -> str | None:
     return _safe_ident(f"_show_{slug}") if slug else None
 
 
+def _loop_depth(el) -> int:
+    """Net loops opened by one block element (a marker paragraph opens or closes)."""
+    if el.tag != qn("w:p"):
+        return 0
+    text = "".join(el.itertext())
+    return (
+        text.count("{%p for") + text.count("{%tr for")
+        - text.count("{%p endfor") - text.count("{%tr endfor")
+    )
+
+
+def _span_close_anchor(first: Paragraph, last: Paragraph):
+    """The element to close a section after, or ``None`` if it cannot be closed.
+
+    A section's last paragraph is usually the body of a repeatable section, and
+    that loop's ``{%p endfor %}`` marker sits *after* it — so closing the section
+    at the paragraph would interleave the tags and break the template. Walking
+    forward until every loop opened inside the span has closed keeps the nesting
+    valid; running out of siblings first means this section cannot be wrapped.
+    """
+    parent = first._p.getparent()
+    if parent is None or last._p.getparent() is not parent:
+        return None
+    children = list(parent)
+    try:
+        lo, hi = children.index(first._p), children.index(last._p)
+    except ValueError:
+        return None
+    depth = 0
+    for el in children[lo : hi + 1]:
+        depth += _loop_depth(el)
+        if depth < 0:
+            return None  # closes a loop opened before the section — never valid
+    if depth == 0:
+        return children[hi]
+    for el in children[hi + 1 :]:
+        depth += _loop_depth(el)
+        if depth < 0:
+            return None
+        if depth == 0:
+            return el
+    return None
+
+
 def _wrap_section_spans(
     nodes: list,
     fields: list[FieldDefinition],
@@ -446,11 +490,20 @@ def _wrap_section_spans(
         if not span or nodes[span[0]].kind != "paragraph" or nodes[span[-1]].kind != "paragraph":
             logger.warning("skipping section toggle for %r — span is not paragraph-bounded", key)
             continue
+        # The span must not cut through a loop this build already inserted. A
+        # section boundary is inferred from where its fields sit, so it can land
+        # in the middle of a repeatable section — and "{%p for %} … {%p if %} …
+        # {%p endfor %} … {%p endif %}" is not valid Jinja, which fails the whole
+        # template rather than just this toggle.
+        close_after = _span_close_anchor(nodes[span[0]].obj, nodes[span[-1]].obj)
+        if close_after is None:
+            logger.warning("skipping section toggle for %r — span crosses a loop", key)
+            continue
         # Default to showing: an undefined variable renders falsy in Jinja, so a
         # bare "if" would make any caller that forgot to supply the toggles
         # silently produce an empty document. Only an explicit False hides.
         _insert_marker_before(nodes[span[0]].obj, f"{{%p if {name} is not defined or {name} %}}")
-        _insert_marker_after(nodes[span[-1]].obj, "{%p endif %}")
+        close_after.addnext(_marker_paragraph_xml("{%p endif %}"))
         wrapped.append(key)
     return wrapped
 
