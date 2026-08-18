@@ -194,9 +194,8 @@ export function UploadCaution({ show }: { show: boolean }) {
   if (!show) return null;
   return (
     <p className="upload-caution">
-      Please don&apos;t upload confidential or personal documents unless you are running
-      DocForge with your own AI key and your own database. Otherwise their contents pass
-      through a shared model and are stored on shared infrastructure.
+      Don&apos;t upload confidential documents unless you&apos;re using your own AI key and
+      database. Otherwise they pass through shared AI and storage.
     </p>
   );
 }
