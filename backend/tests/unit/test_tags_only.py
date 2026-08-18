@@ -159,11 +159,10 @@ def test_tags_only_leaves_nothing_a_person_wrote_untagged(tmp_path):
     assert survivors == [], f"text left untagged: {survivors}"
 
 
-def test_tags_only_leaves_multi_paragraph_toc_field_untagged(tmp_path):
-    # A genuine Word Table of Contents must stay a live field -- Word
-    # regenerates its content from the document's real headings whenever
-    # fields are updated, so tagging it as a static placeholder would either
-    # get silently overwritten or ship permanently-stale headings.
+def test_tags_only_tags_a_toc_and_removes_the_field_behind_it(tmp_path):
+    # Full-template mode tags every text, a contents list included. The Word
+    # field that generated it has to go with it: left in place, Word rebuilds
+    # the list when the document opens and writes straight over the tag.
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
 
@@ -178,44 +177,35 @@ def test_tags_only_leaves_multi_paragraph_toc_field_untagged(tmp_path):
         return it
 
     doc = Document()
-    doc.add_heading("Table of Contents", level=1)
+    doc.add_paragraph("TABLE OF CONTENTS")
     p1 = doc.add_paragraph()
     p1.add_run()._element.append(fldchar("begin"))
-    p1.add_run()._element.append(instr_text(' TOC \\o "1-3" \\h \\z \\u '))
+    p1.add_run()._element.append(instr_text(' TOC '))
     p1.add_run()._element.append(fldchar("separate"))
     p1.add_run("Heading One\t1")
     doc.add_paragraph("Heading Two\t2")
     p3 = doc.add_paragraph("Heading Three\t3")
     p3.add_run()._element.append(fldchar("end"))
-    doc.add_heading("Real Section", level=1)
-    doc.add_paragraph("Genuinely fixed-vs-dynamic body content to tag.")
-    path = tmp_path / "toc_doc.docx"
+    doc.add_paragraph("Real body prose that follows the contents list.")
+    path = tmp_path / "toc.docx"
     doc.save(str(path))
 
     ext = build_extraction(path, "d0")
     result = classify(ext, None, mode="tags_only")
-    cls_by_node = {c.node_id: c for c in result.classifications}
-
-    toc_nodes = [e for e in ext.top_level_elements() if e.text.startswith("Heading")]
-    assert len(toc_nodes) == 3
-    for e in toc_nodes:
-        c = cls_by_node[e.node_id]
-        assert c.classification == ClassificationType.AUTO_FIELD, (
-            f"TOC entry {e.text!r} should stay AUTO_FIELD, got {c.classification}"
-        )
-        assert not c.field_name
-
-    # The template must not templatize it either.
     fields = derive_field_definitions(ext, result)
-    template_bytes = build_template_docx(path, result, fields)
-    tpl_texts = "\n".join(p.text for p in Document(BytesIO(template_bytes)).paragraphs)
-    assert "Heading One\t1" in tpl_texts or "Heading One" in tpl_texts
+    built = Document(BytesIO(build_template_docx(path, result, fields)))
 
-    # Meanwhile genuinely ordinary content in the same doc still gets tagged.
-    real_body = next(
-        e for e in ext.top_level_elements() if "Genuinely fixed" in e.text
+    body = built.element.body.xml
+    for entry in ("Heading One", "Heading Two", "Heading Three"):
+        assert entry not in body, f"{entry} was left as literal text"
+    assert "fldChar" not in body and "instrText" not in body, (
+        "the TOC field survived and would overwrite the tags"
     )
-    assert needs_field(cls_by_node[real_body.node_id].classification)
+
+    # The contents entries are their own field, not merged with the prose below.
+    names = [f.field_name for f in fields]
+    assert len(names) == len(set(names))
+    assert len(names) >= 3, names
 
 
 def test_tags_only_single_row_table_gets_tagged(tmp_path):

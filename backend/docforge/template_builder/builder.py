@@ -181,7 +181,9 @@ def _run_has_field(run) -> bool:
     )
 
 
-def _clear_runs(paragraph: Paragraph, *, keep_images: bool = True) -> None:
+def _clear_runs(
+    paragraph: Paragraph, *, keep_images: bool = True, keep_fields: bool = True
+) -> None:
     """Remove a paragraph's runs.
 
     By default, runs that carry an image/drawing/object are preserved: when we
@@ -191,7 +193,9 @@ def _clear_runs(paragraph: Paragraph, *, keep_images: bool = True) -> None:
     alongside the surviving image run.
     """
     for r in list(paragraph.runs):
-        if keep_images and (_run_has_image(r) or _run_has_field(r)):
+        if keep_images and _run_has_image(r):
+            continue
+        if keep_fields and _run_has_field(r):
             continue
         r._element.getparent().remove(r._element)
 
@@ -217,13 +221,20 @@ def _append_run(paragraph: Paragraph, text: str, fmt: dict):
     return run
 
 
-def _templatize_paragraph(paragraph: Paragraph, prefix: str, expr: str, suffix: str) -> None:
-    """Rewrite a paragraph to ``prefix{{ field }}suffix`` keeping run formatting."""
+def _templatize_paragraph(
+    paragraph: Paragraph, prefix: str, expr: str, suffix: str, *, keep_fields: bool = True
+) -> None:
+    """Rewrite a paragraph to ``prefix{{ field }}suffix`` keeping run formatting.
+
+    ``keep_fields=False`` also removes any Word field in the paragraph — used
+    where the placeholder *replaces* generated content (a contents entry), so
+    the field cannot regenerate over it.
+    """
     full = paragraph.text or ""
     fmt_prefix = _run_format_at(paragraph, 0)
     fmt_value = _run_format_at(paragraph, len(prefix))
     fmt_suffix = _run_format_at(paragraph, max(0, len(full) - len(suffix)))
-    _clear_runs(paragraph)
+    _clear_runs(paragraph, keep_fields=keep_fields)
     if prefix:
         _append_run(paragraph, prefix, fmt_prefix)
     _append_run(paragraph, expr, fmt_value)
@@ -314,9 +325,11 @@ def _templatize_repeatable_block(
     _insert_marker_after(body if body is not None else head, "{%p endfor %}")
 
 
-def _templatize_repeatable_paragraph(paragraph: Paragraph, field_name: str) -> None:
+def _templatize_repeatable_paragraph(
+    paragraph: Paragraph, field_name: str, *, keep_fields: bool = True
+) -> None:
     """Turn a paragraph into a repeated paragraph: one rendered per list item."""
-    _templatize_paragraph(paragraph, "", f"{{{{ {_LOOP_VAR} }}}}", "")
+    _templatize_paragraph(paragraph, "", f"{{{{ {_LOOP_VAR} }}}}", "", keep_fields=keep_fields)
     _insert_marker_before(paragraph, f"{{%p for {_LOOP_VAR} in {field_name} %}}")
     _insert_marker_after(paragraph, "{%p endfor %}")
 
@@ -335,6 +348,18 @@ def _wrap_optional(paragraph: Paragraph, include_name: str) -> None:
     """Wrap a paragraph so it only renders when ``include_name`` is truthy."""
     _insert_marker_before(paragraph, f"{{%p if {include_name} %}}")
     _insert_marker_after(paragraph, "{%p endif %}")
+
+
+def _replaces_generated(cls) -> bool:
+    """Whether this field stands in for content Word generated for itself.
+
+    Marked by the tags-only pass (see ``ai_classifier/tags_only.py``). The field
+    behind such a paragraph is removed so the placeholder is the real content —
+    otherwise Word regenerates the list and the tag is never seen.
+    """
+    from ..ai_classifier.tags_only import GENERATED_MARK
+
+    return GENERATED_MARK in (cls.rationale or "")
 
 
 def _is_tags_only_forced(cls) -> bool:
@@ -556,6 +581,10 @@ def build_template_docx(
         fd = fd_by_node.get(wn.node_id)
         # Compute the optional toggle name from the ORIGINAL text (before edits).
         include_name = _safe_ident(include_field_name(cls, para)) if cls.optional else None
+        # A placeholder standing in for Word-generated content (a contents entry)
+        # must also remove the field that produced it, or Word rebuilds the list
+        # on open and writes straight over the tag.
+        keep_fields = not _replaces_generated(cls)
 
         if cls.classification == ClassificationType.REPEATABLE_SECTION:
             name = _safe_ident(fd.field_name if fd else cls.field_name)
@@ -566,12 +595,13 @@ def build_template_docx(
                     _remove_paragraph(para)
                     continue
                 seen_section_fields.add(name)
-                _templatize_repeatable_paragraph(para, name)
+                _templatize_repeatable_paragraph(para, name, keep_fields=keep_fields)
         elif is_dynamic(cls.classification):
             name = _safe_ident(fd.field_name if fd else cls.field_name)
             if name:
                 _templatize_paragraph(
-                    para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or ""
+                    para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or "",
+                    keep_fields=keep_fields,
                 )
                 if _is_tags_only_forced(cls) and not _paragraph_has_picture(para):
                     # Unfilled -> the whole paragraph disappears instead of

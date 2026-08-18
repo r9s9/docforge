@@ -78,13 +78,19 @@ def _is_structural_label(e: NormalizedElement) -> bool:
 _GENERATED_STYLES = ("toc", "table of figures", "index ", "table of authorities")
 
 
-def _is_generated_listing(e: NormalizedElement) -> bool:
+def is_generated_listing(e: NormalizedElement) -> bool:
+    """A paragraph Word writes for itself: a contents entry, a list of figures.
+
+    These are still tagged — full-template mode tags everything — but the
+    builder has to strip the field that produced them first, or Word would
+    rebuild the list when the document opens and overwrite the tag with it.
+    """
     style = (e.style_name or "").lower()
     if style.startswith(_GENERATED_STYLES):
         return True
     if style.startswith("caption"):
         # A caption carries an auto number, but the words after it are the
-        # author's — the number is preserved and the text becomes a field.
+        # author's — the number is kept and the text becomes a field.
         return False
     return "toc" in e.semantic_hints or "auto_field" in e.semantic_hints
 
@@ -101,14 +107,23 @@ def _is_exempt(e: NormalizedElement, c: ElementClassification | None) -> bool:
     if (e.image_ref is not None or e.type == ElementType.IMAGE) and not (e.text or "").strip():
         return True  # a picture alone is swapped via its image field, not tagged
 
-    if _is_generated_listing(e):
-        return True  # a contents list rebuilds itself; a tag there is overwritten
     if not (e.text or "").strip() and e.type != ElementType.TABLE:
         return True  # nothing to templatize
     return False
 
 
 STRUCTURAL_MARK = "[structural]"
+GENERATED_MARK = "[generated]"
+
+
+def _mark_generated(c: ElementClassification) -> None:
+    """Flag a field that replaces Word-generated content.
+
+    The builder strips the field code that produced it, so the tag becomes the
+    real content instead of something Word overwrites on the next update.
+    """
+    if GENERATED_MARK not in (c.rationale or ""):
+        c.rationale = f"{(c.rationale or '').rstrip()} {GENERATED_MARK}".strip()
 
 
 def _mark_structural(c: ElementClassification) -> None:
@@ -251,6 +266,9 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
     # consecutive groupable body nodes.
     section = ""
     pending: list[tuple[NormalizedElement, ElementClassification]] = []
+    # Whether the run being collected is Word-generated content (a contents
+    # list). Mixing those with ordinary prose would put both in one field.
+    pending_generated = [False]
 
     def flush_pending() -> None:
         """Assign the buffered paragraph/list run to field(s)."""
@@ -333,6 +351,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             # the label rather than whatever prose an AI would invent for it.
             flush_pending()
             text = (e.text or "").strip()
+            section = text or section
             if not (c.field_name and is_dynamic(c.classification)):
                 name = _unique(slugify_field(text, fallback="label") + "_label", used)
                 used.add(name)
@@ -414,6 +433,10 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             continue
 
         if e.type in _GROUPABLE:
+            generated = is_generated_listing(e)
+            if generated != pending_generated[0]:
+                flush_pending()
+                pending_generated[0] = generated
             pending.append((e, c))
             continue
 
@@ -422,6 +445,13 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
         flush_pending()
 
     flush_pending()
+
+    # A contents list is now a field like any other; record which ones replaced
+    # Word-generated content so the builder can remove the field behind them.
+    for e in extraction.top_level_elements():
+        c = cls_by_node[e.node_id]
+        if c.field_name and is_generated_listing(e):
+            _mark_generated(c)
 
     # Final safety net: guarantee the invariant absolutely. Anything above could
     # in principle miss an edge case (a new ElementType, an unusual walk order);
