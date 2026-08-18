@@ -32,7 +32,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div>
+    <div className="page-with-foot">
       <h1 className="page-title">Dashboard</h1>
       <p className="page-sub">
         Reverse-engineer filled DOCX files into reusable, AI-aware templates.
@@ -121,7 +121,7 @@ export default function Dashboard() {
           </table>
         )}
       </div>
-      <p className="page-note">
+      <p className="page-note center">
         DocForge is a work in progress and still under active development. Expect rough edges,
         and please report anything that looks wrong.
       </p>

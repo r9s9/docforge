@@ -2727,9 +2727,15 @@ tr.low-conf td {
   opacity: 0.55;
 }
 
-/* A standing note at the foot of a page (work-in-progress, data-handling
-   caveats). Set apart from the page above it, upper-case so it reads as a
-   notice rather than body copy, and kept light so it never shouts. */
+/* A standing note closing a page (work in progress, data-handling caveats).
+   Upper-case so it reads as a notice rather than body copy, and kept light so
+   it never competes with the page it follows. */
+.page-with-foot {
+  display: flex;
+  flex-direction: column;
+  /* Fill the viewport so a short page still pushes its note to the bottom. */
+  min-height: calc(100vh - 96px);
+}
 .page-note {
   max-width: 78ch;
   margin: 48px 0 8px;
@@ -2742,7 +2748,22 @@ tr.low-conf td {
   text-transform: uppercase;
   color: var(--faint);
 }
-.page-note.caution {
+/* Sits at the foot of a full-height page, centred under the content. */
+.page-note.center {
+  margin: auto auto 0;
+  text-align: center;
+}
+
+/* Shown beside an upload control until something is chosen. Smaller than a
+   page note: it sits inside the flow of a form, not at the end of a page. */
+.upload-caution {
+  max-width: 74ch;
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--red);
   opacity: 0.9;
 }

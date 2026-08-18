@@ -4,7 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { AnalysisJob, FieldDefinition, Project } from "@/lib/types";
-import { AiBadge, AiStatusBanner, ErrorBox, Spinner, TokenUsageLine } from "@/components/ui";
+import {
+  AiBadge,
+  AiStatusBanner,
+  ErrorBox,
+  Spinner,
+  TokenUsageLine,
+  UploadCaution,
+} from "@/components/ui";
 import { RotateCw } from "@/components/icons";
 import ProgressBar from "@/components/ProgressBar";
 import DocxPreview from "@/components/DocxPreview";
@@ -330,6 +337,8 @@ export default function NewTemplate() {
             <div>Up to 5 files. More examples → better fixed vs dynamic detection.</div>
           </div>
 
+          <UploadCaution show={files.length === 0} />
+
           <div className="mode-cards" role="radiogroup" aria-label="Template mode">
             <label className={`mode-card ${analysisMode === "tags_only" ? "active" : ""}`}>
               <input
@@ -609,11 +618,6 @@ export default function NewTemplate() {
           </div>
         </div>
       )}
-      <p className="page-note caution">
-        Please don&apos;t upload confidential or personal documents unless you are running
-        DocForge with your own AI key and your own database. Otherwise their contents pass
-        through a shared model and are stored on shared infrastructure.
-      </p>
     </div>
   );
 }

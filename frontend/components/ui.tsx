@@ -182,3 +182,21 @@ export function Confidence({ value }: { value: number }) {
 export function Card({ children }: { children: ReactNode }) {
   return <div className="card">{children}</div>;
 }
+
+/**
+ * The standing caution beside any control that sends a document to the server.
+ *
+ * Shown while nothing has been chosen and dismissed the moment something is;
+ * it exists to be read *before* the decision to upload, and repeating it
+ * afterwards only trains people to ignore it.
+ */
+export function UploadCaution({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <p className="upload-caution">
+      Please don&apos;t upload confidential or personal documents unless you are running
+      DocForge with your own AI key and your own database. Otherwise their contents pass
+      through a shared model and are stored on shared infrastructure.
+    </p>
+  );
+}

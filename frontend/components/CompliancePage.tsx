@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { ComplianceReport, Template } from "@/lib/types";
-import { ErrorBox, Spinner, TokenUsageLine } from "@/components/ui";
+import { ErrorBox, Spinner, TokenUsageLine, UploadCaution } from "@/components/ui";
 import { FileText, Sparkles } from "@/components/icons";
 import DocxPreview from "@/components/DocxPreview";
 
@@ -109,6 +109,7 @@ export default function CompliancePage() {
           {busy ? <Spinner label="Checking…" /> : "Check compliance"}
         </button>
       </div>
+      <UploadCaution show={!file} />
 
       {report && file && (
         <Report

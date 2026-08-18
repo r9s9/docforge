@@ -24,6 +24,7 @@ import {
   Spinner,
   StatusBadge,
   TokenUsageLine,
+  UploadCaution,
 } from "@/components/ui";
 import { useHealth } from "@/lib/useHealth";
 import {
@@ -543,6 +544,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   {busy ? <Spinner label="Mapping…" /> : "Map document → fields"}
                 </button>
               </div>
+              <UploadCaution show={!docFile} />
             </div>
           )}
 
