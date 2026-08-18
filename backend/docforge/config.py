@@ -59,8 +59,8 @@ class Settings(BaseSettings):
     # Optional second "reasoning" model for the agentic steps that benefit from
     # stronger reasoning (document understanding, self-critique, value
     # composition, compliance judgment). Empty -> reuse ``ai_model`` for every
-    # tier. Recommended pairing: workhorse gemini-2.5-flash-lite + reasoning
-    # gemini-2.5-flash. See ``AIConfig.model_for_tier``.
+    # tier. Recommended pairing: workhorse gemini-3.1-flash-lite + reasoning
+    # gemini-3.5-flash. See ``AIConfig.model_for_tier``.
     ai_reasoning_model: str = ""
     # Hard cap on tool-calling iterations per agentic action (latency/cost guard,
     # important under the serverless request budget).

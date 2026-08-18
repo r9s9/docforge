@@ -161,11 +161,11 @@ function MockAISettings() {
         </div>
         <div className="tut-mock-row">
           <span>Model · everyday work</span>
-          <b>gemini-2.5-flash-lite</b>
+          <b>gemini-3.1-flash-lite</b>
         </div>
         <div className="tut-mock-row">
           <span>Reasoning model · hard steps</span>
-          <b>gemini-2.5-flash</b>
+          <b>gemini-3.5-flash</b>
         </div>
         <div className="tut-mock-row">
           <span>API key</span>

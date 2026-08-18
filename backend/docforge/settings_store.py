@@ -26,8 +26,8 @@ GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
 # Recommended cloud default ("bring your own key"): a cheap, capable, 1M-context
 # Gemini pairing. The workhorse handles high-volume mechanical calls; the
 # reasoning model is used only for the harder agentic steps.
-GEMINI_WORKHORSE_MODEL = "gemini-2.5-flash-lite"
-GEMINI_REASONING_MODEL = "gemini-2.5-flash"
+GEMINI_WORKHORSE_MODEL = "gemini-3.1-flash-lite"
+GEMINI_REASONING_MODEL = "gemini-3.5-flash"
 
 
 def default_base_url(provider: str | None) -> str:

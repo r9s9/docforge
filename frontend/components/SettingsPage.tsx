@@ -21,7 +21,7 @@ const DEEPSEEK_BASE = "https://api.deepseek.com";
 const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }> = {
   openai: { base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   anthropic: { base_url: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
-  gemini: { base_url: GEMINI_BASE, model: "gemini-2.5-flash" },
+  gemini: { base_url: GEMINI_BASE, model: "gemini-3.1-flash-lite" },
   deepseek: { base_url: DEEPSEEK_BASE, model: "deepseek-chat" },
   local: { base_url: "http://localhost:11434/v1", model: "llama3.1" },
 };
@@ -31,14 +31,15 @@ const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }>
 const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string[]> = {
   openai: ["gpt-5-nano", "gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
   anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-8"],
+  // Newest first: the list is a menu, and the top of it is what people pick.
   gemini: [
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-3.1-flash-lite",
-    "gemini-3-flash-preview",
     "gemini-3.5-flash",
-    "gemini-2.5-pro",
+    "gemini-3.1-flash-lite",
     "gemini-3.1-pro-preview",
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro",
   ],
   deepseek: ["deepseek-chat", "deepseek-reasoner"],
 };
@@ -48,7 +49,7 @@ const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", stri
 const REASONING_DEFAULTS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string> = {
   openai: "gpt-5-mini",
   anthropic: "claude-sonnet-4-6",
-  gemini: "gemini-2.5-flash",
+  gemini: "gemini-3.5-flash",
   deepseek: "deepseek-reasoner",
 };
 
@@ -56,8 +57,8 @@ const REASONING_DEFAULTS: Record<"openai" | "anthropic" | "gemini" | "deepseek",
 const RECOMMENDED = {
   provider: "gemini" as UiProvider,
   base_url: GEMINI_BASE,
-  model: "gemini-2.5-flash-lite",
-  reasoning_model: "gemini-2.5-flash",
+  model: "gemini-3.1-flash-lite",
+  reasoning_model: "gemini-3.5-flash",
 };
 
 // Map a UI provider to the backend provider value it routes through.
@@ -437,8 +438,8 @@ function AISettingsForm() {
           <Sparkles size={15} strokeWidth={2} /> Recommended — Gemini (tiered)
         </strong>
         <div className="muted" style={{ margin: "6px 0 10px" }}>
-          <span className="mono">gemini-2.5-flash-lite</span> for routine steps +{" "}
-          <span className="mono">gemini-2.5-flash</span> for reasoning. Cheap, capable,
+          <span className="mono">gemini-3.1-flash-lite</span> for routine steps +{" "}
+          <span className="mono">gemini-3.5-flash</span> for reasoning. Cheap, capable,
           1M-token context.{" "}
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
             Get a Gemini API key →
