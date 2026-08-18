@@ -37,6 +37,10 @@ export default function Dashboard() {
       <p className="page-sub">
         Reverse-engineer filled DOCX files into reusable, AI-aware templates.
       </p>
+      <p className="soft-note" style={{ marginBottom: 22 }}>
+        DocForge is a work in progress and still under active development — expect rough edges,
+        and please report anything that looks wrong.
+      </p>
 
       {error && <ErrorBox message={error} />}
 

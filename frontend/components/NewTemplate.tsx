@@ -10,6 +10,13 @@ import ProgressBar from "@/components/ProgressBar";
 import DocxPreview from "@/components/DocxPreview";
 import FieldCards, { type EditableField } from "@/components/FieldCards";
 
+/** "0:07" / "2:41" — a clock the user can trust, unlike a made-up percentage. */
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 /** Mirror of the backend slugify so promoted-field names look consistent. */
 function slugify(s: string): string {
   return (
@@ -54,6 +61,7 @@ export default function NewTemplate() {
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<string | null>(null);
   const [stageCode, setStageCode] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   // Retained for field-card highlighting; click-to-jump was tied to the removed
   // color-coded view, so there is no setter wired up right now.
   const [selectedField] = useState<string | null>(null);
@@ -96,6 +104,17 @@ export default function NewTemplate() {
     setPreviewKey((k) => k + 1);
   }
 
+  // A running clock while the analysis works. On a serverless backend the whole
+  // job runs inside the upload request, so there is no progress to poll — the
+  // honest thing to show is how long it has been going, not a number we made up.
+  useEffect(() => {
+    if (!busy) return;
+    const started = Date.now();
+    setElapsed(0);
+    const id = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
+
   function addFiles(list: FileList | null) {
     if (!list) return;
     const incoming = Array.from(list).filter((f) => f.name.toLowerCase().endsWith(".docx"));
@@ -106,7 +125,7 @@ export default function NewTemplate() {
     setBusy(true);
     setError("");
     setProgress(0);
-    setStage("Uploading…");
+    setStage("Uploading your document…");
     setStageCode(null);
     cancelledRef.current = false;
     try {
@@ -311,6 +330,12 @@ export default function NewTemplate() {
             <div>Up to 5 files. More examples → better fixed vs dynamic detection.</div>
           </div>
 
+          <p className="soft-note caution" style={{ marginTop: 10 }}>
+            Please don&apos;t upload confidential or personal documents unless you are running
+            DocForge with your own AI key and your own database — otherwise their contents pass
+            through a shared model and are stored on shared infrastructure.
+          </p>
+
           <div className="mode-cards" role="radiogroup" aria-label="Template mode">
             <label className={`mode-card ${analysisMode === "tags_only" ? "active" : ""}`}>
               <input
@@ -386,17 +411,28 @@ export default function NewTemplate() {
                       // Until the first poll reports real progress we genuinely
                       // don't know how far along it is — on a serverless backend
                       // the whole analysis runs inside the upload request, so a
-                      // frozen "0%" reads as broken. Show it moving instead.
+                      // frozen "0%" reads as broken. Show it moving instead, with
+                      // a running clock: elapsed time is the one honest number.
                       indeterminate={progress <= 0}
-                      stage={stage}
+                      stage={progress > 0 ? stage : `${stage} · ${formatElapsed(elapsed)}`}
                       busy
                       steps={analysisMode === "tags_only" ? AI_STEPS_TAGS_ONLY : AI_STEPS_SMART}
                       currentCode={stageCode}
                     />
+                    {progress <= 0 && (
+                      <ul className="wait-steps" aria-label="What happens during analysis">
+                        {(analysisMode === "tags_only"
+                          ? AI_STEPS_TAGS_ONLY
+                          : AI_STEPS_SMART
+                        ).map((s) => (
+                          <li key={s.code}>{s.label}</li>
+                        ))}
+                      </ul>
+                    )}
                     <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
-                      Local AI models can take a minute or two — you can watch it work above. It
-                      falls back to the fast heuristic engine if the model is too slow.
-                      Cancelling stops the model immediately.
+                      {elapsed >= 90
+                        ? "Still going — a long document with a slow model can take several minutes. It falls back to the fast heuristic engine if the model gives up. Cancelling stops it immediately."
+                        : "Reading a document takes a minute or two. It falls back to the fast heuristic engine if the model is too slow, and cancelling stops it immediately."}
                     </p>
                   </div>
                 )}

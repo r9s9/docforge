@@ -2701,3 +2701,41 @@ tr.low-conf td {
     animation: none !important;
   }
 }
+
+/* ---- Waiting on a long job: what it is doing, without faking a percentage ---- */
+.wait-steps {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.wait-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.wait-steps li::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+/* A quiet standing note (work-in-progress, data-handling caveats). */
+.soft-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--faint);
+}
+.soft-note.caution {
+  color: var(--red);
+  opacity: 0.85;
+}
