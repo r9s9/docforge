@@ -41,7 +41,7 @@ function MockCoreLoop() {
           <span>New documents in seconds</span>
         </div>
       </div>
-      <figcaption>The core loop — everything in DocForge serves one of these steps.</figcaption>
+      <figcaption>The core loop: everything in DocForge serves one of these steps.</figcaption>
     </figure>
   );
 }
@@ -52,7 +52,7 @@ function MockModeCards() {
       <div className="tut-mock tut-mock-cards">
         <div className="tut-mock-card active">
           <b>Full template</b>
-          <span>Every text becomes a fillable tag — headings, paragraphs, tables. New documents get 100% new text.</span>
+          <span>Every text becomes a fillable tag: headings, paragraphs, tables. New documents get 100% new text.</span>
         </div>
         <div className="tut-mock-card">
           <b>Smart detect</b>
@@ -82,7 +82,7 @@ function MockProgress() {
           <span>· Describe</span>
         </div>
       </div>
-      <figcaption>Live analysis phases — you always see what the AI is doing.</figcaption>
+      <figcaption>Live analysis phases: you always see what the AI is doing.</figcaption>
     </figure>
   );
 }
@@ -103,7 +103,7 @@ function MockFieldCard() {
         </span>
       </div>
       <figcaption>
-        A field card — name, type, AI confidence, and a description of what belongs there.
+        A field card: name, type, AI confidence, and a description of what belongs there.
       </figcaption>
     </figure>
   );
@@ -145,7 +145,7 @@ function MockCompliance() {
         </div>
       </div>
       <figcaption>
-        Template and document side by side — differences highlighted, selected one in red.
+        Template and document side by side: differences highlighted, selected one in red.
       </figcaption>
     </figure>
   );
@@ -198,19 +198,19 @@ const TABS: TutTab[] = [
         <p>
           DocForge reverse-engineers your existing Word files. Upload a finished .docx, and the AI
           works out which parts are fixed structure and which parts are content that changes every
-          time — giving you a reusable template with fillable fields. From then on, new documents
+          time, giving you a reusable template with fillable fields. From then on, new documents
           take seconds instead of an afternoon of copy-paste-and-hope.
         </p>
         <MockCoreLoop />
         <p className="tut-lead">The sections in the sidebar, top to bottom:</p>
         <ul className="tut-list">
-          <li><b>Dashboard</b> — your templates at a glance, plus quick actions.</li>
-          <li><b>New Template</b> — build a template from example documents.</li>
-          <li><b>Projects</b> — group templates and share metadata between them.</li>
-          <li><b>Generate Document</b> — fill a template and download the result.</li>
-          <li><b>Compliance Check</b> — verify a document against its template.</li>
-          <li><b>Connections</b> — integrations (SharePoint, Drive…), coming soon.</li>
-          <li><b>Settings</b> — AI configuration, server logs, and your profile.</li>
+          <li><b>Dashboard</b>: your templates at a glance, plus quick actions.</li>
+          <li><b>New Template</b>: build a template from example documents.</li>
+          <li><b>Projects</b>: group templates and share metadata between them.</li>
+          <li><b>Generate Document</b>: fill a template and download the result.</li>
+          <li><b>Compliance Check</b>: verify a document against its template.</li>
+          <li><b>Connections</b>: integrations (SharePoint, Drive…), coming soon.</li>
+          <li><b>Settings</b>: AI configuration, server logs, and your profile.</li>
         </ul>
       </>
     ),
@@ -224,7 +224,7 @@ const TABS: TutTab[] = [
         <h3>From example documents to a published template</h3>
         <ol className="tut-list">
           <li>
-            <b>Upload 1–5 finished .docx files.</b> One is enough; more examples of the same
+            <b>Upload 1 to 5 finished .docx files.</b> One is enough; more examples of the same
             document type help the AI see what varies between them.
           </li>
           <li>
@@ -234,7 +234,7 @@ const TABS: TutTab[] = [
         <MockModeCards />
         <ol className="tut-list" start={3}>
           <li>
-            <b>Watch the AI work.</b> Analysis runs in phases — it reads the whole document first,
+            <b>Watch the AI work.</b> Analysis runs in phases: it reads the whole document first,
             then names each field, then double-checks its own work.
           </li>
         </ol>
@@ -251,7 +251,7 @@ const TABS: TutTab[] = [
         <MockFieldCard />
         <ol className="tut-list" start={5}>
           <li>
-            <b>Name it and publish.</b> Optionally assign it to a project — then it’s ready on the
+            <b>Name it and publish.</b> Optionally assign it to a project, then it’s ready on the
             Generate page.
           </li>
         </ol>
@@ -269,24 +269,24 @@ const TABS: TutTab[] = [
         <MockInputModes />
         <ul className="tut-list">
           <li>
-            <b>Form</b> — one input per field: text boxes, checkboxes, dropdowns, image uploads,
+            <b>Form</b> gives one input per field: text boxes, checkboxes, dropdowns, image uploads,
             and editable tables.
           </li>
           <li>
-            <b>Raw text</b> — paste unstructured notes, meeting minutes, an email thread… The AI
+            <b>Raw text</b>: paste unstructured notes, meeting minutes, an email thread… The AI
             reads each field’s description and places the right piece of your text into the right
             field, drafting anything that’s missing.
           </li>
           <li>
-            <b>Document</b> — upload a .docx and the AI extracts the content from it.
+            <b>Document</b>: upload a .docx and the AI extracts the content from it.
           </li>
           <li>
-            <b>JSON</b> — paste exact values if you already have structured data.
+            <b>JSON</b>: paste exact values if you already have structured data.
           </li>
         </ul>
         <p>
           After AI routing, the form is pre-filled so you can review and adjust before generating.
-          Hit <b>Generate</b> to download the finished .docx — a small line shows exactly how many
+          Hit <b>Generate</b> to download the finished .docx. A small line shows exactly how many
           tokens the AI used and the estimated cost. In Full-template documents, fields you leave
           empty are removed from the output entirely, so nothing ships half-filled.
         </p>
@@ -299,10 +299,10 @@ const TABS: TutTab[] = [
     Icon: FolderKanban,
     render: () => (
       <>
-        <h3>Projects group templates — and remember the boring parts</h3>
+        <h3>Projects group templates, and remember the boring parts</h3>
         <p>
           A project holds related templates and <b>shared metadata</b>: company name, address,
-          registration numbers — anything that’s the same across all its documents. Set a value
+          registration numbers: anything that’s the same across all its documents. Set a value
           once on the project and every template in it inherits it automatically at generation
           time.
         </p>
@@ -310,7 +310,7 @@ const TABS: TutTab[] = [
         <p>
           Open any template from the Dashboard to see its fields, validation rules, sections, and
           the original source documents it was built from. Editing fields publishes a{" "}
-          <b>new version</b> — earlier versions stay intact, so documents already generated from
+          <b>new version</b>. Earlier versions stay intact, so documents already generated from
           them remain reproducible and nothing is ever silently changed underneath you.
         </p>
       </>
@@ -330,7 +330,7 @@ const TABS: TutTab[] = [
         </p>
         <MockCompliance />
         <p>
-          Differences in <b>fillable fields</b> are expected — that’s content. Differences in the{" "}
+          Differences in <b>fillable fields</b> are expected: that’s content. Differences in the{" "}
           <b>fixed boilerplate</b> are the ones that matter, and <b>Auto-fix</b> repairs them in
           one click: it downloads a corrected .docx with the template’s boilerplate restored and
           the sender’s content left untouched.
@@ -346,26 +346,26 @@ const TABS: TutTab[] = [
       <>
         <h3>Connect the AI (Settings → LLM Settings)</h3>
         <p>
-          The AI does the heavy lifting — reading documents, naming fields, writing descriptions,
+          The AI does the heavy lifting: reading documents, naming fields, writing descriptions,
           routing your raw notes. It needs a provider and an API key:
         </p>
         <MockAISettings />
         <ul className="tut-list">
           <li>
-            <b>Provider</b> — OpenAI, Anthropic, Gemini, DeepSeek, or a local model (e.g. Ollama).
+            <b>Provider</b>: OpenAI, Anthropic, Gemini, DeepSeek, or a local model (e.g. Ollama).
             Your key is stored for your account only. No key yet? A small free allowance lets you
             try everything first.
           </li>
           <li>
-            <b>Two models</b> — a fast <b>workhorse</b> for everyday extraction and a{" "}
+            <b>Two models</b>: a fast <b>workhorse</b> for everyday extraction and a{" "}
             <b>reasoning</b> model for the hardest steps (verification, tricky placement). The{" "}
             <b>Use recommended</b> button configures a proven cheap-and-good pair in one click.
           </li>
           <li>
-            <b>Test</b> — checks your key and model actually respond before you rely on them.
+            <b>Test</b>: checks your key and model actually respond before you rely on them.
           </li>
           <li>
-            <b>AI toggle</b> — with AI off, a built-in heuristic still analyzes documents; it
+            <b>AI toggle</b>: with AI off, a built-in heuristic still analyzes documents; it
             works, but it’s far less accurate. The sidebar’s status line always shows which one is
             active.
           </li>
@@ -390,7 +390,7 @@ const TABS: TutTab[] = [
             “Menu” to rename entries or drag them into your preferred order.
           </li>
           <li>
-            <b>Theme.</b> The light/dark switch lives at the bottom of the sidebar — and this
+            <b>Theme.</b> The light/dark switch lives at the bottom of the sidebar, and this
             tutorial is always one click away via the <b>?</b> button beside it.
           </li>
           <li>
@@ -403,7 +403,7 @@ const TABS: TutTab[] = [
           </li>
           <li>
             <b>Better templates come from better examples.</b> Upload documents that are fully
-            filled in — the AI learns field names and descriptions from the real content.
+            filled in: the AI learns field names and descriptions from the real content.
           </li>
         </ul>
       </>
@@ -462,7 +462,7 @@ export default function TutorialModal({
         <div className="tut-head">
           <div>
             <h2>Welcome to DocForge</h2>
-            <p className="sub">A two-minute tour — skip anytime, reopen from the ? in the sidebar.</p>
+            <p className="sub">A two-minute tour. Skip anytime, reopen from the ? in the sidebar.</p>
           </div>
           <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="Close tutorial">
             <X size={16} strokeWidth={2} />

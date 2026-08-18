@@ -31,22 +31,22 @@ function describeField(f: FieldDefinition): string {
   const cls = f.classification || "";
   if (f.field_type === "table" || cls === "REPEATABLE_TABLE") {
     const cols = f.columns?.map((c) => c.label || c.field_name).join(", ");
-    return `A repeating table — one row per entry${
+    return `A repeating table: one row per entry${
       cols ? ` (columns: ${cols})` : ""
     }. Add as many rows as you need when generating.`;
   }
   if (cls === "REPEATABLE_SECTION") {
-    return "A section that can repeat — provide one entry per occurrence when generating.";
+    return "A section that can repeat. Provide one entry per occurrence when generating.";
   }
   if (f.field_type === "boolean") {
-    return "An optional section — include it or leave it out for each document.";
+    return "An optional section: include it or leave it out for each document.";
   }
   if (f.field_type === "image") {
-    return "A picture you can replace per document — upload a new image when generating, or leave it empty to keep the original. Untick the card to always keep the original (logos, icons, brand marks).";
+    return "A picture you can replace per document. Upload a new image when generating, or leave it empty to keep the original. Untick the card to always keep the original (logos, icons, brand marks).";
   }
   switch (f.field_type) {
     case "date":
-      return "A date that changes in each document — fill it in when generating.";
+      return "A date that changes in each document. Fill it in when generating.";
     case "person":
       return "A person’s name that varies per document.";
     case "number":
@@ -58,7 +58,7 @@ function describeField(f: FieldDefinition): string {
     case "multiline_text":
       return "A longer block of text that changes per document.";
     default:
-      return "Short text that changes in each document — fill it in when generating.";
+      return "Short text that changes in each document. Fill it in when generating.";
   }
 }
 
@@ -66,7 +66,7 @@ function confidenceLabel(v: number): { text: string; cls: string } {
   const pct = Math.round((v || 0) * 100);
   if (v >= 0.8) return { text: `AI ${pct}% confident · High`, cls: "high" };
   if (v >= 0.5) return { text: `AI ${pct}% confident · Medium`, cls: "med" };
-  return { text: `AI ${pct}% confident · Low — please check`, cls: "low" };
+  return { text: `AI ${pct}% confident · Low, please check`, cls: "low" };
 }
 
 export default function FieldCards({
@@ -130,7 +130,7 @@ export default function FieldCards({
     <div className="field-cards">
       <div className="field-cards-toolbar">
         <span className="fc-density-hint">
-          Compact list — click a card’s arrow to see more or less.
+          Compact list: click a card’s arrow to see more or less.
         </span>
         <button
           type="button"
@@ -207,7 +207,7 @@ export default function FieldCards({
                 <label className="fc-desc-edit">
                   <span>
                     Description{" "}
-                    <span className="fc-desc-hint">— guides the AI when generating from notes</span>
+                    <span className="fc-desc-hint">(guides the AI when generating from notes)</span>
                   </span>
                   <textarea
                     value={f.description || ""}

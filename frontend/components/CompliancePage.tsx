@@ -57,7 +57,7 @@ export default function CompliancePage() {
         a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
-        setFixMsg(`Applied ${fixed} fix${fixed === 1 ? "" : "es"} — downloaded ${filename}.`);
+        setFixMsg(`Applied ${fixed} fix${fixed === 1 ? "" : "es"}, downloaded ${filename}.`);
       } else {
         setFixMsg("No fixed-text (boilerplate) issues to repair in this document.");
       }
@@ -251,7 +251,7 @@ function Report({
             <div className="cmp-docx-head">Differences ({report.differences.length})</div>
             {report.differences.length === 0 ? (
               <div className="card empty" style={{ padding: 18 }}>
-                Fully compliant — no differences.
+                Fully compliant: no differences.
               </div>
             ) : (
               <div className="cmp-diff-list">

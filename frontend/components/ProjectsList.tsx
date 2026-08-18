@@ -51,7 +51,7 @@ export default function ProjectsList() {
     <div>
       <h1 className="page-title">Projects</h1>
       <p className="page-sub">
-        Group templates and define shared metadata that their documents inherit — set a value
+        Group templates and define shared metadata that their documents inherit: set a value
         once and every template in the project picks it up at generation.
       </p>
 
@@ -105,7 +105,7 @@ export default function ProjectsList() {
                   <td>
                     <Link href={`/projects/${p.id}`}>{p.name}</Link>
                   </td>
-                  <td className="muted">{p.description || "—"}</td>
+                  <td className="muted">{p.description || "None"}</td>
                   <td className="muted">{Object.keys(p.metadata || {}).length} field(s)</td>
                   <td className="muted">{new Date(p.created_at).toLocaleDateString()}</td>
                   <td>

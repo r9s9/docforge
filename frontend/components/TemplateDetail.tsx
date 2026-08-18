@@ -208,7 +208,7 @@ export default function TemplateDetail({ id }: { id: string }) {
           {detail.project_metadata && Object.keys(detail.project_metadata).length > 0 && (
             <>
               <p style={{ margin: "10px 0 6px", fontSize: 13 }}>
-                Inherited defaults — these pre-fill this template’s fields at generation (you can
+                Inherited defaults: these pre-fill this template’s fields at generation (you can
                 override any value per document):
               </p>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
@@ -279,7 +279,7 @@ export default function TemplateDetail({ id }: { id: string }) {
           <div className="notice" style={{ marginBottom: 14 }}>
             Editing fields → will publish <strong>v{detail.latest_version + 1}</strong>. The layout
             is rebuilt from the original document; renamed/removed fields update the placeholders.
-            Untick a card to keep that text fixed — for an <strong>image</strong> field, untick to
+            Untick a card to keep that text fixed. For an <strong>image</strong> field, untick to
             always keep the original picture.
           </div>
           <div className="review-grid">
@@ -310,7 +310,7 @@ export default function TemplateDetail({ id }: { id: string }) {
               <p className="muted" style={{ marginTop: 0 }}>
                 {previewMode === "filled"
                   ? "A real Word page with each variable shown as «Label». This is how the document is structured."
-                  : "The raw template with {{ placeholders }} and loop tags — what the engine fills in."}
+                  : "The raw template with {{ placeholders }} and loop tags: what the engine fills in."}
               </p>
               <DocxPreview
                 load={() => api.templateEditPreviewDocx(detail.id, previewMode, previewFields)}
@@ -372,7 +372,7 @@ export default function TemplateDetail({ id }: { id: string }) {
                 <td className="mono">{f.field_name}</td>
                 <td>{f.label}</td>
                 <td className="muted" style={{ fontSize: 12, maxWidth: 280 }}>
-                  {f.description || "—"}
+                  {f.description || "None"}
                 </td>
                 <td>
                   {f.field_type}

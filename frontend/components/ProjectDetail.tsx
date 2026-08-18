@@ -204,7 +204,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                   <td>
                     <Link href={`/templates/${t.id}`}>{t.name}</Link>
                   </td>
-                  <td className="muted">{t.document_type || "—"}</td>
+                  <td className="muted">{t.document_type || "None"}</td>
                   <td>
                     <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
                       <Link className="btn secondary small" href={`/generate/${t.id}`}>

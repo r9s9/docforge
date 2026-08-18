@@ -240,7 +240,7 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
         <button
           className={`pin-btn ${pinned ? "on" : ""}`}
           onClick={togglePin}
-          title={pinned ? "Unpin — collapse to icons" : "Pin sidebar open"}
+          title={pinned ? "Unpin, collapse to icons" : "Pin sidebar open"}
           aria-pressed={pinned}
         >
           <Pin size={15} strokeWidth={1.9} fill={pinned ? "currentColor" : "none"} />

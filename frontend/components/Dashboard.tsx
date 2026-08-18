@@ -37,22 +37,18 @@ export default function Dashboard() {
       <p className="page-sub">
         Reverse-engineer filled DOCX files into reusable, AI-aware templates.
       </p>
-      <p className="soft-note" style={{ marginBottom: 22 }}>
-        DocForge is a work in progress and still under active development — expect rough edges,
-        and please report anything that looks wrong.
-      </p>
 
       {error && <ErrorBox message={error} />}
 
       <div className="cards section">
         <div className="card">
           <div className="stat-label">Templates</div>
-          <div className="stat">{templates ? templates.length : "—"}</div>
+          <div className="stat">{templates ? templates.length : "…"}</div>
         </div>
         <div className="card">
           <div className="stat-label">Analysis engine</div>
           <div className="stat" style={{ fontSize: 19, marginTop: 10 }}>
-            {health ? (health.ai_active ? health.ai_model : "Heuristic") : "—"}
+            {health ? (health.ai_active ? health.ai_model : "Heuristic") : "…"}
           </div>
           <div className="muted" style={{ fontSize: 12 }}>
             {health?.ai_active ? "LLM connected" : "offline / private"}
@@ -81,7 +77,7 @@ export default function Dashboard() {
           <Spinner label="Loading templates…" />
         ) : templates.length === 0 ? (
           <div className="card empty">
-            No templates yet. <Link href="/new">Create one</Link> by uploading 1–5 example DOCX
+            No templates yet. <Link href="/new">Create one</Link> by uploading 1 to 5 example DOCX
             files, or run <span className="mono">docforge seed</span> for demo data.
           </div>
         ) : (
@@ -101,7 +97,7 @@ export default function Dashboard() {
                   <td>
                     <Link href={`/templates/${t.id}`}>{t.name}</Link>
                   </td>
-                  <td className="muted">{t.document_type || "—"}</td>
+                  <td className="muted">{t.document_type || "None"}</td>
                   <td>v{t.latest_version}</td>
                   <td className="muted">{new Date(t.created_at).toLocaleDateString()}</td>
                   <td>
@@ -125,6 +121,11 @@ export default function Dashboard() {
           </table>
         )}
       </div>
+      <p className="page-note">
+        DocForge is a work in progress and still under active development. Expect rough edges,
+        and please report anything that looks wrong.
+      </p>
+
     </div>
   );
 }

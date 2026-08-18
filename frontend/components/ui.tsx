@@ -92,7 +92,7 @@ export function AiStatusBanner() {
   if (ai?.active) {
     return (
       <div className="ai-status on">
-        <span className="dot" /> AI connected — <strong>{ai.provider}/{ai.model}</strong>.
+        <span className="dot" /> AI connected: <strong>{ai.provider}/{ai.model}</strong>.
         Smart classification, unstructured-text routing and document mapping are enabled.
       </div>
     );
@@ -101,7 +101,7 @@ export function AiStatusBanner() {
   if (usage?.free_enabled && !usage.has_own_key && usage.free_remaining > 0) {
     return (
       <div className="ai-status on">
-        <span className="dot" /> AI connected — <strong>{usage.free_remaining} free AI action(s)</strong>{" "}
+        <span className="dot" /> AI connected: <strong>{usage.free_remaining} free AI action(s)</strong>{" "}
         remaining. Smart classification and document mapping are enabled.{" "}
         <a href="/settings">Add your own key →</a>
       </div>
@@ -111,7 +111,7 @@ export function AiStatusBanner() {
   if (health.ai_active) {
     return (
       <div className="ai-status on">
-        <span className="dot" /> AI connected — <strong>{health.ai_provider}/{health.ai_model}</strong>.
+        <span className="dot" /> AI connected: <strong>{health.ai_provider}/{health.ai_model}</strong>.
         Smart classification, unstructured-text routing and document mapping are enabled.
       </div>
     );
@@ -120,7 +120,7 @@ export function AiStatusBanner() {
   if (usage?.free_enabled && !usage.has_own_key && usage.free_remaining <= 0) {
     return (
       <div className="ai-status off">
-        <AlertTriangle size={15} strokeWidth={2} /> Your free AI actions are used up — running the
+        <AlertTriangle size={15} strokeWidth={2} /> Your free AI actions are used up. Running the
         offline heuristic engine. <a href="/settings">Add your own API key →</a> to re-enable smart
         classification and mapping.
       </div>
@@ -129,7 +129,7 @@ export function AiStatusBanner() {
   // 5) No AI at all.
   return (
     <div className="ai-status off">
-      <AlertTriangle size={15} strokeWidth={2} /> AI is off — running the offline heuristic engine.
+      <AlertTriangle size={15} strokeWidth={2} /> AI is off. Running the offline heuristic engine.
       Without a connected provider, <strong>“Raw text”</strong> and <strong>“From document”</strong>{" "}
       mapping use basic heuristics and field classification is less accurate.{" "}
       <a href="/settings">Connect a provider →</a>

@@ -129,7 +129,7 @@ def get_current_user(
     try:
         claims = _verify_token(token, settings)
     except jwt.ExpiredSignatureError as exc:
-        raise _unauthorized("Session expired — please sign in again") from exc
+        raise _unauthorized("Session expired. Please sign in again") from exc
     except (jwt.InvalidTokenError, httpx.HTTPError, KeyError, ValueError) as exc:
         logger.debug("token verification failed: %s", exc)
         raise _unauthorized("Invalid authentication token") from exc

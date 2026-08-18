@@ -37,7 +37,7 @@ async function withAuth(headers?: HeadersInit): Promise<Headers> {
 
 /** Turn a non-OK response into a thrown Error, with a clear message on 401. */
 async function raiseForStatus(res: Response): Promise<never> {
-  if (res.status === 401) throw new Error("Your session expired — please sign in again.");
+  if (res.status === 401) throw new Error("Your session expired. Please sign in again.");
   let detail = res.statusText;
   try {
     const body = await res.json();

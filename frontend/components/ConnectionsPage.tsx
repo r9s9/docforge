@@ -80,7 +80,7 @@ export default function ConnectionsPage() {
     <div>
       <h1 className="page-title">Connections</h1>
       <p className="page-sub">
-        Connect DocForge to the tools you already use. These integrations are on the way — check
+        Connect DocForge to the tools you already use. These integrations are on the way; check
         back soon.
       </p>
 

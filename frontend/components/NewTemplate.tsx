@@ -148,7 +148,7 @@ export default function NewTemplate() {
       }
       if (cancelledRef.current || result.status === "cancelled") {
         setStage("Cancelled");
-        setError("Analysis cancelled — the model was stopped.");
+        setError("Analysis cancelled. The model was stopped.");
         return;
       }
       if (result.status === "failed") {
@@ -156,7 +156,7 @@ export default function NewTemplate() {
         return;
       }
       if (result.status !== "completed") {
-        setError("Analysis is taking too long — try again, or disable AI in Settings to use the fast heuristic engine.");
+        setError("Analysis is taking too long. Try again, or disable AI in Settings to use the fast heuristic engine.");
         return;
       }
       setJob(result);
@@ -291,7 +291,7 @@ export default function NewTemplate() {
   return (
     <div>
       <h1 className="page-title">New Template</h1>
-      <p className="page-sub">Upload 1–5 filled example documents of the same type.</p>
+      <p className="page-sub">Upload 1 to 5 filled example documents of the same type.</p>
 
       <div className="steps">
         <div className={`step ${step === "upload" ? "active" : "done"}`}>1 · Upload examples</div>
@@ -330,12 +330,6 @@ export default function NewTemplate() {
             <div>Up to 5 files. More examples → better fixed vs dynamic detection.</div>
           </div>
 
-          <p className="soft-note caution" style={{ marginTop: 10 }}>
-            Please don&apos;t upload confidential or personal documents unless you are running
-            DocForge with your own AI key and your own database — otherwise their contents pass
-            through a shared model and are stored on shared infrastructure.
-          </p>
-
           <div className="mode-cards" role="radiogroup" aria-label="Template mode">
             <label className={`mode-card ${analysisMode === "tags_only" ? "active" : ""}`}>
               <input
@@ -346,7 +340,7 @@ export default function NewTemplate() {
               />
               <strong>Full template</strong>
               <span className="muted">
-                Every text becomes a fillable tag — headings, paragraphs, tables. New
+                Every text becomes a fillable tag: headings, paragraphs, tables. New
                 documents get 100% new text.
               </span>
             </label>
@@ -431,7 +425,7 @@ export default function NewTemplate() {
                     )}
                     <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
                       {elapsed >= 90
-                        ? "Still going — a long document with a slow model can take several minutes. It falls back to the fast heuristic engine if the model gives up. Cancelling stops it immediately."
+                        ? "Still going. A long document with a slow model can take several minutes. It falls back to the fast heuristic engine if the model gives up. Cancelling stops it immediately."
                         : "Reading a document takes a minute or two. It falls back to the fast heuristic engine if the model is too slow, and cancelling stops it immediately."}
                     </p>
                   </div>
@@ -457,7 +451,7 @@ export default function NewTemplate() {
 
           <div className="banner info section">
             <strong>Here’s your reusable template.</strong> DocForge turned your example
-            into a Word template — each <em>variable</em> part becomes a fillable field.
+            into a Word template, where each <em>variable</em> part becomes a fillable field.
             Check the document preview on the left and the fields on the right; adjust any
             names or types, then <strong>Publish</strong>.
           </div>
@@ -484,7 +478,7 @@ export default function NewTemplate() {
               <p className="muted" style={{ marginTop: 0 }}>
                 {previewMode === "filled"
                   ? "A real Word page with each variable shown as «Label». This is how the document is structured."
-                  : "The raw template with {{ placeholders }} and loop tags — what the engine fills in."}
+                  : "The raw template with {{ placeholders }} and loop tags: what the engine fills in."}
               </p>
               <DocxPreview
                 load={() => api.analysisPreviewDocx(job.id, previewMode, previewFields)}
@@ -511,7 +505,7 @@ export default function NewTemplate() {
                 that text fixed. Then refresh the preview to see your changes.
               </p>
               <div className="banner info" style={{ marginBottom: 14 }}>
-                <strong>Tip — write a description for each field.</strong> A clear description
+                <strong>Tip: write a description for each field.</strong> A clear description
                 (e.g. “Invoice total in EUR, numbers only”) is read by the AI when generating a
                 document from plain notes, so the more specific you are, the more accurately your
                 content is mapped to the right field.
@@ -615,6 +609,11 @@ export default function NewTemplate() {
           </div>
         </div>
       )}
+      <p className="page-note caution">
+        Please don&apos;t upload confidential or personal documents unless you are running
+        DocForge with your own AI key and your own database. Otherwise their contents pass
+        through a shared model and are stored on shared infrastructure.
+      </p>
     </div>
   );
 }

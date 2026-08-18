@@ -2727,15 +2727,22 @@ tr.low-conf td {
   opacity: 0.55;
 }
 
-/* A quiet standing note (work-in-progress, data-handling caveats). */
-.soft-note {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.6;
+/* A standing note at the foot of a page (work-in-progress, data-handling
+   caveats). Set apart from the page above it, upper-case so it reads as a
+   notice rather than body copy, and kept light so it never shouts. */
+.page-note {
+  max-width: 78ch;
+  margin: 48px 0 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
   font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--faint);
 }
-.soft-note.caution {
+.page-note.caution {
   color: var(--red);
-  opacity: 0.85;
+  opacity: 0.9;
 }

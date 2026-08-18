@@ -55,7 +55,7 @@ export default function LogsPage() {
     <div>
       <h1 className="page-title">Logs</h1>
       <p className="page-sub">
-        Recent activity for your session — actions, AI calls, and errors. Newest at the
+        Recent activity for your session: actions, AI calls, and errors. Newest at the
         bottom. Server-side and ephemeral (cleared when the service restarts).
       </p>
 

@@ -81,12 +81,12 @@ function ImageInput({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="Selected" />
           <button type="button" className="btn secondary small" onClick={() => onChange("")}>
-            Remove — keep original
+            Remove, keep original
           </button>
         </div>
       ) : (
         <p className="muted" style={{ margin: "0 0 6px" }}>
-          No image chosen — the template’s original picture is kept.
+          No image chosen. The template’s original picture is kept.
         </p>
       )}
       <input ref={ref} type="file" accept="image/*" onChange={pick} />
@@ -387,7 +387,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
       return typeof v === "string" && v.startsWith("data:") ? "new image selected" : "original kept";
     }
     const s = typeof v === "string" ? v.trim() : v != null ? String(v) : "";
-    return s || "—";
+    return s || "None";
   }
 
   // Scroll the Word preview to where a field landed (and flash it). Falls back to
@@ -519,7 +519,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
           {mode === "document" && (
             <div className="section">
               <p className="muted" style={{ marginTop: 0 }}>
-                Upload a filled .docx — all of its content is extracted and mapped into this
+                Upload a filled .docx. All of its content is extracted and mapped into this
                 template&apos;s fields. AI improves the mapping when a provider is connected.
               </p>
               <div className="row">
@@ -570,7 +570,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
               {aiActive && !AI_ROUTING_SOURCES.has(routing.source) && (
                 <div className="banner warn" style={{ marginTop: 8 }} role="status">
                   <AlertTriangle size={14} strokeWidth={2} />{" "}
-                  <strong>AI didn&apos;t run for this mapping</strong> — it failed or timed out, so
+                  <strong>AI didn&apos;t run for this mapping</strong>: it failed or timed out, so
                   the basic heuristic engine mapped this instead (less accurate). Review the values
                   below carefully, or try again.
                 </div>
@@ -584,7 +584,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   </div>
                   <p className="muted" style={{ margin: "6px 0 0" }}>
                     This usually means the template&apos;s fields don&apos;t describe the document
-                    you&apos;re writing — templates built from a blank corporate skeleton get
+                    you&apos;re writing. Templates built from a blank corporate skeleton get
                     machine-made names like <span className="mono">body_body</span>. Re-create the
                     template from a filled-in example, or fill the fields below by hand.
                   </p>
@@ -606,7 +606,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                     .join(" · ")}
                 </div>
               ) : null}
-              <div className="muted">Values applied to the form below — review and generate.</div>
+              <div className="muted">Values applied to the form below: review and generate.</div>
               {routeUsage ? (
                 <div style={{ marginTop: 6 }}>
                   <TokenUsageLine usage={routeUsage} />
@@ -635,8 +635,8 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                 <div className="banner warn section">
                   <strong>⚠ The uploaded document didn’t match this template.</strong> Its text was
                   extracted and mapped to this template’s fields as best as possible, so the mapping
-                  <strong> may not be 100% accurate</strong>. Review each field below — click a field
-                  to jump to it in the preview — and fix anything before generating.
+                  <strong> may not be 100% accurate</strong>. Review each field below (click a field
+                  to jump to it in the preview) and fix anything before generating.
                 </div>
               ) : (
                 <div className="banner info section">
@@ -655,7 +655,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                       <strong>{detail.project_name}</strong>
                     </Link>
                     : {Object.keys(detail.project_metadata).join(", ")}. Matching fields are
-                    pre-filled below — editing a field overrides the project default for this
+                    pre-filled below. Editing a field overrides the project default for this
                     document only.
                   </div>
                 )}
@@ -723,7 +723,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                     </button>
                   </div>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Values mapped into your template — edit anything that needs fixing.
+                    Values mapped into your template. Edit anything that needs fixing.
                     {routing && routing.missing_required.length > 0 && (
                       <span style={{ color: "var(--red)" }}>
                         {" "}{routing.missing_required.length} required field(s) still need a value.
@@ -733,7 +733,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                   <div className="field-cards">
                     <div className="field-cards-toolbar">
                       <span className="fc-density-hint">
-                        Compact list — click a card’s arrow to fill it in.
+                        Compact list: click a card’s arrow to fill it in.
                       </span>
                       <button
                         type="button"
@@ -864,7 +864,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                             >
                               <span
                                 className={`fc-sum-value ${
-                                  valuePreview(f) === "—" ? "empty" : ""
+                                  valuePreview(f) === "None" ? "empty" : ""
                                 }`}
                               >
                                 {valuePreview(f)}
@@ -893,7 +893,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
             <details className="extracted-box section">
               <summary>
                 Extracted from your document
-                <span className="muted"> · {extracted.length} block(s) — click to expand</span>
+                <span className="muted"> · {extracted.length} block(s), click to expand</span>
               </summary>
               <div className="extracted-scroll">
                 <DocBlocks blocks={extracted} />
@@ -923,9 +923,9 @@ function RoutedChip({ p }: { p: PlacementInstruction }) {
       }}
       title={
         drafted
-          ? "AI-drafted from your content — please review before generating"
+          ? "AI-drafted from your content. Please review before generating"
           : p.ambiguous
-            ? `Ambiguous${p.alternatives?.length ? " — could be: " + p.alternatives.join(", ") : ""}`
+            ? `Ambiguous${p.alternatives?.length ? ", could be: " + p.alternatives.join(", ") : ""}`
             : `AI-filled · ${pct}% confidence`
       }
     >
@@ -1010,7 +1010,7 @@ function ResultPanel({ result }: { result: GenerationResult }) {
       )}
       {result.download_url && !pdfSupported && (
         <p className="muted" style={{ marginTop: -6, marginBottom: 12, fontSize: 12 }}>
-          PDF export isn’t available on this server — open the DOCX in Word and save as PDF.
+          PDF export isn’t available on this server. Open the DOCX in Word and save as PDF.
         </p>
       )}
 
@@ -1018,7 +1018,7 @@ function ResultPanel({ result }: { result: GenerationResult }) {
         <div className="banner warn" style={{ display: "block", marginBottom: 16 }} role="status">
           <div style={{ marginBottom: 6 }}>
             <AlertTriangle size={14} strokeWidth={2} />{" "}
-            <strong>Reading the finished document back</strong> — worth a look before you send it:
+            <strong>Reading the finished document back</strong>. Worth a look before you send it:
           </div>
           <ul className="review-findings">
             {review.map((f, i) => (

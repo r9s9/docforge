@@ -69,7 +69,7 @@ def judge_compliance(
         if v.severity in _VALID_SEVERITY:
             d.severity = v.severity
         if v.rationale:
-            d.message = f"{d.message} — {v.rationale}" if d.message else v.rationale
+            d.message = f"{d.message}. {v.rationale}" if d.message else v.rationale
         if v.material:
             material += 1
 

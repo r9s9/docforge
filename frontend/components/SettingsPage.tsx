@@ -217,7 +217,7 @@ function ProfileSettings() {
           <AlertTriangle size={16} strokeWidth={2} /> Delete account
         </h3>
         <p className="muted" style={{ marginTop: 4 }}>
-          Permanently deletes your account and <strong>everything</strong> in it — all
+          Permanently deletes your account and <strong>everything</strong> in it: all
           templates, projects, generated documents, and uploaded files. This cannot be
           undone.
         </p>
@@ -256,7 +256,7 @@ function FreeTierBanner({ usage }: { usage: AIUsage }) {
         <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <Check size={15} strokeWidth={2.4} /> Using your own API key
         </strong>{" "}
-        — unlimited AI. The free allowance no longer applies.
+        gives unlimited AI. The free allowance no longer applies.
       </div>
     );
   }
@@ -435,7 +435,7 @@ function AISettingsForm() {
 
       <div className="notice section" style={{ marginTop: 0 }}>
         <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Sparkles size={15} strokeWidth={2} /> Recommended — Gemini (tiered)
+          <Sparkles size={15} strokeWidth={2} /> Recommended: Gemini (tiered)
         </strong>
         <div className="muted" style={{ margin: "6px 0 10px" }}>
           <span className="mono">gemini-3.1-flash-lite</span> for routine steps +{" "}
@@ -463,7 +463,7 @@ function AISettingsForm() {
 
       <label className="field">
         <span>
-          API Key {hasKey && <span className="muted">(stored — leave blank to keep)</span>}
+          API Key {hasKey && <span className="muted">(stored, leave blank to keep)</span>}
         </span>
         <input
           type="password"
@@ -519,7 +519,7 @@ function AISettingsForm() {
       {provider === "local" ? (
         <label className="field">
           <span>
-            Reasoning model <span className="muted">(optional — used for harder steps)</span>
+            Reasoning model <span className="muted">(optional, used for harder steps)</span>
           </span>
           <input
             value={reasoningModel}
@@ -565,7 +565,7 @@ function AISettingsForm() {
           <span style={{ margin: 0 }}>
             Disable thinking{" "}
             <span className="muted">
-              — prepends <span className="mono">/no_think</span> for Qwen3 and strips{" "}
+              prepends <span className="mono">/no_think</span> for Qwen3 and strips{" "}
               <span className="mono">&lt;think&gt;</span> blocks from all models.
               Recommended for Qwen3.
             </span>

@@ -112,7 +112,7 @@ export default function RefinePanel({
               <li>&ldquo;Move the vendor risk into scope.&rdquo;</li>
             </ul>
             <p className="muted">
-              Each change is listed so you can see what moved — and undone with one click.
+              Each change is listed so you can see what moved, and undone with one click.
             </p>
           </div>
         ) : null}
