@@ -28,7 +28,7 @@ from ..ai_classifier.fields import include_field_name
 from ..common.textutil import slugify_field
 from ..multi_doc_differ import diff_documents, pick_representative
 from ..schemas.classification import ClassificationResult
-from ..schemas.enums import ClassificationType, FieldType, is_dynamic
+from ..schemas.enums import ClassificationType, FieldType, is_dynamic, needs_field
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition
 from ..structure_normalizer import build_extraction, walk_document
@@ -603,6 +603,8 @@ def build_template_docx(
     owned_by_loop = _nodes_inside_looped_tables(nodes, cls_by_node)
 
     seen_section_fields: set[str] = set()
+    # Classified nodes no field definition covers, reported once at the end.
+    unfielded: list[str] = []
     for wn in nodes:
         if wn.node_id in handled_by_block or wn.node_id in owned_by_loop:
             continue
@@ -632,6 +634,14 @@ def build_template_docx(
         if _paragraph_has_picture(para) and not (para.text or "").strip():
             continue
         fd = fd_by_node.get(wn.node_id)
+        if fd is None and cls.field_name and needs_field(cls.classification):
+            # The classifier named this node but no field owns it: a blank
+            # spacing paragraph, a picture-only node, a field the user deleted
+            # in review. Writing {{ its_name }} anyway invents a variable the
+            # render context will never hold — it renders as nothing at best,
+            # and under autoescape it used to fail the whole build. Leave the
+            # original text exactly as it is instead.
+            unfielded.append(cls.field_name)
         # Compute the optional toggle name from the ORIGINAL text (before edits).
         include_name = _safe_ident(include_field_name(cls, para)) if cls.optional else None
         # A placeholder standing in for Word-generated content (a contents entry)
@@ -640,7 +650,7 @@ def build_template_docx(
         keep_fields = not _replaces_generated(cls)
 
         if cls.classification == ClassificationType.REPEATABLE_SECTION:
-            name = _safe_ident(fd.field_name if fd else cls.field_name)
+            name = _safe_ident(fd.field_name) if fd else None
             if name:
                 if name in seen_section_fields:
                     # Later paragraph of a grouped section — the first one already
@@ -650,7 +660,7 @@ def build_template_docx(
                 seen_section_fields.add(name)
                 _templatize_repeatable_paragraph(para, name, keep_fields=keep_fields)
         elif is_dynamic(cls.classification):
-            name = _safe_ident(fd.field_name if fd else cls.field_name)
+            name = _safe_ident(fd.field_name) if fd else None
             if name:
                 _templatize_paragraph(
                     para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or "",
@@ -663,10 +673,9 @@ def build_template_docx(
                     # paragraph holding a picture: the logo beside the text is
                     # content in its own right and must not vanish with it.
                     _wrap_optional(para, name)
-            elif (fd and fd.field_name) or cls.field_name:
+            elif fd and fd.field_name:
                 logger.warning(
-                    "skipping field with unsafe name %r (left as fixed text)",
-                    (fd.field_name if fd else cls.field_name),
+                    "skipping field with unsafe name %r (left as fixed text)", fd.field_name
                 )
 
         if include_name:
@@ -687,6 +696,13 @@ def build_template_docx(
                 wn = node_by_id.get(nid)
                 if wn and wn.kind == "paragraph" and _tag_picture(wn.obj, key):
                     break
+
+    if unfielded:
+        names = sorted(set(unfielded))
+        logger.info(
+            "left %d classified node(s) as fixed text (no field was derived for them): %s",
+            len(names), ", ".join(names[:10]) + ("…" if len(names) > 10 else ""),
+        )
 
     # Section toggles go in last, so the spans are measured against the nodes as
     # walked (marker paragraphs inserted here are new siblings, never renumbering

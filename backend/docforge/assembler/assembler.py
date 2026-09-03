@@ -20,8 +20,7 @@ from io import BytesIO
 from typing import Any
 
 from docxtpl import DocxTemplate
-from jinja2 import Environment
-from jinja2.runtime import Undefined
+from jinja2 import ChainableUndefined, Environment
 
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
@@ -36,14 +35,19 @@ _RICH_FIELD_TYPES = (FieldType.TEXT, FieldType.MULTILINE_TEXT)
 _BLOCK_BODY = "body"
 
 
-class _SilentUndefined(Undefined):
-    """Render missing variables as empty strings instead of raising."""
+class _SilentUndefined(ChainableUndefined):
+    """Render missing variables as empty strings instead of raising.
 
-    def __str__(self) -> str:  # noqa: D105
-        return ""
+    A template can outlive the field that named it — a field removed in review,
+    or a node the classifier named but ``derive_field_definitions`` dropped. One
+    such tag must cost that one spot, not the whole document.
 
-    def __getattr__(self, _name):  # missing attrs on missing objects stay silent
-        return self
+    ``ChainableUndefined`` is the base that survives ``autoescape=True``: escaping
+    probes a value for ``__html__``, so an undefined whose ``__getattr__`` answers
+    every name (dunders included) gets called and raises the very error it was
+    written to prevent. This one answers ``__html__`` with the empty string and
+    lets real dunder lookups fail, which is what keeps missing values silent.
+    """
 
 
 def _coerce_scalar(value: Any) -> str:
