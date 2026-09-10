@@ -599,3 +599,40 @@ def test_the_page_and_the_pipeline_agree_about_the_key(ai_client):
     assert full["usage"]["has_own_key"] is True
     assert full["ai"]["active"] is True
     assert full["ai"]["source"] == "own"
+
+
+def test_a_new_user_is_offered_the_recommended_pair(client):
+    """The shipped default a brand-new account sees before adding a key."""
+    ai = client.get("/api/settings").json()["ai"]
+
+    assert ai["base_url"] == OPENROUTER_BASE
+    assert ai["model"] == "nvidia/nemotron-3-super-120b-a12b"
+    assert ai["reasoning_model"] == "nvidia/nemotron-3-ultra-550b-a55b"
+    assert ai["has_key"] is False and ai["source"] == "none"
+
+
+def test_the_connection_test_covers_both_tiers(ai_client, monkeypatch):
+    """A green test used to prove only the workhorse worked."""
+    from docforge.ai import client as llm
+
+    tried: list[str] = []
+
+    def fake_complete(self, messages, **kw):
+        tried.append(self.config.model)
+        if self.config.model.endswith("ultra-550b-a55b"):
+            raise llm.LLMError("model not found")
+        return "OK"
+
+    monkeypatch.setattr(llm.LLMClient, "complete", fake_complete)
+    _save_ai(
+        ai_client, provider="openai", base_url=OPENROUTER_BASE,
+        model="nvidia/nemotron-3-super-120b-a12b",
+        reasoning_model="nvidia/nemotron-3-ultra-550b-a55b",
+        api_key="sk-or-v1-real", enabled=True,
+    )
+
+    result = ai_client.post("/api/settings/ai/test", json={}).json()
+
+    assert len(tried) == 2, "only one tier was tested"
+    assert result["ok"] is False
+    assert "reasoning model" in result["message"]

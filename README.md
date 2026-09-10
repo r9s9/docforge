@@ -17,7 +17,7 @@ you what actually matters.
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA_Nemotron-76B900?style=for-the-badge&logo=nvidia&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)
@@ -38,8 +38,9 @@ validation and a live Word-page preview before anything is finalized.
 
 It's **local-first and privacy-aware**: with no AI key configured, every
 feature still works via a fully deterministic heuristic engine — no external
-calls. Connect **Google Gemini** (recommended), **DeepSeek**, **OpenAI**,
-**Anthropic**, or any OpenAI-compatible endpoint (Ollama, LM Studio…) to turn
+calls. Connect **NVIDIA Nemotron 3** via OpenRouter (recommended), **Google
+Gemini**, **DeepSeek**, **OpenAI**, **Anthropic**, or any OpenAI-compatible
+endpoint (Ollama, LM Studio…) to turn
 on the agentic AI pipeline described below. Keys are bring-your-own, stored
 server-side, and never returned to the browser.
 
@@ -93,8 +94,9 @@ support tool-calling.
 - Two-tier model config: a cheap **workhorse** model for high-volume steps and
   a stronger **reasoning** model for understanding/critique/composition/judging.
   One click in Settings applies the recommended pairing:
-  `gemini-2.5-flash-lite` (workhorse) + `gemini-2.5-flash` (reasoning) — a fast,
-  1M-context, ~10× cheaper alternative to typical "budget" cloud models.
+  `nemotron-3-super` (workhorse) + `nemotron-3-ultra` (reasoning) on OpenRouter.
+  Ultra is built for tool use across long documents, which is what the hard steps
+  here do; Super costs about a sixth as much and handles the volume.
 - Every AI action shows its **token usage and estimated cost** right where it
   ran (New Template, Generate, Compliance Check) plus a running total in
   Settings — no black-box spend.
@@ -170,9 +172,10 @@ support tool-calling.
   prod), Pydantic v2, python-docx, docxtpl, lxml, `httpx` (AI calls), PyJWT
   (`[crypto]`).
 - **AI:** Any OpenAI-compatible endpoint or native Anthropic — in practice
-  **Google Gemini** (recommended default, tiered workhorse/reasoning), **DeepSeek**,
-  OpenAI, or a local server (Ollama/LM Studio). Bring your own key; nothing is
-  shared or billed to you by the platform.
+  **NVIDIA Nemotron 3 on OpenRouter** (recommended default, tiered
+  workhorse/reasoning), Gemini, DeepSeek, OpenAI, or a local server
+  (Ollama/LM Studio). Bring your own key; nothing is shared or billed to you by
+  the platform. Keys are held one per provider, so switching never loses one.
 - **Frontend:** Next.js 14 (App Router) + React 18 + TypeScript, **Geist** +
   **Fraunces** (`next/font`), `lucide-react`, `docx-preview`, `@supabase/supabase-js`.
 - **Cloud:** **Supabase** (Auth + Postgres + Storage), **Vercel** (hosting —
@@ -214,9 +217,9 @@ With no `NEXT_PUBLIC_SUPABASE_URL` set, the UI runs in local no-auth mode.
 **3. Turn on AI (optional)**
 
 In the app, go to **Settings → LLM Settings → "Use recommended setup"**, paste
-a Gemini API key ([get one here](https://aistudio.google.com/apikey)), and
-enable it. Without a key, every feature still works via the offline heuristic
-engine — just less semantically aware.
+an OpenRouter API key ([get one here](https://openrouter.ai/keys)), and enable
+it. Without a key, every feature still works via the offline heuristic engine —
+just less semantically aware.
 
 ---
 
@@ -258,6 +261,8 @@ All settings are environment variables prefixed `DOCFORGE_` (see
 | `DOCFORGE_AI_BASE_URL` / `_MODEL` / `_API_KEY` | OpenAI | the workhorse model config (any OpenAI-compatible provider, or Anthropic) |
 | `DOCFORGE_AI_REASONING_MODEL` | *(none — reuses the workhorse)* | a stronger model for understanding/critique/composition/judging |
 | `DOCFORGE_AI_AGENT_MAX_STEPS` | `6` | cap on tool-calling iterations per agentic action |
+| `DOCFORGE_AI_TEMPERATURE` | `0` | sampling temperature; raise only for a reasoning model that loops when greedy |
+| `DOCFORGE_AI_REASONING_EFFORT` | *(provider default)* | `none`/`low`/`medium`/`high` for the reasoning tier; setting it also stops the workhorse tier thinking |
 
 Per-user AI provider/keys are configured in-app (**Settings**) and stored
 server-side — the env vars above are process-wide defaults, not required for

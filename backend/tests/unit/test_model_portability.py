@@ -277,3 +277,24 @@ def test_a_proxy_timeout_is_retried(monkeypatch):
 
     assert LLMClient(_cfg()).complete([{"role": "user", "content": "hi"}]) == "OK"
     assert calls["n"] == 2
+
+
+# --- the shipped default ----------------------------------------------------
+
+def test_the_recommended_models_have_a_price():
+    """An unpriced model shows token counts with no cost estimate in the UI."""
+    from docforge.ai.pricing import price_for
+    from docforge.settings_store import NEMOTRON_REASONING_MODEL, NEMOTRON_WORKHORSE_MODEL
+
+    workhorse = price_for(NEMOTRON_WORKHORSE_MODEL)
+    reasoning = price_for(NEMOTRON_REASONING_MODEL)
+
+    assert workhorse and reasoning
+    assert workhorse[0] < reasoning[0], "the workhorse must be the cheaper of the pair"
+
+
+def test_openrouter_is_recognised_as_a_gateway():
+    from docforge.settings_store import OPENROUTER_DEFAULT_BASE
+
+    assert LLMClient(_cfg(base_url=OPENROUTER_DEFAULT_BASE))._is_gateway()
+    assert not LLMClient(_cfg(base_url="https://api.openai.com/v1"))._is_gateway()

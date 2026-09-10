@@ -13,6 +13,8 @@ saved.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -23,10 +25,10 @@ from ...ai_quota import plan_ai_for_owner, usage_snapshot
 from ...db.models import AnalysisJob, ComplianceRun, GenerationRequest, UserAIConfig
 from ...settings_store import (
     ANTHROPIC_DEFAULT_BASE,
-    GEMINI_DEFAULT_BASE,
-    GEMINI_REASONING_MODEL,
-    GEMINI_WORKHORSE_MODEL,
+    NEMOTRON_REASONING_MODEL,
+    NEMOTRON_WORKHORSE_MODEL,
     OPENAI_DEFAULT_BASE,
+    OPENROUTER_DEFAULT_BASE,
     AIConfig,
     default_base_url,
 )
@@ -50,16 +52,17 @@ def _ai_dto(row: UserAIConfig | None) -> dict:
     """Public view of a user's AI config (never includes the key itself).
 
     A brand-new user (no row yet) is shown the recommended cloud default —
-    Gemini, tiered: a cheap workhorse model plus a stronger reasoning model used
-    only for the harder agentic steps. They still need to add their own key.
+    Nemotron on OpenRouter, tiered: a cheap workhorse model plus a stronger
+    reasoning model used only for the harder agentic steps. They still need to
+    add their own key.
     """
     if row is None:
         return {
             "provider": "openai",
             "enabled": False,
-            "base_url": GEMINI_DEFAULT_BASE,
-            "model": GEMINI_WORKHORSE_MODEL,
-            "reasoning_model": GEMINI_REASONING_MODEL,
+            "base_url": OPENROUTER_DEFAULT_BASE,
+            "model": NEMOTRON_WORKHORSE_MODEL,
+            "reasoning_model": NEMOTRON_REASONING_MODEL,
             "has_key": False,
             "saved_endpoints": [],
             "no_think": False,
@@ -198,7 +201,13 @@ def test_ai(
     settings=Depends(get_settings_dep),
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
-    """Try a tiny completion with the proposed (or stored) per-user config."""
+    """Try a tiny completion with the proposed (or stored) per-user config.
+
+    Both tiers are tested. Testing only the workhorse used to pass while every
+    agentic step — the writer, the reviewer, Refine — was pointed at a reasoning
+    model name the provider did not recognise, which is exactly the failure a
+    connection test exists to catch.
+    """
     row = db.get(UserAIConfig, user.id)
     provider = body.provider or (row.provider if row else None) or "openai"
     default_base = ANTHROPIC_DEFAULT_BASE if provider == "anthropic" else OPENAI_DEFAULT_BASE
@@ -217,11 +226,33 @@ def test_ai(
     )
     if not cfg.api_key:
         return {"ok": False, "message": "No API key configured."}
-    try:
-        text = LLMClient(cfg).complete(
+
+    reasoning = (body.reasoning_model or (row.reasoning_model if row else None) or "").strip()
+
+    def _try(model: str) -> str:
+        client = LLMClient(replace(cfg, model=model))
+        text = client.complete(
             [{"role": "user", "content": "Reply with the single word OK."}], json_mode=False
         )
-        reply = (text or "").strip()[:60] or "(empty)"
-        return {"ok": True, "message": f"Connected to {cfg.provider}/{cfg.model}. Reply: {reply}"}
+        return (text or "").strip()[:60] or "(empty)"
+
+    try:
+        reply = _try(cfg.model)
     except LLMError as exc:
         return {"ok": False, "message": str(exc)}
+    if not reasoning or reasoning == cfg.model:
+        return {"ok": True, "message": f"Connected to {cfg.provider}/{cfg.model}. Reply: {reply}"}
+    try:
+        _try(reasoning)
+    except LLMError as exc:
+        return {
+            "ok": False,
+            "message": (
+                f"{cfg.model} works, but the reasoning model {reasoning} does not: {exc} "
+                "The harder steps (writing, review, Refine) all run on that one."
+            ),
+        }
+    return {
+        "ok": True,
+        "message": f"Connected to {cfg.provider}. Both {cfg.model} and {reasoning} replied.",
+    }

@@ -113,10 +113,17 @@ class Settings(BaseSettings):
     # must add their OWN key (Settings -> AI) to keep using AI; otherwise the app
     # falls back to the offline heuristic engine. When ``free_ai_enabled`` is on,
     # the free tier supersedes the global ``ai_*`` key for users without their own.
+    # Note the free tier now rides the OpenAI-compatible path, so free-tier users
+    # get the agentic tool-calling loop that the Anthropic transport never had.
+    # Better output, but a free action costs more and takes longer than it did.
     free_ai_enabled: bool = False
-    free_ai_provider: str = "anthropic"  # "openai" | "anthropic"
-    free_ai_base_url: str = "https://api.anthropic.com"
-    free_ai_model: str = "claude-haiku-4-5-20251001"
+    free_ai_provider: str = "openai"  # "openai" | "anthropic"
+    free_ai_base_url: str = "https://openrouter.ai/api/v1"
+    free_ai_model: str = "nvidia/nemotron-3-super-120b-a12b"
+    # Optional stronger model for the free tier's reasoning steps. Empty means
+    # both tiers share ``free_ai_model`` — the sane default when the platform
+    # owner is paying, since Ultra costs about six times as much per token.
+    free_ai_reasoning_model: str = ""
     free_ai_api_key: str = ""
     free_ai_limit: int = 10  # free AI actions per user
 

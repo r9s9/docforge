@@ -20,14 +20,22 @@ from .config import get_settings
 OPENAI_DEFAULT_BASE = "https://api.openai.com/v1"
 ANTHROPIC_DEFAULT_BASE = "https://api.anthropic.com"
 # Google Gemini speaks the OpenAI-compatible Chat Completions API, so it rides
-# the "openai" provider path with this base. This is the recommended default.
+# the "openai" provider path with this base.
 GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
-
-# Recommended cloud default ("bring your own key"): a cheap, capable, 1M-context
-# Gemini pairing. The workhorse handles high-volume mechanical calls; the
-# reasoning model is used only for the harder agentic steps.
 GEMINI_WORKHORSE_MODEL = "gemini-3.1-flash-lite"
 GEMINI_REASONING_MODEL = "gemini-3.5-flash"
+
+# OpenRouter: one OpenAI-compatible endpoint in front of many providers. Note it
+# picks the upstream per request, so a capability the model advertises is not
+# necessarily one the chosen upstream implements — see LLMClient._is_gateway.
+OPENROUTER_DEFAULT_BASE = "https://openrouter.ai/api/v1"
+
+# Recommended cloud default ("bring your own key"): NVIDIA's Nemotron 3 pair on
+# OpenRouter. Ultra is built for exactly what this app's hard steps do — tool
+# calling across a long document — and Super costs about a sixth of it on the
+# high-volume mechanical calls. Same family, so the two tiers behave alike.
+NEMOTRON_WORKHORSE_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+NEMOTRON_REASONING_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 
 
 def default_base_url(provider: str | None) -> str:

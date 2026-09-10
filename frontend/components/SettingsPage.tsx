@@ -11,14 +11,17 @@ import { AlertTriangle, Check, KeyRound, Sparkles, Trash2 } from "@/components/i
 import LogsPage from "@/components/LogsPage";
 
 type Tab = "ai" | "profile" | "logs";
-type UiProvider = "openai" | "anthropic" | "gemini" | "deepseek" | "local";
+type UiProvider = "openrouter" | "openai" | "anthropic" | "gemini" | "deepseek" | "local";
 
-// Gemini and DeepSeek both speak the OpenAI-compatible Chat Completions API, so
-// they ride the backend's "openai" provider path with a different base URL.
+// OpenRouter, Gemini and DeepSeek all speak the OpenAI-compatible Chat
+// Completions API, so they ride the backend's "openai" provider path with a
+// different base URL.
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
 const DEEPSEEK_BASE = "https://api.deepseek.com";
 
 const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }> = {
+  openrouter: { base_url: OPENROUTER_BASE, model: "nvidia/nemotron-3-super-120b-a12b" },
   openai: { base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   anthropic: { base_url: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
   gemini: { base_url: GEMINI_BASE, model: "gemini-3.1-flash-lite" },
@@ -28,7 +31,14 @@ const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }>
 
 // Selectable models per cloud provider (the user picks one instead of typing it).
 // Local servers expose arbitrary model names, so that path keeps a free-text box.
-const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string[]> = {
+const MODEL_OPTIONS: Record<Exclude<UiProvider, "local">, string[]> = {
+  // NVIDIA Nemotron 3: Ultra for the agentic steps, Super for the volume.
+  openrouter: [
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "nvidia/nemotron-3-super-120b-a12b",
+    "nvidia/nemotron-3.5-lightning",
+    "nvidia/nemotron-3-nano-30b-a3b",
+  ],
   openai: ["gpt-5-nano", "gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
   anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-8"],
   // Newest first: the list is a menu, and the top of it is what people pick.
@@ -47,6 +57,7 @@ const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", stri
 // What a key for each provider looks like, so a wrong paste is obvious before
 // saving. The backend refuses a key with the wrong shape for its endpoint.
 const KEY_PLACEHOLDERS: Record<UiProvider, string> = {
+  openrouter: "sk-or-…",
   openai: "sk-…",
   anthropic: "sk-ant-…",
   gemini: "AIza…",
@@ -56,19 +67,22 @@ const KEY_PLACEHOLDERS: Record<UiProvider, string> = {
 
 // Recommended "reasoning" model per provider — used only for the harder agentic
 // steps (document understanding, self-critique, value composition, compliance).
-const REASONING_DEFAULTS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string> = {
+const REASONING_DEFAULTS: Record<Exclude<UiProvider, "local">, string> = {
+  openrouter: "nvidia/nemotron-3-ultra-550b-a55b",
   openai: "gpt-5-mini",
   anthropic: "claude-sonnet-4-6",
   gemini: "gemini-3.5-flash",
   deepseek: "deepseek-reasoner",
 };
 
-// The shipped recommendation: cheap Gemini workhorse + stronger Gemini reasoning.
+// The shipped recommendation: Nemotron 3 Super for the volume of mechanical
+// calls, Nemotron 3 Ultra for the agentic steps that decide what the document
+// says. Same family, so the two tiers behave alike.
 const RECOMMENDED = {
-  provider: "gemini" as UiProvider,
-  base_url: GEMINI_BASE,
-  model: "gemini-3.1-flash-lite",
-  reasoning_model: "gemini-3.5-flash",
+  provider: "openrouter" as UiProvider,
+  base_url: OPENROUTER_BASE,
+  model: "nvidia/nemotron-3-super-120b-a12b",
+  reasoning_model: "nvidia/nemotron-3-ultra-550b-a55b",
 };
 
 // Map a UI provider to the backend provider value it routes through.
@@ -85,6 +99,7 @@ function sameEndpoint(a: string, b: string): boolean {
 
 function deriveUiProvider(s: AISettings): UiProvider {
   if (s.provider === "anthropic") return "anthropic";
+  if (/openrouter\.ai/.test(s.base_url)) return "openrouter";
   if (/generativelanguage\.googleapis\.com/.test(s.base_url)) return "gemini";
   if (/deepseek\.com/.test(s.base_url)) return "deepseek";
   if (/localhost|127\.0\.0\.1/.test(s.base_url)) return "local";
@@ -462,21 +477,23 @@ function AISettingsForm() {
       <h2 className="section-h">Your AI Provider</h2>
       <p className="muted" style={{ marginTop: 0 }}>
         DocForge uses <strong>your own</strong> provider key for every AI step. The
-        recommended setup is <strong>Google Gemini</strong>, tiered: a cheap
-        workhorse model for routine work plus a stronger reasoning model for the
-        harder agent steps. Your key is stored server-side and never returned.
+        recommended setup is <strong>NVIDIA Nemotron 3</strong> on OpenRouter, tiered:
+        a cheap workhorse model for routine work plus a stronger reasoning model for
+        the harder agent steps. Your key is stored server-side and never returned,
+        and each provider keeps its own, so switching between them never loses one.
       </p>
 
       <div className="notice section" style={{ marginTop: 0 }}>
         <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Sparkles size={15} strokeWidth={2} /> Recommended: Gemini (tiered)
+          <Sparkles size={15} strokeWidth={2} /> Recommended: Nemotron 3 (tiered)
         </strong>
         <div className="muted" style={{ margin: "6px 0 10px" }}>
-          <span className="mono">gemini-3.1-flash-lite</span> for routine steps +{" "}
-          <span className="mono">gemini-3.5-flash</span> for reasoning. Cheap, capable,
-          1M-token context.{" "}
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
-            Get a Gemini API key →
+          <span className="mono">nemotron-3-super</span> for routine steps +{" "}
+          <span className="mono">nemotron-3-ultra</span> for reasoning. Ultra is built
+          for tool use across long documents, which is what the harder steps here do;
+          Super costs about a sixth as much and handles the volume.{" "}
+          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">
+            Get an OpenRouter API key →
           </a>
         </div>
         <button type="button" className="btn secondary small" onClick={applyRecommended}>
@@ -487,6 +504,7 @@ function AISettingsForm() {
       <label className="field">
         <span>Provider</span>
         <select value={provider} onChange={(e) => changeProvider(e.target.value as UiProvider)}>
+          <option value="openrouter">OpenRouter (NVIDIA Nemotron, and most others)</option>
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
           <option value="gemini">Google Gemini</option>
@@ -533,17 +551,20 @@ function AISettingsForm() {
         )}
       </label>
 
+      <label className="field">
+        <span>
+          Base URL{" "}
+          <span className="muted">(the preset for your provider; change it for any
+          other OpenAI compatible endpoint)</span>
+        </span>
+        <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+      </label>
+
       {provider === "local" ? (
-        <>
-          <label className="field">
-            <span>Base URL</span>
-            <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>Model</span>
-            <input value={model} onChange={(e) => setModel(e.target.value)} />
-          </label>
-        </>
+        <label className="field">
+          <span>Model</span>
+          <input value={model} onChange={(e) => setModel(e.target.value)} />
+        </label>
       ) : (
         <label className="field">
           <span>Model</span>

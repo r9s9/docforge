@@ -52,12 +52,12 @@ services:
       - key: DOCFORGE_CORS_ALLOW_ORIGINS
         sync: false
       # --- AI providers ---
-      # Hosted AI is served by the free tier below (a shared Claude Haiku key) and
+      # Hosted AI is served by the free tier below (a shared Nemotron key) and
       # by each user's own key (Settings -> AI). The legacy single global key is
       # left disabled; enable it only if you want one shared key for everyone.
       - key: DOCFORGE_AI_ENABLED
         value: "false"
-      # --- Free-tier AI: shared Claude Haiku key, paid by you ---
+      # --- Free-tier AI: shared Nemotron 3 Super key, paid by you ---
       # Every signed-in user gets DOCFORGE_FREE_AI_LIMIT free AI actions on this
       # shared key (they never see it). After that they add their own key in
       # Settings -> AI, or the app falls back to the offline heuristic engine.
@@ -66,15 +66,15 @@ services:
       - key: DOCFORGE_FREE_AI_ENABLED
         value: "true"
       - key: DOCFORGE_FREE_AI_PROVIDER
-        value: anthropic
+        value: openai
       - key: DOCFORGE_FREE_AI_BASE_URL
-        value: https://api.anthropic.com
+        value: https://openrouter.ai/api/v1
       - key: DOCFORGE_FREE_AI_MODEL
-        value: claude-haiku-4-5-20251001
+        value: nvidia/nemotron-3-super-120b-a12b
       - key: DOCFORGE_FREE_AI_LIMIT
         value: "10"
       - key: DOCFORGE_FREE_AI_API_KEY
-        sync: false                                    # secret — your sk-ant-... Claude key
+        sync: false                                    # secret: your sk-or-v1-... OpenRouter key
 
   # --- Frontend: Next.js app ---------------------------------------------
   - type: web

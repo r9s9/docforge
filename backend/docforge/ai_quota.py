@@ -110,6 +110,9 @@ def _free_config(s) -> AIConfig:
         base_url=(s.free_ai_base_url or "").strip(),
         api_key=(s.free_ai_api_key or "").strip(),
         model=s.free_ai_model,
+        # Without this the free tier collapsed both tiers onto one model, so its
+        # users silently got the workhorse for the reasoning steps too.
+        reasoning_model=(s.free_ai_reasoning_model or "").strip(),
         timeout_seconds=s.ai_timeout_seconds,
         max_retries=s.ai_max_retries,
         max_output_tokens=s.ai_max_output_tokens,

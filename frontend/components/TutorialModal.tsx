@@ -157,15 +157,15 @@ function MockAISettings() {
       <div className="tut-mock tut-mock-rows">
         <div className="tut-mock-row">
           <span>Provider</span>
-          <b>Gemini</b>
+          <b>OpenRouter</b>
         </div>
         <div className="tut-mock-row">
           <span>Model · everyday work</span>
-          <b>gemini-3.1-flash-lite</b>
+          <b>nemotron-3-super</b>
         </div>
         <div className="tut-mock-row">
           <span>Reasoning model · hard steps</span>
-          <b>gemini-3.5-flash</b>
+          <b>nemotron-3-ultra</b>
         </div>
         <div className="tut-mock-row">
           <span>API key</span>
@@ -352,7 +352,9 @@ const TABS: TutTab[] = [
         <MockAISettings />
         <ul className="tut-list">
           <li>
-            <b>Provider</b>: OpenAI, Anthropic, Gemini, DeepSeek, or a local model (e.g. Ollama).
+            <b>Provider</b>: OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, or a local model
+            (e.g. Ollama). Any other OpenAI compatible endpoint works too, by editing the
+            base URL.
             Your key is stored for your account only. No key yet? A small free allowance lets you
             try everything first.
           </li>
@@ -362,7 +364,8 @@ const TABS: TutTab[] = [
             <b>Use recommended</b> button configures a proven cheap-and-good pair in one click.
           </li>
           <li>
-            <b>Test</b>: checks your key and model actually respond before you rely on them.
+            <b>Test</b>: checks your key and <i>both</i> models actually respond before you rely
+            on them.
           </li>
           <li>
             <b>AI toggle</b>: with AI off, a built-in heuristic still analyzes documents; it

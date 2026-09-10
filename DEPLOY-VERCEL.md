@@ -79,11 +79,11 @@ schema is current and this is a no-op.)
 | `DOCFORGE_SUPABASE_JWT_SECRET` | (optional — only for legacy HS256 projects) |
 | `DOCFORGE_CORS_ALLOW_ORIGINS` | `*` for now (tighten in step 4) |
 | `DOCFORGE_FREE_AI_ENABLED` | `true` |
-| `DOCFORGE_FREE_AI_PROVIDER` | `anthropic` |
-| `DOCFORGE_FREE_AI_BASE_URL` | `https://api.anthropic.com` |
-| `DOCFORGE_FREE_AI_MODEL` | `claude-haiku-4-5-20251001` |
+| `DOCFORGE_FREE_AI_PROVIDER` | `openai` |
+| `DOCFORGE_FREE_AI_BASE_URL` | `https://openrouter.ai/api/v1` |
+| `DOCFORGE_FREE_AI_MODEL` | `nvidia/nemotron-3-super-120b-a12b` |
 | `DOCFORGE_FREE_AI_LIMIT` | `10` |
-| `DOCFORGE_FREE_AI_API_KEY` | your `sk-ant-…` key (secret) |
+| `DOCFORGE_FREE_AI_API_KEY` | your `sk-or-v1-…` key (secret) |
 
 4. After deploy, note the URL, e.g. `https://docforge-backend.vercel.app`, and test:
    `GET https://docforge-backend.vercel.app/api/health` → should return JSON with

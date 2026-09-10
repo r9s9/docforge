@@ -13,7 +13,15 @@ from __future__ import annotations
 
 # model-name (lowercased) -> (input_usd_per_1M, output_usd_per_1M)
 MODEL_PRICES: dict[str, tuple[float, float]] = {
-    # Google Gemini (recommended default) — OpenAI-compatible endpoint
+    # NVIDIA Nemotron on OpenRouter (recommended default). OpenRouter model ids
+    # carry the vendor prefix, which the prefix match below handles. Prices are
+    # the cheapest endpoint OpenRouter routes to; a costlier upstream shifts the
+    # estimate, which is why these figures are labelled approximate.
+    "nvidia/nemotron-3-ultra": (0.50, 2.20),
+    "nvidia/nemotron-3-super": (0.085, 0.40),
+    "nvidia/nemotron-3.5-lightning": (0.08, 0.20),
+    "nvidia/nemotron-3-nano": (0.02, 0.08),
+    # Google Gemini — OpenAI-compatible endpoint
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-pro": (1.25, 10.00),
