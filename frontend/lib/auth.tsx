@@ -6,6 +6,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase, supabaseConfigured } from "./supabase";
+import { clearAiStatus } from "./useAiStatus";
 
 interface AuthState {
   session: Session | null;
@@ -57,6 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signOut: async () => {
         await supabase.auth.signOut();
+        // Module-level caches survive a client-side route change, so the
+        // next account would otherwise see this one's provider and model.
+        clearAiStatus();
       },
     }),
     [session, loading],

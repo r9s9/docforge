@@ -4,8 +4,6 @@ import Link from "next/link";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
-  AISettings,
-  AIUsage,
   FieldDefinition,
   GenerationResult,
   PlacementInstruction,
@@ -27,6 +25,7 @@ import {
   UploadCaution,
 } from "@/components/ui";
 import { useHealth } from "@/lib/useHealth";
+import { useAiStatus } from "@/lib/useAiStatus";
 import {
   AlertTriangle,
   ChevronDown,
@@ -192,19 +191,7 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
   // / global key) — used to tell "AI is on but this call fell back to
   // heuristics" apart from "AI is simply off" (see the routing notice below).
   const health = useHealth();
-  const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
-  const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
-  useEffect(() => {
-    api
-      .getAISettings()
-      .then(({ ai, usage }) => {
-        setAiSettings(ai);
-        setAiUsage(usage);
-      })
-      .catch(() => {
-        /* AiStatusBanner already surfaces auth/connection issues */
-      });
-  }, []);
+  const { ai: aiSettings, usage: aiUsage } = useAiStatus();
   const aiActive = isAiActive(health, aiSettings, aiUsage);
 
   function startAiTimer(stage: string) {

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
+import { useAiStatus } from "@/lib/useAiStatus";
 import type { AISettings, AIUsage, Health } from "@/lib/types";
 import {
   Check,
@@ -108,8 +109,9 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [health, setHealth] = useState<Health | null>(null);
-  const [ai, setAi] = useState<AISettings | null>(null);
-  const [usage, setUsage] = useState<AIUsage | null>(null);
+  // Shared, so saving a different model in Settings updates this line without
+  // a page reload — the sidebar never remounts on a client-side navigation.
+  const { ai, usage } = useAiStatus();
   const [pinned, setPinned] = useState(false);
 
   // Editable / reorderable navigation state (persisted to localStorage).
@@ -134,15 +136,6 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
   useEffect(() => {
     setTheme(getStoredTheme());
     api.health().then(setHealth).catch(() => setHealth(null));
-    api
-      .getAISettings()
-      .then(({ ai, usage }) => {
-        setAi(ai);
-        setUsage(usage);
-      })
-      .catch(() => {
-        /* settings need auth; ignore in local/no-auth mode */
-      });
     try {
       setPinned(localStorage.getItem(PIN_KEY) === "1");
 

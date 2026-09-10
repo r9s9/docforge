@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { publishAiStatus } from "@/lib/useAiStatus";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { AISettings, AIUsage, TokenTotals } from "@/lib/types";
@@ -456,6 +457,9 @@ function AISettingsForm() {
       const { ai, usage, tokens } = await api.updateAISettings(payload());
       setSavedEndpoints(ai.saved_endpoints ?? []);
       setUsage(usage);
+      // The sidebar and the page banners read a shared snapshot; without this
+      // they keep naming the old model until a full page reload.
+      publishAiStatus({ ai, usage });
       setTokens(tokens ?? null);
       setApiKey("");
       setKeyTyped(false);

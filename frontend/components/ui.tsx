@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { useHealth } from "@/lib/useHealth";
+import { useAiStatus } from "@/lib/useAiStatus";
 import type { AISettings, AIUsage, Health, TokenUsage } from "@/lib/types";
 import { AlertTriangle, Sparkles } from "@/components/icons";
 
@@ -71,20 +72,7 @@ export function AiBadge({ title }: { title?: string }) {
  * false even though AI works — we must also consult the per-user settings/usage. */
 export function AiStatusBanner() {
   const health = useHealth();
-  const [ai, setAi] = useState<AISettings | null>(null);
-  const [usage, setUsage] = useState<AIUsage | null>(null);
-
-  useEffect(() => {
-    api
-      .getAISettings()
-      .then(({ ai, usage }) => {
-        setAi(ai);
-        setUsage(usage);
-      })
-      .catch(() => {
-        /* needs auth; ignore (falls back to global health below) */
-      });
-  }, []);
+  const { ai, usage } = useAiStatus();
 
   if (!health) return null;
 
