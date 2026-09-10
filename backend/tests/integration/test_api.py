@@ -512,3 +512,90 @@ def test_publish_rejects_unknown_project(client, db_session, settings_tmp, proje
         json={"analysis_job_id": job.id, "name": "T", "project_id": "nonexistent"},
     )
     assert r.status_code == 404
+
+
+# --- AI key persistence (see backend/docforge/ai_keys.py) --------------------
+
+OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+
+@pytest.fixture
+def ai_client(client, db_session, monkeypatch):
+    """``client``, with AI plan resolution reading the same DB the API writes to.
+
+    ``ai_quota._row`` deliberately opens its own short-lived session (it is
+    called from deep inside the pipeline, far from any request), which in tests
+    lands on the app's real database rather than the fixture's. Pointing it at
+    the test session is what lets these tests check that the Settings page and
+    the pipeline agree about the key.
+    """
+    from docforge import ai_quota
+    from docforge.db.models import UserAIConfig
+
+    monkeypatch.setattr(ai_quota, "_row", lambda oid: db_session.get(UserAIConfig, oid))
+    return client
+
+
+def _save_ai(client, **patch):
+    resp = client.put("/api/settings", json=patch)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["ai"]
+
+
+def test_changing_model_keeps_the_api_key(ai_client):
+    """The reported bug: open Settings, change model, save, key is gone."""
+    _save_ai(
+        ai_client, provider="openai", base_url=OPENROUTER_BASE,
+        model="nvidia/nemotron-3-super-120b-a12b", api_key="sk-or-v1-real", enabled=True,
+    )
+    # Change only the model, exactly as the page does — no api_key in the body.
+    ai = _save_ai(
+        ai_client, provider="openai", base_url=OPENROUTER_BASE,
+        model="nvidia/nemotron-3-ultra-550b-a55b", enabled=True,
+    )
+
+    assert ai["has_key"] is True
+    assert ai["active"] is True
+
+
+def test_switching_provider_and_back_reuses_the_saved_key(ai_client):
+    _save_ai(ai_client, provider="openai", base_url=GEMINI_BASE,
+             model="gemini-3.5-flash", api_key="AIzaMine", enabled=True)
+    moved = _save_ai(ai_client, provider="openai", base_url=OPENROUTER_BASE,
+                     model="nvidia/nemotron-3-ultra-550b-a55b", api_key="sk-or-v1-mine", enabled=True)
+    assert sorted(moved["saved_endpoints"]) == [GEMINI_BASE, OPENROUTER_BASE]
+
+    back = _save_ai(ai_client, provider="openai", base_url=GEMINI_BASE,
+                    model="gemini-3.5-flash", enabled=True)
+
+    assert back["has_key"] is True, "the Gemini key was not there when we came back"
+    assert back["active"] is True
+
+
+def test_an_autofilled_password_cannot_overwrite_the_key(ai_client):
+    _save_ai(ai_client, provider="openai", base_url=OPENROUTER_BASE,
+             model="nvidia/nemotron-3-ultra-550b-a55b", api_key="sk-or-v1-real", enabled=True)
+
+    resp = ai_client.put("/api/settings", json={
+        "provider": "openai", "base_url": OPENROUTER_BASE,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "api_key": "hunter2-my-github-password", "enabled": True,
+    })
+
+    assert resp.status_code == 400
+    assert "sk-or-" in resp.json()["detail"]
+    ai = ai_client.get("/api/settings").json()["ai"]
+    assert ai["has_key"] is True, "the real key was overwritten anyway"
+
+
+def test_the_page_and_the_pipeline_agree_about_the_key(ai_client):
+    """has_key, has_own_key and active must not contradict each other."""
+    body = _save_ai(ai_client, provider="openai", base_url=OPENROUTER_BASE,
+                    model="nvidia/nemotron-3-ultra-550b-a55b", api_key="sk-or-v1-real", enabled=True)
+    full = ai_client.get("/api/settings").json()
+
+    assert body["has_key"] is True
+    assert full["usage"]["has_own_key"] is True
+    assert full["ai"]["active"] is True
+    assert full["ai"]["source"] == "own"

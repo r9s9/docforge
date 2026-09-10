@@ -67,19 +67,31 @@ def _row(owner_id: str | None):
         db.close()
 
 
-def _own_config(row, s) -> AIConfig:
+def _row_endpoint(row) -> str:
+    """The base URL a row talks to.
+
+    A stored row can predate the base URL being filled in on save, and a blank
+    one makes the whole config inert. Falling back to the provider's own
+    endpoint means an existing key starts working rather than silently routing
+    every action to the offline engine.
+    """
     from .settings_store import default_base_url
 
+    return (row.base_url or "").strip() or default_base_url(row.provider or "openai")
+
+
+def _own_config(row, s) -> AIConfig:
+    from .ai_keys import key_for
+
     provider = row.provider or "openai"
+    base_url = _row_endpoint(row)
     return AIConfig(
         provider=provider,
         enabled=True,
-        # A stored row can predate the base URL being filled in on save, and a
-        # blank one makes the whole config inert. Fall back to the provider's
-        # own endpoint so an existing key starts working rather than silently
-        # routing every action to the offline engine.
-        base_url=(row.base_url or "").strip() or default_base_url(provider),
-        api_key=(row.api_key or "").strip(),
+        base_url=base_url,
+        # Keys are held per endpoint (see ai_keys), so switching model — or
+        # switching provider and back — never loses the one already saved.
+        api_key=key_for(row.api_key, base_url),
         model=row.model or "",
         reasoning_model=(getattr(row, "reasoning_model", "") or "").strip(),
         timeout_seconds=s.ai_timeout_seconds,
@@ -103,7 +115,16 @@ def _free_config(s) -> AIConfig:
 
 
 def _has_own(row) -> bool:
-    return bool(row and row.enabled and (row.api_key or "").strip())
+    """Whether this user's own key serves their AI actions.
+
+    Expressed through ``key_for`` so it cannot disagree with what the pipeline
+    will actually send, or with the ``has_key`` the Settings page is shown.
+    """
+    from .ai_keys import key_for
+
+    if not (row and row.enabled):
+        return False
+    return bool(key_for(row.api_key, _row_endpoint(row)))
 
 
 def _free_configured(s) -> bool:

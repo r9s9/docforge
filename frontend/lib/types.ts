@@ -289,9 +289,14 @@ export interface AISettings {
   base_url: string;
   model: string;
   reasoning_model?: string;
+  /** Whether a key is stored for `base_url` specifically, not just somewhere. */
   has_key: boolean;
+  /** Every endpoint this user already has a key for. Keys themselves never leave the server. */
+  saved_endpoints?: string[];
   no_think: boolean;
   active: boolean;
+  /** Which key is actually serving this user: own, free tier, legacy global, or none. */
+  source?: "own" | "free" | "global" | "none";
 }
 
 // Free-tier AI allowance for the signed-in user. The shared key is never exposed.

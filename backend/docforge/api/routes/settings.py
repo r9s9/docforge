@@ -1,18 +1,24 @@
 """Per-user runtime settings — configure each user's own AI provider.
 
 The API key is write-only: it is accepted on PUT/test but never returned (only a
-``has_key`` boolean is exposed). Settings are scoped to the signed-in user and
-stored server-side (``user_ai_configs`` table). The response also reports the
-user's free-tier usage so the UI can show how many free AI actions remain.
+``has_key`` boolean and the list of endpoints that have one). Settings are scoped
+to the signed-in user and stored server-side (``user_ai_configs`` table). The
+response also reports the user's free-tier usage so the UI can show how many free
+AI actions remain.
+
+Keys are held one per endpoint (see :mod:`docforge.ai_keys`), so changing model —
+or changing provider and changing back — never costs the user a key they already
+saved.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ...ai.client import LLMClient, LLMError
+from ...ai_keys import key_for, key_shape_error, stored_keys, with_key
 from ...ai_quota import plan_ai_for_owner, usage_snapshot
 from ...db.models import AnalysisJob, ComplianceRun, GenerationRequest, UserAIConfig
 from ...settings_store import (
@@ -55,21 +61,34 @@ def _ai_dto(row: UserAIConfig | None) -> dict:
             "model": GEMINI_WORKHORSE_MODEL,
             "reasoning_model": GEMINI_REASONING_MODEL,
             "has_key": False,
+            "saved_endpoints": [],
             "no_think": False,
             "active": False,
+            "source": "none",
         }
     # "active" must mean exactly what the pipeline means by it, or the page can
     # report a working key while every action quietly runs the offline engine.
     plan = plan_ai_for_owner(row.owner_id)
+    base_url = row.base_url or default_base_url(row.provider)
     return {
         "provider": row.provider or "openai",
         "enabled": bool(row.enabled),
-        "base_url": row.base_url or default_base_url(row.provider),
+        "base_url": base_url,
         "model": row.model or "gpt-4o-mini",
         "reasoning_model": (row.reasoning_model or "").strip(),
-        "has_key": bool((row.api_key or "").strip()),
+        # Asked of the endpoint this row talks to, so it agrees with
+        # usage.has_own_key and with what the pipeline will actually send.
+        "has_key": bool(key_for(row.api_key, base_url)),
+        # The other endpoints this user has already saved a key for, so the page
+        # can say "switching there will reuse the key you saved" instead of
+        # implying the key is gone.
+        "saved_endpoints": sorted(stored_keys(row.api_key, base_url)),
         "no_think": bool(row.no_think),
         "active": plan.config.active,
+        # Which key is actually serving this user right now. Without it the page
+        # cannot tell "your key" from "the free tier" and the banners contradict
+        # the form.
+        "source": plan.mode,
     }
 
 
@@ -144,17 +163,29 @@ def put_settings_api(
     if row is None:
         row = UserAIConfig(owner_id=user.id)
         db.add(row)
+    # The endpoint the row talked to BEFORE this save: a bare pre-keyring value
+    # belongs to that one, even when this same request repoints the row.
+    previous_base = row.base_url or default_base_url(row.provider)
     patch = body.model_dump(exclude_none=True)
     for key in ("provider", "enabled", "base_url", "model", "reasoning_model", "no_think"):
         if key in patch:
             setattr(row, key, patch[key])
-    # A blank api_key never clobbers an existing stored key.
-    if patch.get("api_key"):
-        row.api_key = patch["api_key"].strip()
     # Store where to reach the provider. Without it the config is inert, so
     # saving a key would appear to work and change nothing.
     if not (row.base_url or "").strip():
         row.base_url = default_base_url(row.provider)
+    # A blank api_key never clobbers a stored key, and neither does a value that
+    # cannot be a key for this endpoint. The field is masked, so a password
+    # manager filling it with an unrelated saved credential is invisible until
+    # the next AI action fails -- which is exactly how this key went missing.
+    if patch.get("api_key"):
+        submitted = patch["api_key"].strip()
+        problem = key_shape_error(row.base_url, submitted)
+        if problem:
+            raise HTTPException(status_code=400, detail=problem)
+        row.api_key = with_key(
+            row.api_key, row.base_url, submitted, legacy_base=previous_base
+        )
     db.commit()
     db.refresh(row)
     return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
@@ -171,11 +202,15 @@ def test_ai(
     row = db.get(UserAIConfig, user.id)
     provider = body.provider or (row.provider if row else None) or "openai"
     default_base = ANTHROPIC_DEFAULT_BASE if provider == "anthropic" else OPENAI_DEFAULT_BASE
+    base_url = body.base_url or (row.base_url if row else None) or default_base
+    # Test the key that belongs to the endpoint being tested — the stored one
+    # for a different provider would only ever produce a confusing 401.
+    stored = key_for(row.api_key, base_url) if row else ""
     cfg = AIConfig(
         provider=provider,
         enabled=True,
-        base_url=body.base_url or (row.base_url if row else None) or default_base,
-        api_key=body.api_key or (row.api_key if row else None) or "",
+        base_url=base_url,
+        api_key=body.api_key or stored or "",
         model=body.model or (row.model if row else None) or "",
         timeout_seconds=settings.ai_interactive_timeout_seconds,
         max_retries=0,

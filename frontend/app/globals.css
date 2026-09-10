@@ -619,6 +619,29 @@ label.field > span {
   font-weight: 600;
   font-size: 13px;
 }
+/* A secret that must not be a password field. Browsers offer to fill any
+   type=password input and ignore autocomplete="off" on it, which is how an
+   unrelated saved credential used to land on top of a provider API key. Masking
+   in CSS keeps the value hidden while leaving the field outside that scope. */
+.masked-input {
+  -webkit-text-security: disc;
+  text-security: disc;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  letter-spacing: 0.08em;
+}
+.masked-input::placeholder {
+  -webkit-text-security: none;
+  text-security: none;
+  letter-spacing: normal;
+}
+label.field > span.small,
+label.field > .muted.small {
+  margin-top: 6px;
+  margin-bottom: 0;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.5;
+}
 input,
 textarea,
 select {

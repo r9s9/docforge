@@ -44,6 +44,16 @@ const MODEL_OPTIONS: Record<"openai" | "anthropic" | "gemini" | "deepseek", stri
   deepseek: ["deepseek-chat", "deepseek-reasoner"],
 };
 
+// What a key for each provider looks like, so a wrong paste is obvious before
+// saving. The backend refuses a key with the wrong shape for its endpoint.
+const KEY_PLACEHOLDERS: Record<UiProvider, string> = {
+  openai: "sk-…",
+  anthropic: "sk-ant-…",
+  gemini: "AIza…",
+  deepseek: "sk-…",
+  local: "ollama",
+};
+
 // Recommended "reasoning" model per provider — used only for the harder agentic
 // steps (document understanding, self-critique, value composition, compliance).
 const REASONING_DEFAULTS: Record<"openai" | "anthropic" | "gemini" | "deepseek", string> = {
@@ -64,6 +74,13 @@ const RECOMMENDED = {
 // Map a UI provider to the backend provider value it routes through.
 function backendProvider(p: UiProvider): "openai" | "anthropic" {
   return p === "anthropic" ? "anthropic" : "openai";
+}
+
+// Two base URLs naming the same endpoint (mirrors ai_keys.normalize_endpoint on
+// the server, which is what decides where a key is filed).
+function sameEndpoint(a: string, b: string): boolean {
+  const norm = (s: string) => (s || "").trim().replace(/\/+$/, "").toLowerCase();
+  return norm(a) === norm(b);
 }
 
 function deriveUiProvider(s: AISettings): UiProvider {
@@ -320,9 +337,13 @@ function AISettingsForm() {
   const [model, setModel] = useState(RECOMMENDED.model);
   const [reasoningModel, setReasoningModel] = useState(RECOMMENDED.reasoning_model);
   const [apiKey, setApiKey] = useState("");
+  // Set only by a real typing/paste gesture. A password manager writes .value
+  // directly, which fires onChange but never onBeforeInput — so this is what
+  // separates "the user entered a key" from "something filled the box in".
+  const [keyTyped, setKeyTyped] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [noThink, setNoThink] = useState(false);
-  const [hasKey, setHasKey] = useState(false);
+  const [savedEndpoints, setSavedEndpoints] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saved, setSaved] = useState(false);
@@ -339,7 +360,7 @@ function AISettingsForm() {
         setReasoningModel(ai.reasoning_model || "");
         setEnabled(ai.enabled);
         setNoThink(ai.no_think ?? false);
-        setHasKey(ai.has_key);
+        setSavedEndpoints(ai.saved_endpoints ?? []);
         setUsage(usage);
         setTokens(tokens ?? null);
       })
@@ -353,6 +374,10 @@ function AISettingsForm() {
     // Default to the first selectable model for cloud providers.
     setModel(p === "local" ? PROVIDER_DEFAULTS.local.model : MODEL_OPTIONS[p][0]);
     setReasoningModel(p === "local" ? "" : REASONING_DEFAULTS[p]);
+    // A key typed for the provider being left is not a key for this one. The
+    // one already stored for this endpoint (if any) stays where it is.
+    setApiKey("");
+    setKeyTyped(false);
     setTestResult(null);
   }
 
@@ -375,6 +400,12 @@ function AISettingsForm() {
       ? []
       : Array.from(new Set([...MODEL_OPTIONS[provider], reasoningModel].filter(Boolean)));
 
+  // Keys are stored per endpoint, so "do I have a key?" has to be asked of the
+  // endpoint currently selected — otherwise switching provider leaves the form
+  // claiming a key that belongs to the provider just left.
+  const hasKeyHere = savedEndpoints.some((e) => sameEndpoint(e, baseUrl));
+  const savedElsewhere = savedEndpoints.filter((e) => !sameEndpoint(e, baseUrl));
+
   function payload() {
     const body: Record<string, unknown> = {
       provider: backendProvider(provider),
@@ -384,7 +415,9 @@ function AISettingsForm() {
       enabled,
       no_think: noThink,
     };
-    if (apiKey) body.api_key = apiKey;
+    // Only a key the user actually entered is sent. A blank box means "keep what
+    // is stored", and an autofilled one means nothing at all.
+    if (apiKey && keyTyped) body.api_key = apiKey;
     return body;
   }
 
@@ -406,10 +439,11 @@ function AISettingsForm() {
     setError("");
     try {
       const { ai, usage, tokens } = await api.updateAISettings(payload());
-      setHasKey(ai.has_key);
+      setSavedEndpoints(ai.saved_endpoints ?? []);
       setUsage(usage);
       setTokens(tokens ?? null);
       setApiKey("");
+      setKeyTyped(false);
       setSaved(true);
     } catch (e: any) {
       setError(String(e.message || e));
@@ -463,33 +497,40 @@ function AISettingsForm() {
 
       <label className="field">
         <span>
-          API Key {hasKey && <span className="muted">(stored, leave blank to keep)</span>}
+          API Key {hasKeyHere && <span className="muted">(stored, leave blank to keep)</span>}
         </span>
         <input
-          type="password"
+          // Deliberately NOT type="password". This is a provider API key, and a
+          // password manager filling it with an unrelated saved credential used
+          // to overwrite the real key on the next save — invisibly, because the
+          // field was masked. Chrome and Edge ignore autoComplete="off" on
+          // password inputs, so the only reliable fix is to stop being one:
+          // masking is done in CSS instead (.masked-input), which keeps the
+          // value hidden while leaving the field outside password-manager scope.
+          type="text"
+          className="masked-input"
           name="docforge-ai-provider-key"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          // This is a provider API key, not a login password — guard against
-          // browsers/password managers silently autofilling it (which would
-          // overwrite the real stored key with an unrelated saved credential
-          // the next time the form is saved).
-          autoComplete="off"
+          // Autofill sets .value without an input gesture, so a key is only sent
+          // when this fires. See payload().
+          onBeforeInput={() => setKeyTyped(true)}
+          onPaste={() => setKeyTyped(true)}
+          autoComplete="new-password"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
           data-1p-ignore
           data-lpignore="true"
           data-bwignore="true"
-          placeholder={
-            hasKey
-              ? "••••••••"
-              : provider === "anthropic"
-                ? "sk-ant-…"
-                : provider === "gemini"
-                  ? "AIza…"
-                  : provider === "local"
-                    ? "ollama"
-                    : "sk-…"
-          }
+          placeholder={hasKeyHere ? "••••••••" : KEY_PLACEHOLDERS[provider]}
         />
+        {savedElsewhere.length > 0 && !hasKeyHere && (
+          <span className="muted small">
+            You already have a key saved for {savedElsewhere.join(", ")}. Switching back there
+            will reuse it.
+          </span>
+        )}
       </label>
 
       {provider === "local" ? (
