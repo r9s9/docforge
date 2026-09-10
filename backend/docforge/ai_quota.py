@@ -97,6 +97,8 @@ def _own_config(row, s) -> AIConfig:
         timeout_seconds=s.ai_timeout_seconds,
         max_retries=s.ai_max_retries,
         max_output_tokens=s.ai_max_output_tokens,
+        reasoning_effort=s.ai_reasoning_effort,
+        temperature=s.ai_temperature,
         no_think=bool(row.no_think),
     )
 
@@ -111,6 +113,8 @@ def _free_config(s) -> AIConfig:
         timeout_seconds=s.ai_timeout_seconds,
         max_retries=s.ai_max_retries,
         max_output_tokens=s.ai_max_output_tokens,
+        reasoning_effort=s.ai_reasoning_effort,
+        temperature=s.ai_temperature,
     )
 
 

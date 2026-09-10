@@ -262,7 +262,7 @@ Rules:
   FIXED. They are furniture, not content.
 - An empty paragraph is spacing. Leave it FIXED and never give it a field_name.
 - field_name must be snake_case and unique.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
 # Offered only when repeatable blocks are enabled: this classification changes
@@ -417,7 +417,7 @@ Return ONLY a JSON object with this shape:
   "likely_dynamic": [string],         // node_ids that most likely vary per document
   "notes": string                     // anything the classifier should watch out for
 }
-Output valid JSON only. No prose, no markdown.
+Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
 
@@ -477,7 +477,7 @@ Return ONLY a JSON object with this shape:
 }
 Only include nodes you are actually changing. Every DYNAMIC/REPEATABLE field must
 have a clear, specific description. Use the tools to read full text when unsure.
-Output valid JSON only. No prose, no markdown.
+Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
 
@@ -539,7 +539,7 @@ Rules:
   session's learning objectives, written as 2-3 short bullet points" rather than
   "Text content for this section".
 - Do not quote the example text verbatim at length — summarize its nature instead.
-- Cover every node_id given. Output valid JSON only. No prose, no markdown.
+- Cover every node_id given. Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
 
@@ -591,7 +591,7 @@ Rules:
 - Respect field types (dates as date-like strings, numbers as numbers/strings).
 - If a required field has no corresponding content, list it in missing_required.
 - Set ambiguous=true and populate alternatives when content could fit >1 field.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 
 """ + RICH_FORMAT_SPEC + "\n"
 
@@ -725,7 +725,7 @@ Rules:
   generated document.
 - NEVER fabricate specific facts (names, totals, dates) not supported by the content.
 - Use normalize_date / normalize_number / validate_value to check before finalizing.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 
 """ + RICH_FORMAT_SPEC + "\n"
 
@@ -846,7 +846,7 @@ Write the document, not the fields:
   rather than found in the content. NEVER fabricate specific facts (names,
   totals, dates) the content does not support — leave those out and list the
   field in missing_required instead.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 
 """ + RICH_FORMAT_SPEC + "\n"
 
@@ -958,7 +958,7 @@ Rules:
 - Respect field types: dates as ISO (YYYY-MM-DD) unless the description says
   otherwise, numbers normalised, enum values from allowed_values only.
 - NEVER invent facts (names, totals, dates) the content does not support.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 
 """ + RICH_FORMAT_SPEC + "\n"
 
@@ -1054,7 +1054,7 @@ Rules:
 - severity "error" is reserved for things that make the document unusable or
   self-contradictory. Prefer "warning" or "info".
 - An empty findings list is the correct answer for a good document.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
 
@@ -1114,7 +1114,7 @@ Guidance:
 - Missing or altered required boilerplate / obligations is usually material (error).
 - Reordering, whitespace, casing and synonym wording are usually benign.
 - Be specific in the rationale; do not just restate the difference.
-- Output valid JSON only. No prose, no markdown.
+- Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
 

@@ -73,10 +73,24 @@ class Settings(BaseSettings):
     # minutes — give it a real budget instead of falling back to heuristics early.
     ai_generation_timeout_seconds: int = 300
     # A Refine chat turn: someone is watching it, so it can't take a generation's
-    # budget, but it reasons over the whole draft so 90s is too tight.
-    ai_refine_timeout_seconds: int = 120
+    # budget, but it reasons over the whole draft so 90s is too tight — and a
+    # large reasoning model spends its first minute thinking before a token of
+    # the answer appears, which 120s did not survive.
+    ai_refine_timeout_seconds: int = 180
     ai_max_retries: int = 2
     ai_max_output_tokens: int = 6000
+    # Sampling temperature. 0 keeps generation deterministic, which is what a
+    # document pipeline wants; raise it only for a reasoning model whose vendor
+    # warns that greedy decoding causes repetition loops (NVIDIA suggests ~0.6
+    # for Nemotron in reasoning mode).
+    ai_temperature: float = 0.0
+    # How hard a reasoning model should think on the reasoning tier: "none",
+    # "minimal", "low", "medium", "high" (OpenRouter's scale). Empty leaves it to
+    # the provider — the only safe default, since some models cannot stop
+    # reasoning at all. Setting it also tells the *workhorse* tier "none", which
+    # is where most of the saving is: those calls are mechanical, and thinking
+    # about them costs latency and output tokens for nothing.
+    ai_reasoning_effort: str = ""
     # Write every field of a document in one reasoning pass instead of routing
     # then composing field by field — the only way the AI can judge across
     # fields (say a thing once, keep one voice, skip an empty section). Falls

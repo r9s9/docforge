@@ -58,6 +58,19 @@ class AIConfig:
     timeout_seconds: int = 120
     max_retries: int = 2
     max_output_tokens: int = 6000
+    # Greedy by default: a document pipeline wants the same input to produce the
+    # same document. Reasoning models are the exception — several vendors warn
+    # that temperature 0 sends them into repetition loops — so it is a knob.
+    temperature: float = 0.0
+    # How much a reasoning model should think on the REASONING tier. "" leaves it
+    # to the provider (today's behaviour, and the only safe default for a model
+    # whose reasoning cannot be turned off). Set it and the workhorse tier is
+    # told "none" instead: those calls are mechanical, and thinking about them is
+    # latency and output-token cost for nothing.
+    reasoning_effort: str = ""
+    # Resolved for the tier this config is bound to — set by LLMClient.for_tier,
+    # never configured directly. Empty means send no reasoning field at all.
+    tier_reasoning_effort: str = ""
     # Prepend /no_think to every system message for Qwen3 models running in LM
     # Studio so the chain-of-thought prefix is suppressed. Set via the Settings
     # UI or by adding "no_think": true to data/app_settings.json.
@@ -76,6 +89,13 @@ class AIConfig:
         if tier == REASONING_TIER and (self.reasoning_model or "").strip():
             return self.reasoning_model.strip()
         return self.model
+
+    def reasoning_effort_for_tier(self, tier: str = WORKHORSE_TIER) -> str:
+        """What to put in the request's ``reasoning`` field for a logical tier."""
+        configured = (self.reasoning_effort or "").strip()
+        if not configured:
+            return ""
+        return configured if tier == REASONING_TIER else "none"
 
 
 def _overrides_path() -> Path:
@@ -126,6 +146,8 @@ def global_ai_config() -> AIConfig:
         timeout_seconds=s.ai_timeout_seconds,
         max_retries=s.ai_max_retries,
         max_output_tokens=s.ai_max_output_tokens,
+        reasoning_effort=s.ai_reasoning_effort,
+        temperature=s.ai_temperature,
     )
     overrides = load_overrides().get("ai", {})
     for key, value in overrides.items():
