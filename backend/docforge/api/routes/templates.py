@@ -192,6 +192,10 @@ def create_template(
         proj = db.get(Project, req.project_id)
         if proj is None or proj.owner_id != user.id:
             raise HTTPException(status_code=404, detail="project not found")
+    # Adding a version to an existing template requires owning it. Checked here
+    # (a no-leak 404, like the rest of the API) and again in publish_template.
+    if req.template_id:
+        _get_template(db, req.template_id, user)
     try:
         template, tv = publish_template(
             db,

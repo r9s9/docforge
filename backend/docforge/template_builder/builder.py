@@ -81,9 +81,17 @@ def _neutralize_stray_tags(doc) -> None:
     for wn in walk_document(doc):
         if wn.kind != "paragraph":
             continue
-        for t in wn.obj._p.iter(qn("w:t")):
-            if t.text and ("{" in t.text or "%}" in t.text):
+        texts = [t for t in wn.obj._p.iter(qn("w:t")) if t.text]
+        for t in texts:
+            if "{" in t.text or "%}" in t.text:
                 t.text = _neutralize_run(t.text)
+        # A delimiter can also be split across two runs — "{" then "{", which
+        # docxtpl re-joins into "{{" before Jinja sees it (Word does this when an
+        # author types braces with a spell-check or formatting change between the
+        # two characters). Break every delimiter that straddles a run boundary.
+        for prev, cur in zip(texts, texts[1:], strict=False):
+            if prev.text and cur.text and (prev.text[-1] + cur.text[0]) in ("{{", "{%", "}}", "%}"):
+                cur.text = _ZWSP + cur.text
 
 
 # DrawingML picture namespace — used to find a run's <pic:cNvPr> so we can tag a
@@ -235,11 +243,17 @@ def _templatize_paragraph(
     fmt_value = _run_format_at(paragraph, len(prefix))
     fmt_suffix = _run_format_at(paragraph, max(0, len(full) - len(suffix)))
     _clear_runs(paragraph, keep_fields=keep_fields)
+    # ``prefix``/``suffix`` are the field's label text, carried over from the
+    # reviewed classification — content the user controls. ``expr`` is our own
+    # ``{{ field }}`` tag. Neutralising the label text (but not ``expr``) keeps
+    # a label like "{{ x }}" literal instead of letting it become live Jinja the
+    # renderer would execute. The stray-tag pre-pass can't cover these: they are
+    # written here, after it runs.
     if prefix:
-        _append_run(paragraph, prefix, fmt_prefix)
+        _append_run(paragraph, _neutralize_run(prefix), fmt_prefix)
     _append_run(paragraph, expr, fmt_value)
     if suffix:
-        _append_run(paragraph, suffix, fmt_suffix)
+        _append_run(paragraph, _neutralize_run(suffix), fmt_suffix)
 
 
 def _set_cell_expr(cell, expr: str) -> None:
@@ -287,7 +301,11 @@ def _templatize_table(table: Table, field_name: str, columns: list) -> None:
         if key in seen:
             continue
         seen.add(key)
-        col = columns[ci].field_name if ci < len(columns) else f"col{ci + 1}"
+        # A column name becomes part of our own tag ({{ item.<col> }}), so an
+        # unsafe one could break out of the expression. _safe_ident rejects
+        # anything that is not a plain identifier; fall back to a positional
+        # name, which can never inject.
+        col = _safe_ident(columns[ci].field_name if ci < len(columns) else None) or f"col{ci + 1}"
         _set_cell_expr(cell, f"{{{{ {_LOOP_VAR}.{col} }}}}")
 
     # Drop any remaining example data rows after the template row.

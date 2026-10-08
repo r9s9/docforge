@@ -113,10 +113,33 @@ def store_source_document(
 
 def incoming_upload_key(owner_id: str | None, filename: str) -> str:
     """A unique, per-user staging key for a browser-direct upload."""
-    safe = Path(filename or "upload.docx").name.replace("/", "_").replace("\\", "_")
+    safe = Path(filename or "upload.docx").name.replace("/", "_").replace("\\", "_").replace("%", "_")
     if not safe.lower().endswith(".docx"):
         safe += ".docx"
     return join_key(UPLOADS_INCOMING, owner_id or "anon", new_uuid(), safe)
+
+
+def _resolve_incoming_key(key: str, owner_id: str | None) -> str:
+    """The storage key to read, or raise — a client only ever names its own uploads.
+
+    ``key.startswith(prefix)`` alone is not enough: ``uploads/incoming/<me>/../
+    ../templates/<other>/template.docx`` starts with the prefix yet, once the
+    storage backend resolves the ``..`` segments, points at another tenant's
+    object (a cross-tenant read, and then a delete). Reject any key whose
+    segments are not plain names, then require the prefix.
+    """
+    raw = key or ""
+    if "\\" in raw or "\x00" in raw or "://" in raw or "%" in raw:
+        # "%" is rejected because the storage backend may decode a percent-escape
+        # (e.g. "..%2f") into a separator or a ".." after this check has passed.
+        raise IngestError("Invalid upload reference")
+    segments = raw.split("/")
+    if any(seg in ("", ".", "..") for seg in segments):
+        raise IngestError("Invalid upload reference")
+    expected_prefix = join_key(UPLOADS_INCOMING, owner_id or "anon") + "/"
+    if not raw.startswith(expected_prefix):
+        raise IngestError("Invalid upload reference")
+    return raw
 
 
 def store_source_from_key(
@@ -134,9 +157,7 @@ def store_source_from_key(
     or a template artifact) to be read back. We fetch the bytes, run the same
     validation/storage as a multipart upload, then delete the staging object.
     """
-    expected_prefix = join_key(UPLOADS_INCOMING, owner_id or "anon") + "/"
-    if not key.startswith(expected_prefix):
-        raise IngestError("Invalid upload reference")
+    key = _resolve_incoming_key(key, owner_id)
     storage = get_storage()
     try:
         data = storage.get_bytes(key)
@@ -159,9 +180,7 @@ def read_incoming_bytes(key: str, *, owner_id: str | None, filename: str) -> byt
     Enforces the same per-user prefix guard and size/type validation, then deletes
     the staging object.
     """
-    expected_prefix = join_key(UPLOADS_INCOMING, owner_id or "anon") + "/"
-    if not key.startswith(expected_prefix):
-        raise IngestError("Invalid upload reference")
+    key = _resolve_incoming_key(key, owner_id)
     storage = get_storage()
     try:
         data = storage.get_bytes(key)

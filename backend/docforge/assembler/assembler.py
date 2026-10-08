@@ -20,7 +20,8 @@ from io import BytesIO
 from typing import Any
 
 from docxtpl import DocxTemplate
-from jinja2 import ChainableUndefined, Environment
+from jinja2 import ChainableUndefined
+from jinja2.sandbox import SandboxedEnvironment
 
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
@@ -232,7 +233,15 @@ def assemble(
     # autoescape is required: field values can contain &, <, > (e.g. "R&D",
     # "Smith & Jones"). Without it those land raw in the document XML and either
     # corrupt it (xmlParseEntityRef) or get silently dropped.
-    jinja_env = Environment(undefined=_SilentUndefined, autoescape=True)
+    #
+    # Sandboxed, so a template can never execute Python or reach process state:
+    # the tag text comes from uploaded documents and reviewed field labels, which
+    # are user-controlled, and the builder makes those literal — but if any
+    # ``{{ … }}`` survives, the sandbox blocks attribute access to the object
+    # internals an exploit needs (``__class__``, ``__globals__``, …), raising
+    # SecurityError rather than disclosing anything. Values are passed as the
+    # render context (data), so they are never parsed as template code.
+    jinja_env = SandboxedEnvironment(undefined=_SilentUndefined, autoescape=True)
     tpl.render(render_ctx, jinja_env=jinja_env)
     out = BytesIO()
     tpl.save(out)

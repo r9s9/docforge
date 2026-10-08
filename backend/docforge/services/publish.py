@@ -114,7 +114,11 @@ def publish_template(
     # Create (or version) the Template record so we know the id/version.
     if template_id:
         template = db.get(Template, template_id)
-        if template is None:
+        # A new version may only be added by the template's owner. A template
+        # owned by someone else is reported exactly like a missing one, so this
+        # never discloses that the id exists. (The route repeats this check; it
+        # is here too so the service layer is safe for any caller.)
+        if template is None or (owner_id is not None and template.owner_id != owner_id):
             raise ValueError("template_id not found")
         version = template.latest_version + 1
     else:
