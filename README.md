@@ -17,7 +17,7 @@ you what actually matters.
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA_Nemotron-76B900?style=for-the-badge&logo=nvidia&logoColor=white)
+![Claude](https://img.shields.io/badge/Claude_Haiku_5.5-D97757?style=for-the-badge&logo=anthropic&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)
@@ -38,9 +38,9 @@ validation and a live Word-page preview before anything is finalized.
 
 It's **local-first and privacy-aware**: with no AI key configured, every
 feature still works via a fully deterministic heuristic engine — no external
-calls. Connect **NVIDIA Nemotron 3** via OpenRouter (recommended), **Google
-Gemini**, **DeepSeek**, **OpenAI**, **Anthropic**, or any OpenAI-compatible
-endpoint (Ollama, LM Studio…) to turn
+calls. Connect **Claude Haiku 5.5** from Anthropic (recommended), NVIDIA
+Nemotron via **OpenRouter**, **Google Gemini**, **DeepSeek**, **OpenAI**, or any
+OpenAI-compatible endpoint (Ollama, LM Studio…) to turn
 on the agentic AI pipeline described below. Keys are bring-your-own, stored
 server-side, and never returned to the browser.
 
@@ -93,10 +93,10 @@ support tool-calling.
 **Models, cost, and transparency**
 - Two-tier model config: a cheap **workhorse** model for high-volume steps and
   a stronger **reasoning** model for understanding/critique/composition/judging.
-  One click in Settings applies the recommended pairing:
-  `nemotron-3-super` (workhorse) + `nemotron-3-ultra` (reasoning) on OpenRouter.
-  Ultra is built for tool use across long documents, which is what the hard steps
-  here do; Super costs about a sixth as much and handles the volume.
+  One click in Settings applies the recommended setup: `claude-haiku-5-5` for
+  both tiers, with the routine steps at low effort and the steps that write and
+  judge at medium. Claude runs through the official Anthropic SDK with tool use,
+  structured outputs for the fixed-shape answers, prompt caching and streaming.
 - Every AI action shows its **token usage and estimated cost** right where it
   ran (New Template, Generate, Compliance Check) plus a running total in
   Settings — no black-box spend.
@@ -169,11 +169,11 @@ support tool-calling.
 ## 🧰 Tech stack
 
 - **Backend:** Python 3.11+, FastAPI, SQLAlchemy 2 (SQLite dev / Postgres
-  prod), Pydantic v2, python-docx, docxtpl, lxml, `httpx` (AI calls), PyJWT
+  prod), Pydantic v2, python-docx, docxtpl, lxml, `anthropic` (Claude) and `httpx` (OpenAI-compatible AI calls), PyJWT
   (`[crypto]`).
-- **AI:** Any OpenAI-compatible endpoint or native Anthropic — in practice
-  **NVIDIA Nemotron 3 on OpenRouter** (recommended default, tiered
-  workhorse/reasoning), Gemini, DeepSeek, OpenAI, or a local server
+- **AI:** Claude through the official `anthropic` SDK (**Claude Haiku 5.5** is
+  the recommended default), or any OpenAI-compatible endpoint: NVIDIA Nemotron
+  on OpenRouter, Gemini, DeepSeek, OpenAI, or a local server
   (Ollama/LM Studio). Bring your own key; nothing is shared or billed to you by
   the platform. Keys are held one per provider, so switching never loses one.
 - **Frontend:** Next.js 14 (App Router) + React 18 + TypeScript, **Geist** +
@@ -217,7 +217,7 @@ With no `NEXT_PUBLIC_SUPABASE_URL` set, the UI runs in local no-auth mode.
 **3. Turn on AI (optional)**
 
 In the app, go to **Settings → LLM Settings → "Use recommended setup"**, paste
-an OpenRouter API key ([get one here](https://openrouter.ai/keys)), and enable
+an Anthropic API key ([get one here](https://platform.claude.com/settings/keys)), and enable
 it. Without a key, every feature still works via the offline heuristic engine —
 just less semantically aware.
 

@@ -1,3 +1,3 @@
 """DocForge — AI-powered DOCX reverse-engineering and document assembly platform."""
 
-__version__ = "0.15.1"
+__version__ = "0.16.0"

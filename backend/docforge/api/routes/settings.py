@@ -25,10 +25,8 @@ from ...ai_quota import plan_ai_for_owner, usage_snapshot
 from ...db.models import AnalysisJob, ComplianceRun, GenerationRequest, UserAIConfig
 from ...settings_store import (
     ANTHROPIC_DEFAULT_BASE,
-    NEMOTRON_REASONING_MODEL,
-    NEMOTRON_WORKHORSE_MODEL,
+    ANTHROPIC_HAIKU_MODEL,
     OPENAI_DEFAULT_BASE,
-    OPENROUTER_DEFAULT_BASE,
     AIConfig,
     default_base_url,
 )
@@ -51,18 +49,16 @@ class AISettingsIn(BaseModel):
 def _ai_dto(row: UserAIConfig | None) -> dict:
     """Public view of a user's AI config (never includes the key itself).
 
-    A brand-new user (no row yet) is shown the recommended cloud default —
-    Nemotron on OpenRouter, tiered: a cheap workhorse model plus a stronger
-    reasoning model used only for the harder agentic steps. They still need to
-    add their own key.
+    A brand-new user (no row yet) is shown the recommended default: Claude
+    Haiku 5.5 for every step. They still need to add their own key.
     """
     if row is None:
         return {
-            "provider": "openai",
+            "provider": "anthropic",
             "enabled": False,
-            "base_url": OPENROUTER_DEFAULT_BASE,
-            "model": NEMOTRON_WORKHORSE_MODEL,
-            "reasoning_model": NEMOTRON_REASONING_MODEL,
+            "base_url": ANTHROPIC_DEFAULT_BASE,
+            "model": ANTHROPIC_HAIKU_MODEL,
+            "reasoning_model": ANTHROPIC_HAIKU_MODEL,
             "has_key": False,
             "saved_endpoints": [],
             "no_think": False,
@@ -209,7 +205,7 @@ def test_ai(
     connection test exists to catch.
     """
     row = db.get(UserAIConfig, user.id)
-    provider = body.provider or (row.provider if row else None) or "openai"
+    provider = body.provider or (row.provider if row else None) or "anthropic"
     default_base = ANTHROPIC_DEFAULT_BASE if provider == "anthropic" else OPENAI_DEFAULT_BASE
     base_url = body.base_url or (row.base_url if row else None) or default_base
     # Test the key that belongs to the endpoint being tested — the stored one
@@ -228,6 +224,19 @@ def test_ai(
         return {"ok": False, "message": "No API key configured."}
 
     reasoning = (body.reasoning_model or (row.reasoning_model if row else None) or "").strip()
+
+    if cfg.provider == "anthropic":
+        # The Models API answers "does this model exist for this key" without
+        # spending a token, so a mistyped reasoning model is caught here rather
+        # than on the first document.
+        from ...ai.anthropic_transport import AnthropicTransport
+
+        transport = AnthropicTransport(cfg)
+        for name in dict.fromkeys(m for m in (cfg.model, reasoning) if m):
+            try:
+                transport.check_model(name)
+            except LLMError as exc:
+                return {"ok": False, "message": str(exc)}
 
     def _try(model: str) -> str:
         client = LLMClient(replace(cfg, model=model))

@@ -11,8 +11,19 @@ variants (e.g. ``gemini-2.5-flash-lite-preview-09-2025``) still resolve.
 
 from __future__ import annotations
 
-# model-name (lowercased) -> (input_usd_per_1M, output_usd_per_1M)
-MODEL_PRICES: dict[str, tuple[float, float]] = {
+# model-name (lowercased) -> (input_usd_per_1M, output_usd_per_1M), or for a
+# model whose rate depends on prompt length, (input, output, long_input,
+# long_output) with the split at LONG_PROMPT_TOKENS.
+MODEL_PRICES: dict[str, tuple[float, ...]] = {
+    # Anthropic Claude (recommended default: Haiku 5.5). Haiku 5.5 has two rate
+    # cards chosen by the size of each request's prompt, so its cost has to be
+    # computed per call (see cost_for_call), not from a model's token totals.
+    "claude-haiku-5-5": (0.10, 0.50, 0.50, 2.50),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-opus-5-5": (4.00, 20.00),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-fable-5": (10.00, 50.00),
     # NVIDIA Nemotron on OpenRouter (recommended default). OpenRouter model ids
     # carry the vendor prefix, which the prefix match below handles. Prices are
     # the cheapest endpoint OpenRouter routes to; a costlier upstream shifts the
@@ -43,18 +54,27 @@ MODEL_PRICES: dict[str, tuple[float, float]] = {
     "gpt-4.1-mini": (0.40, 1.60),
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-4o": (2.50, 10.00),
-    # Anthropic
+    # Anthropic, previous generation
     "claude-haiku-4-5": (1.00, 5.00),
     "claude-sonnet-4-6": (3.00, 15.00),
-    "claude-opus-4-8": (15.00, 75.00),
+    "claude-opus-4-8": (5.00, 25.00),
+    "claude-opus-4-7": (5.00, 25.00),
+    "claude-opus-4-6": (5.00, 25.00),
     # Zhipu GLM (OpenAI-compatible)
     "glm-4.6": (0.43, 1.74),
     "glm-4.5": (0.30, 1.10),
 }
 
 
-def price_for(model: str | None) -> tuple[float, float] | None:
-    """(input, output) USD per 1M tokens for ``model``, or None if unknown."""
+# Prompts above this many tokens move a two-card model to its long-prompt rate.
+LONG_PROMPT_TOKENS = 100_000
+# Anthropic prompt caching: reads cost a tenth of the input rate, 5-minute
+# writes a quarter more than it.
+CACHE_READ_MULTIPLIER = 0.1
+CACHE_WRITE_MULTIPLIER = 1.25
+
+
+def _rates(model: str | None) -> tuple[float, ...] | None:
     if not model:
         return None
     key = model.strip().lower()
@@ -68,13 +88,45 @@ def price_for(model: str | None) -> tuple[float, float] | None:
     return MODEL_PRICES[best] if best else None
 
 
+def price_for(model: str | None) -> tuple[float, float] | None:
+    """(input, output) USD per 1M tokens for ``model`` at its standard (short-prompt) rate."""
+    rates = _rates(model)
+    return (rates[0], rates[1]) if rates else None
+
+
+def cost_for_call(
+    model: str | None,
+    in_tokens: int,
+    out_tokens: int,
+    *,
+    cache_read: int = 0,
+    cache_write: int = 0,
+) -> float | None:
+    """USD cost of one request, or None if the model is unpriced.
+
+    ``in_tokens`` is the uncached part of the prompt; cache reads and writes are
+    billed separately at their multipliers. The whole prompt (all three) decides
+    which rate card applies.
+    """
+    rates = _rates(model)
+    if rates is None:
+        return None
+    in_rate, out_rate = rates[0], rates[1]
+    if len(rates) == 4 and in_tokens + cache_read + cache_write > LONG_PROMPT_TOKENS:
+        in_rate, out_rate = rates[2], rates[3]
+    total = (
+        in_tokens * in_rate
+        + cache_read * in_rate * CACHE_READ_MULTIPLIER
+        + cache_write * in_rate * CACHE_WRITE_MULTIPLIER
+        + out_tokens * out_rate
+    )
+    return total / 1_000_000
+
+
 def estimate_cost(model: str | None, in_tokens: int, out_tokens: int) -> float | None:
     """USD cost of ``in_tokens``/``out_tokens`` on ``model``, or None if unknown."""
-    price = price_for(model)
-    if price is None:
-        return None
-    in_rate, out_rate = price
-    return round((in_tokens * in_rate + out_tokens * out_rate) / 1_000_000, 6)
+    cost = cost_for_call(model, in_tokens, out_tokens)
+    return None if cost is None else round(cost, 6)
 
 
 def cost_for_by_model(by_model: dict[str, dict]) -> float | None:

@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from ..assembler.richtext import RICH_FORMAT_SPEC
 from ..schemas.diff import DiffRunResult
-from ..schemas.enums import ElementType
+from ..schemas.enums import ClassificationType, ElementType, FieldType
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition
 
@@ -194,6 +194,93 @@ class LLMFieldDescriptions(_LenientLLMModel):
     """Output of the tags-only description pass: one blurb per forced field."""
 
     descriptions: list[LLMFieldDescription] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Structured outputs: the JSON schema Claude is held to for fixed-shape answers
+# ---------------------------------------------------------------------------
+
+# Responses whose every field is typed. The value-bearing ones (writer, route,
+# compose, refine) carry ``value: Any`` and table rows keyed by each template's
+# own columns, which a fixed schema can't express; they stay on parse+validate.
+_STRUCTURED_RESPONSES = (
+    "LLMUnderstanding",
+    "LLMClassifyResponse",
+    "LLMCritiqueResponse",
+    "LLMFieldDescriptions",
+    "LLMRenderReview",
+    "LLMComplianceJudgement",
+)
+
+# Vocabularies the response models keep as plain strings, so a model that
+# answers off-list is coerced rather than rejected. Held to the schema, the
+# model cannot answer off-list in the first place.
+_SCHEMA_ENUMS: dict[str, list[str]] = {
+    "classification": [c.value for c in ClassificationType],
+    "field_type": [f.value for f in FieldType],
+    "severity": ["error", "warning", "info"],
+    "kind": ["empty_section", "duplicate", "misplaced", "format", "other"],
+}
+
+# Keywords the structured-output schema dialect does not accept.
+_UNSUPPORTED_KEYWORDS = {
+    "title", "default", "examples",
+    "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+    "minLength", "maxLength", "pattern", "minItems", "maxItems", "uniqueItems",
+}
+
+_SCHEMA_CACHE: dict[str, dict] = {}
+
+
+def _constrain(prop: dict, values: list[str]) -> dict:
+    """Restrict a string (or nullable string) property to ``values``."""
+    if prop.get("type") == "string":
+        return {**prop, "enum": values}
+    options = prop.get("anyOf")
+    if options:
+        return {
+            **prop,
+            "anyOf": [
+                {**o, "enum": values} if o.get("type") == "string" else o for o in options
+            ],
+        }
+    return prop
+
+
+def _tighten(node):
+    if isinstance(node, list):
+        return [_tighten(n) for n in node]
+    if not isinstance(node, dict):
+        return node
+    out: dict = {}
+    for key, value in node.items():
+        if key in ("properties", "$defs"):
+            # Names here are fields and models, not keywords: a field called
+            # "title" is content, and must survive the keyword filter.
+            out[key] = {name: _tighten(sub) for name, sub in value.items()}
+        elif key not in _UNSUPPORTED_KEYWORDS:
+            out[key] = _tighten(value)
+    if out.get("type") == "object" or "properties" in out:
+        out["additionalProperties"] = False
+        props = out.get("properties") or {}
+        for name, values in _SCHEMA_ENUMS.items():
+            if name in props:
+                props[name] = _constrain(props[name], values)
+    return out
+
+
+def response_schema(model_cls: type[BaseModel]) -> dict | None:
+    """The structured-output JSON schema for ``model_cls``, or None if it has none.
+
+    Built from the Pydantic model itself, so the schema can never drift from the
+    model the answer is validated against afterwards.
+    """
+    name = model_cls.__name__
+    if name not in _STRUCTURED_RESPONSES:
+        return None
+    if name not in _SCHEMA_CACHE:
+        _SCHEMA_CACHE[name] = _tighten(model_cls.model_json_schema())
+    return _SCHEMA_CACHE[name]
 
 
 # ---------------------------------------------------------------------------

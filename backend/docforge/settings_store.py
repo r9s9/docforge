@@ -19,6 +19,11 @@ from .config import get_settings
 
 OPENAI_DEFAULT_BASE = "https://api.openai.com/v1"
 ANTHROPIC_DEFAULT_BASE = "https://api.anthropic.com"
+
+# The shipped default, for "bring your own key" users and the free trial alike:
+# Claude Haiku 5.5 on both tiers. One model keeps one prompt cache warm across
+# every step; the tiers differ in effort instead (AIConfig.effort_for_tier).
+ANTHROPIC_HAIKU_MODEL = "claude-haiku-5-5"
 # Google Gemini speaks the OpenAI-compatible Chat Completions API, so it rides
 # the "openai" provider path with this base.
 GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
@@ -30,10 +35,9 @@ GEMINI_REASONING_MODEL = "gemini-3.5-flash"
 # necessarily one the chosen upstream implements — see LLMClient._is_gateway.
 OPENROUTER_DEFAULT_BASE = "https://openrouter.ai/api/v1"
 
-# Recommended cloud default ("bring your own key"): NVIDIA's Nemotron 3 pair on
-# OpenRouter. Ultra is built for exactly what this app's hard steps do — tool
-# calling across a long document — and Super costs about a sixth of it on the
-# high-volume mechanical calls. Same family, so the two tiers behave alike.
+# An alternative offered in Settings: NVIDIA's Nemotron 3 pair on OpenRouter.
+# Ultra for the agentic steps, Super (about a sixth of the price) for the
+# mechanical ones.
 NEMOTRON_WORKHORSE_MODEL = "nvidia/nemotron-3-super-120b-a12b"
 NEMOTRON_REASONING_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 
@@ -56,6 +60,9 @@ REASONING_TIER = "reasoning"
 
 @dataclass
 class AIConfig:
+    # Bare-construction defaults only. The shipped default (Claude Haiku 5.5)
+    # comes from config.py, the free tier and the Settings page, which always
+    # set provider, base URL and model explicitly.
     provider: str = "openai"  # "openai" | "anthropic"
     enabled: bool = False
     base_url: str = OPENAI_DEFAULT_BASE
@@ -79,6 +86,14 @@ class AIConfig:
     # Resolved for the tier this config is bound to — set by LLMClient.for_tier,
     # never configured directly. Empty means send no reasoning field at all.
     tier_reasoning_effort: str = ""
+    # Claude's effort level (output_config.effort) per tier. The mechanical
+    # steps (classify, describe, route, review) need little thought; the ones
+    # that decide what a document says get more. Models without effort support
+    # simply don't receive it (see ai/anthropic_transport.py).
+    effort_workhorse: str = "low"
+    effort_reasoning: str = "medium"
+    # Resolved like tier_reasoning_effort. Empty -> the workhorse level.
+    tier_effort: str = ""
     # Prepend /no_think to every system message for Qwen3 models running in LM
     # Studio so the chain-of-thought prefix is suppressed. Set via the Settings
     # UI or by adding "no_think": true to data/app_settings.json.
@@ -97,6 +112,11 @@ class AIConfig:
         if tier == REASONING_TIER and (self.reasoning_model or "").strip():
             return self.reasoning_model.strip()
         return self.model
+
+    def effort_for_tier(self, tier: str = WORKHORSE_TIER) -> str:
+        """Claude's ``output_config.effort`` for a logical tier."""
+        level = self.effort_reasoning if tier == REASONING_TIER else self.effort_workhorse
+        return (level or "").strip()
 
     def reasoning_effort_for_tier(self, tier: str = WORKHORSE_TIER) -> str:
         """What to put in the request's ``reasoning`` field for a logical tier."""
@@ -156,6 +176,8 @@ def global_ai_config() -> AIConfig:
         max_output_tokens=s.ai_max_output_tokens,
         reasoning_effort=s.ai_reasoning_effort,
         temperature=s.ai_temperature,
+        effort_workhorse=s.ai_effort_workhorse,
+        effort_reasoning=s.ai_effort_reasoning,
     )
     overrides = load_overrides().get("ai", {})
     for key, value in overrides.items():

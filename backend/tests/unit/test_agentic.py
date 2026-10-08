@@ -49,7 +49,9 @@ def test_usage_accumulates_and_costs():
         record_usage("gemini-2.5-flash-lite", 200, 25)
     d = u.as_dict()
     assert d["in"] == 300 and d["out"] == 75 and d["calls"] == 2
-    assert d["by_model"]["gemini-2.5-flash-lite"] == {"in": 300, "out": 75, "calls": 2}
+    assert d["by_model"]["gemini-2.5-flash-lite"] == {
+        "in": 300, "out": 75, "calls": 2, "cache_read": 0, "cache_write": 0,
+    }
     assert d["cost_usd"] is not None
 
 

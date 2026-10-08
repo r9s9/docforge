@@ -24,7 +24,7 @@ const DEEPSEEK_BASE = "https://api.deepseek.com";
 const PROVIDER_DEFAULTS: Record<UiProvider, { base_url: string; model: string }> = {
   openrouter: { base_url: OPENROUTER_BASE, model: "nvidia/nemotron-3-super-120b-a12b" },
   openai: { base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
-  anthropic: { base_url: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
+  anthropic: { base_url: "https://api.anthropic.com", model: "claude-haiku-5-5" },
   gemini: { base_url: GEMINI_BASE, model: "gemini-3.1-flash-lite" },
   deepseek: { base_url: DEEPSEEK_BASE, model: "deepseek-chat" },
   local: { base_url: "http://localhost:11434/v1", model: "llama3.1" },
@@ -41,7 +41,8 @@ const MODEL_OPTIONS: Record<Exclude<UiProvider, "local">, string[]> = {
     "nvidia/nemotron-3-nano-30b-a3b",
   ],
   openai: ["gpt-5-nano", "gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
-  anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-8"],
+  // Current generation first. Haiku 5.5 is the default for every step.
+  anthropic: ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-4-5"],
   // Newest first: the list is a menu, and the top of it is what people pick.
   gemini: [
     "gemini-3.5-flash",
@@ -71,19 +72,19 @@ const KEY_PLACEHOLDERS: Record<UiProvider, string> = {
 const REASONING_DEFAULTS: Record<Exclude<UiProvider, "local">, string> = {
   openrouter: "nvidia/nemotron-3-ultra-550b-a55b",
   openai: "gpt-5-mini",
-  anthropic: "claude-sonnet-4-6",
+  anthropic: "claude-haiku-5-5",
   gemini: "gemini-3.5-flash",
   deepseek: "deepseek-reasoner",
 };
 
-// The shipped recommendation: Nemotron 3 Super for the volume of mechanical
-// calls, Nemotron 3 Ultra for the agentic steps that decide what the document
-// says. Same family, so the two tiers behave alike.
+// The shipped recommendation: Claude Haiku 5.5 for every step. The backend
+// runs the routine steps at low effort and the steps that write and judge at
+// medium, so one model covers both tiers and keeps one prompt cache warm.
 const RECOMMENDED = {
-  provider: "openrouter" as UiProvider,
-  base_url: OPENROUTER_BASE,
-  model: "nvidia/nemotron-3-super-120b-a12b",
-  reasoning_model: "nvidia/nemotron-3-ultra-550b-a55b",
+  provider: "anthropic" as UiProvider,
+  base_url: "https://api.anthropic.com",
+  model: "claude-haiku-5-5",
+  reasoning_model: "claude-haiku-5-5",
 };
 
 // Map a UI provider to the backend provider value it routes through.
@@ -348,8 +349,8 @@ function TokenTotalsPanel({ tokens }: { tokens: TokenTotals }) {
 function AISettingsForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [provider, setProvider] = useState<UiProvider>("gemini");
-  const [baseUrl, setBaseUrl] = useState(PROVIDER_DEFAULTS.gemini.base_url);
+  const [provider, setProvider] = useState<UiProvider>(RECOMMENDED.provider);
+  const [baseUrl, setBaseUrl] = useState(RECOMMENDED.base_url);
   const [model, setModel] = useState(RECOMMENDED.model);
   const [reasoningModel, setReasoningModel] = useState(RECOMMENDED.reasoning_model);
   const [apiKey, setApiKey] = useState("");
@@ -397,7 +398,7 @@ function AISettingsForm() {
     setTestResult(null);
   }
 
-  // One-click "recommended": the cheap-but-capable Gemini tiered setup.
+  // One-click "recommended": Claude Haiku 5.5 for every step.
   function applyRecommended() {
     setProvider(RECOMMENDED.provider);
     setBaseUrl(RECOMMENDED.base_url);
@@ -481,23 +482,21 @@ function AISettingsForm() {
       <h2 className="section-h">Your AI Provider</h2>
       <p className="muted" style={{ marginTop: 0 }}>
         DocForge uses <strong>your own</strong> provider key for every AI step. The
-        recommended setup is <strong>NVIDIA Nemotron 3</strong> on OpenRouter, tiered:
-        a cheap workhorse model for routine work plus a stronger reasoning model for
-        the harder agent steps. Your key is stored server-side and never returned,
-        and each provider keeps its own, so switching between them never loses one.
+        recommended setup is <strong>Claude Haiku 5.5</strong> from Anthropic for every
+        step. Your key is stored server-side and never returned, and each provider
+        keeps its own, so switching between them never loses one.
       </p>
 
       <div className="notice section" style={{ marginTop: 0 }}>
         <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Sparkles size={15} strokeWidth={2} /> Recommended: Nemotron 3 (tiered)
+          <Sparkles size={15} strokeWidth={2} /> Recommended: Claude Haiku 5.5
         </strong>
         <div className="muted" style={{ margin: "6px 0 10px" }}>
-          <span className="mono">nemotron-3-super</span> for routine steps +{" "}
-          <span className="mono">nemotron-3-ultra</span> for reasoning. Ultra is built
-          for tool use across long documents, which is what the harder steps here do;
-          Super costs about a sixth as much and handles the volume.{" "}
-          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">
-            Get an OpenRouter API key →
+          <span className="mono">claude-haiku-5-5</span> for every step. Routine steps run
+          at low effort and the steps that write and review your document think harder,
+          so one fast, low-cost model covers it all.{" "}
+          <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noreferrer">
+            Get an Anthropic API key →
           </a>
         </div>
         <button type="button" className="btn secondary small" onClick={applyRecommended}>
@@ -508,9 +507,9 @@ function AISettingsForm() {
       <label className="field">
         <span>Provider</span>
         <select value={provider} onChange={(e) => changeProvider(e.target.value as UiProvider)}>
+          <option value="anthropic">Anthropic (Claude, recommended)</option>
           <option value="openrouter">OpenRouter (NVIDIA Nemotron, and most others)</option>
           <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
           <option value="gemini">Google Gemini</option>
           <option value="deepseek">DeepSeek</option>
           <option value="local">Local (OpenAI-compatible: Ollama, LM Studio…)</option>

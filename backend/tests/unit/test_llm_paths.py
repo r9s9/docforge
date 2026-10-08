@@ -119,17 +119,8 @@ def test_openai_json_mode_400_falls_back(monkeypatch):
     assert calls["n"] == 2  # 400 then retry without response_format
 
 
-def test_anthropic_message_mapping(monkeypatch):
-    def fake_post(self, url, **kw):
-        assert url.endswith("/v1/messages")
-        assert kw["headers"]["anthropic-version"]
-        return _Resp(200, {"content": [{"type": "text", "text": "hello world"}]})
-
-    monkeypatch.setattr(httpx.Client, "post", fake_post)
-    out = LLMClient(_cfg("anthropic")).complete(
-        [{"role": "system", "content": "sys"}, {"role": "user", "content": "hi"}]
-    )
-    assert out == "hello world"
+# Claude's message mapping moved to the SDK transport; it is covered in
+# tests/unit/test_anthropic_transport.py.
 
 
 # --- response mapping ------------------------------------------------------

@@ -89,20 +89,19 @@ The repo includes `render.yaml`, which defines both services.
 DocForge serves AI two ways, decided per user:
 
 1. **Free tier (shared key you pay for).** Give every signed-in user a small
-   allowance (default **10 actions**) on one shared key — e.g. a cheap **Nemotron
-   3 Super** key on OpenRouter. Users never see the key. `render.yaml` already
+   allowance (default **10 actions**) on one shared key: a **Claude Haiku 5.5**
+   key from Anthropic. Users never see the key. `render.yaml` already
    wires this up; you just add the **API key** secret on **docforge-backend**:
    ```
    DOCFORGE_FREE_AI_ENABLED=true
-   DOCFORGE_FREE_AI_PROVIDER=openai
-   DOCFORGE_FREE_AI_BASE_URL=https://openrouter.ai/api/v1
-   DOCFORGE_FREE_AI_MODEL=nvidia/nemotron-3-super-120b-a12b
+   DOCFORGE_FREE_AI_PROVIDER=anthropic
+   DOCFORGE_FREE_AI_BASE_URL=https://api.anthropic.com
+   DOCFORGE_FREE_AI_MODEL=claude-haiku-5-5
    DOCFORGE_FREE_AI_LIMIT=10
-   DOCFORGE_FREE_AI_API_KEY=sk-or-v1-...                # ← set this secret in the dashboard
+   DOCFORGE_FREE_AI_API_KEY=sk-ant-...                  # ← set this secret in the dashboard
    ```
-   Note this rides the OpenAI-compatible path, so free-tier users now get the
-   agentic tool-calling loop the Anthropic transport never had: better output,
-   but each free action costs more and takes longer than it used to.
+   Use a key scoped to a single workspace: a key that spans several workspaces
+   needs a workspace ID on every request, which DocForge does not send.
 
 2. **Each user's own key.** Once a user spends their free allowance, they add
    their own provider + API key in **Settings → AI** (stored per-user,

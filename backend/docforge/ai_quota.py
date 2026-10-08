@@ -3,8 +3,8 @@
 DocForge serves three kinds of AI access, decided per user, per action:
 
   * **own**    — the user configured their own provider + API key (unlimited).
-  * **free**   — a shared, server-side key the platform owner pays for (e.g. a
-                 cheap Claude Haiku key). Each user gets ``free_ai_limit`` free
+  * **free**   — a shared, server-side key the platform owner pays for (a
+                 Claude Haiku 5.5 key). Each user gets ``free_ai_limit`` free
                  actions; the key is NEVER exposed to the client.
   * **global** — the legacy single shared ``DOCFORGE_AI_*`` key (used only when
                  the free tier is not configured — i.e. local dev / tests).
@@ -99,6 +99,8 @@ def _own_config(row, s) -> AIConfig:
         max_output_tokens=s.ai_max_output_tokens,
         reasoning_effort=s.ai_reasoning_effort,
         temperature=s.ai_temperature,
+        effort_workhorse=s.ai_effort_workhorse,
+        effort_reasoning=s.ai_effort_reasoning,
         no_think=bool(row.no_think),
     )
 
@@ -118,6 +120,8 @@ def _free_config(s) -> AIConfig:
         max_output_tokens=s.ai_max_output_tokens,
         reasoning_effort=s.ai_reasoning_effort,
         temperature=s.ai_temperature,
+        effort_workhorse=s.ai_effort_workhorse,
+        effort_reasoning=s.ai_effort_reasoning,
     )
 
 

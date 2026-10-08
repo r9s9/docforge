@@ -39,6 +39,21 @@ class ToolSpec:
             },
         }
 
+    def anthropic_schema(self) -> dict:
+        """The Claude ``tools`` entry for this function.
+
+        Requests stream, so tool inputs stream as they are written
+        (``eager_input_streaming``); the agent loop checks each input is an
+        object before running the tool, because eager streaming leaves that to
+        the client.
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": self.parameters,
+            "eager_input_streaming": True,
+        }
+
     def run(self, args: dict) -> Any:
         return self.func(args or {})
 

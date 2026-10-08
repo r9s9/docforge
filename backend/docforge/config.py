@@ -48,19 +48,18 @@ class Settings(BaseSettings):
     generated_max_total_mb: int = 500  # cap total size; prune oldest beyond it
 
     # --- AI provider ---
-    # provider: "openai" (OpenAI / local OpenAI-compatible) or "anthropic".
-    # The recommended cloud default is Google Gemini, reached via its
-    # OpenAI-compatible endpoint, so it rides the "openai" provider path.
-    ai_provider: str = "openai"
+    # provider: "anthropic" (Claude, through the official SDK) or "openai" (any
+    # OpenAI-compatible endpoint: OpenRouter, OpenAI, Gemini, DeepSeek, local).
+    # The default is Claude Haiku 5.5.
+    ai_provider: str = "anthropic"
     ai_enabled: bool = False
-    ai_base_url: str = "https://api.openai.com/v1"
+    ai_base_url: str = "https://api.anthropic.com"
     ai_api_key: str = ""
-    ai_model: str = "gpt-4o-mini"
-    # Optional second "reasoning" model for the agentic steps that benefit from
-    # stronger reasoning (document understanding, self-critique, value
-    # composition, compliance judgment). Empty -> reuse ``ai_model`` for every
-    # tier. Recommended pairing: workhorse gemini-3.1-flash-lite + reasoning
-    # gemini-3.5-flash. See ``AIConfig.model_for_tier``.
+    ai_model: str = "claude-haiku-5-5"
+    # Optional second "reasoning" model for the agentic steps that decide what a
+    # document says (understanding, self-critique, writing, compliance judgment).
+    # Empty -> reuse ``ai_model`` for every tier, which is the default: Haiku 5.5
+    # on both, with the tiers told apart by effort. See ``AIConfig.model_for_tier``.
     ai_reasoning_model: str = ""
     # Hard cap on tool-calling iterations per agentic action (latency/cost guard,
     # important under the serverless request budget).
@@ -91,6 +90,12 @@ class Settings(BaseSettings):
     # is where most of the saving is: those calls are mechanical, and thinking
     # about them costs latency and output tokens for nothing.
     ai_reasoning_effort: str = ""
+    # Claude's effort level per tier ("low", "medium", "high", "xhigh", "max").
+    # Effort is how Claude trades thinking for speed and cost: the mechanical
+    # steps run at low, the steps that write and judge at medium (the model's
+    # own default). Sent only to models that support it.
+    ai_effort_workhorse: str = "low"
+    ai_effort_reasoning: str = "medium"
     # Write every field of a document in one reasoning pass instead of routing
     # then composing field by field — the only way the AI can judge across
     # fields (say a thing once, keep one voice, skip an empty section). Falls
@@ -108,21 +113,18 @@ class Settings(BaseSettings):
 
     # --- Free-tier AI (shared, server-side key; never exposed to users) ---
     # A small allowance of AI actions every signed-in user gets for free, served
-    # by a shared key the platform owner pays for (e.g. a cheap Claude Haiku key).
+    # by a shared key the platform owner pays for (a Claude Haiku 5.5 key).
     # Users never see this key. Once a user spends ``free_ai_limit`` actions they
     # must add their OWN key (Settings -> AI) to keep using AI; otherwise the app
     # falls back to the offline heuristic engine. When ``free_ai_enabled`` is on,
     # the free tier supersedes the global ``ai_*`` key for users without their own.
-    # Note the free tier now rides the OpenAI-compatible path, so free-tier users
-    # get the agentic tool-calling loop that the Anthropic transport never had.
-    # Better output, but a free action costs more and takes longer than it did.
     free_ai_enabled: bool = False
-    free_ai_provider: str = "openai"  # "openai" | "anthropic"
-    free_ai_base_url: str = "https://openrouter.ai/api/v1"
-    free_ai_model: str = "nvidia/nemotron-3-super-120b-a12b"
+    free_ai_provider: str = "anthropic"  # "openai" | "anthropic"
+    free_ai_base_url: str = "https://api.anthropic.com"
+    free_ai_model: str = "claude-haiku-5-5"
     # Optional stronger model for the free tier's reasoning steps. Empty means
-    # both tiers share ``free_ai_model`` — the sane default when the platform
-    # owner is paying, since Ultra costs about six times as much per token.
+    # both tiers share ``free_ai_model``, the sane default when the platform
+    # owner is paying.
     free_ai_reasoning_model: str = ""
     free_ai_api_key: str = ""
     free_ai_limit: int = 10  # free AI actions per user

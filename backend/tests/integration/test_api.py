@@ -601,13 +601,15 @@ def test_the_page_and_the_pipeline_agree_about_the_key(ai_client):
     assert full["ai"]["source"] == "own"
 
 
-def test_a_new_user_is_offered_the_recommended_pair(client):
-    """The shipped default a brand-new account sees before adding a key."""
+def test_a_new_user_is_offered_the_recommended_default(client):
+    """The shipped default a brand-new account sees before adding a key:
+    Claude Haiku 5.5 for every step."""
     ai = client.get("/api/settings").json()["ai"]
 
-    assert ai["base_url"] == OPENROUTER_BASE
-    assert ai["model"] == "nvidia/nemotron-3-super-120b-a12b"
-    assert ai["reasoning_model"] == "nvidia/nemotron-3-ultra-550b-a55b"
+    assert ai["provider"] == "anthropic"
+    assert ai["base_url"] == "https://api.anthropic.com"
+    assert ai["model"] == "claude-haiku-5-5"
+    assert ai["reasoning_model"] == "claude-haiku-5-5"
     assert ai["has_key"] is False and ai["source"] == "none"
 
 

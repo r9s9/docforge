@@ -1,7 +1,8 @@
 """LLM client supporting OpenAI-compatible *and* Anthropic providers.
 
-OpenAI-compatible covers OpenAI, Azure OpenAI, and local servers (Ollama,
-LM Studio, vLLM, llama.cpp). Anthropic uses the native Messages API.
+OpenAI-compatible covers OpenRouter, OpenAI, Gemini, DeepSeek and local servers
+(Ollama, LM Studio, vLLM, llama.cpp), over raw HTTP. Claude goes through the
+official Anthropic SDK in ``anthropic_transport.py``.
 
 Design rules (spec §10, §19):
   * JSON-only responses, validated against a strict Pydantic schema.
@@ -25,6 +26,8 @@ from pydantic import BaseModel, ValidationError
 
 from ..logging_setup import log_event
 from ..settings_store import AIConfig, get_ai_config
+from .errors import LLMCancelled, LLMError, LLMUnavailable
+from .errors import LLMRefused as LLMRefused  # re-exported: callers import errors from here
 from .usage import record_usage
 
 logger = logging.getLogger("docforge.ai")
@@ -42,25 +45,6 @@ def _msg_chars(messages: list[dict]) -> int:
     return sum(len(str(m.get("content") or "")) for m in messages)
 
 T = TypeVar("T", bound=BaseModel)
-
-
-class LLMError(Exception):
-    """Raised when the model cannot be reached or cannot produce valid output."""
-
-
-class LLMCancelled(LLMError):
-    """Raised when an in-flight LLM call is aborted via its cancellation Event.
-
-    Distinct from LLMError so callers can mark the job *cancelled* rather than
-    silently fall back to heuristics (which would defeat the cancel).
-    """
-
-
-class LLMUnavailable(LLMError):
-    """Raised when the model server is transiently overloaded (429/5xx) and
-    retries were exhausted. Distinct from LLMError so callers can try a
-    different model (e.g. reasoning tier -> workhorse) before giving up.
-    """
 
 
 class _ToolsUnsupported(Exception):
@@ -472,7 +456,12 @@ class LLMClient:
 
     @property
     def supports_streaming(self) -> bool:
-        return self.config.provider == "openai"
+        return self.config.provider in ("openai", "anthropic")
+
+    def _claude(self):
+        from .anthropic_transport import AnthropicTransport
+
+        return AnthropicTransport(self.config)
 
     # ----- request shaping (OpenAI-compatible) ---------------------------
     def _endpoint(self) -> str:
@@ -694,10 +683,13 @@ class LLMClient:
     ) -> str:
         if not self.active:
             raise LLMError("LLM client is not active (configure a provider + API key)")
+        if self.config.provider == "anthropic":
+            from .anthropic_transport import to_anthropic_messages
+
+            system, turns = to_anthropic_messages(messages)
+            return self._claude().turn(system=system, messages=turns).text
         temperature = self.config.temperature if temperature is None else temperature
         messages = self._apply_no_think(messages)
-        if self.config.provider == "anthropic":
-            return self._complete_anthropic(messages, temperature)
         return self._complete_openai(messages, temperature, json_mode)
 
     def _complete_openai(self, messages: list[dict], temperature: float, json_mode: bool) -> str:
@@ -752,52 +744,15 @@ class LLMClient:
                       error=f"{type(exc).__name__}: {str(exc)[:160]}")
             raise LLMError(f"OpenAI-compatible request failed: {exc}") from exc
 
-    def _complete_anthropic(self, messages: list[dict], temperature: float) -> str:
-        base = self.config.base_url.rstrip("/")
-        system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
-        conv = [{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in ("user", "assistant")]
-        payload = {
-            "model": self.config.model,
-            "max_tokens": self.config.max_output_tokens,
-            "temperature": temperature,
-            "system": system,
-            "messages": conv,
-        }
-        headers = {
-            "x-api-key": self.config.api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        }
-        log_event(
-            logger, "ai.call", provider="anthropic", host=_host(base), model=self.config.model,
-            messages=len(messages), prompt_chars=_msg_chars(messages),
-        )
-        t0 = time.perf_counter()
-        try:
-            with httpx.Client(timeout=self.config.timeout_seconds) as client:
-                resp = _post_with_retry(client, f"{base}/v1/messages", payload, headers)
-                resp.raise_for_status()
-                data = resp.json()
-            text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
-            usage = data.get("usage") or {}
-            record_usage(self.config.model, usage.get("input_tokens"), usage.get("output_tokens"))
-            log_event(
-                logger, "ai.done", provider="anthropic", model=self.config.model,
-                ms=round((time.perf_counter() - t0) * 1000, 1), resp_chars=len(text),
-                finish=data.get("stop_reason"), prompt_tokens=usage.get("input_tokens"),
-                completion_tokens=usage.get("output_tokens"),
-            )
-            return text
-        except (httpx.HTTPError, KeyError, IndexError) as exc:
-            log_event(logger, "ai.error", level=logging.ERROR, provider="anthropic",
-                      model=self.config.model, ms=round((time.perf_counter() - t0) * 1000, 1),
-                      error=f"{type(exc).__name__}: {str(exc)[:160]}")
-            raise LLMError(f"Anthropic request failed: {exc}") from exc
-
     # ----- validated JSON -------------------------------------------------
     def complete_json(
         self, *, system: str, developer: str, user: str, schema: type[T], cancel_event=None
     ) -> T:
+        if self.config.provider == "anthropic":
+            return self._json_claude(
+                system=system, developer=developer, user=user, schema=schema,
+                cancel_event=cancel_event,
+            )
         messages: list[dict] = [
             {"role": "system", "content": system},
             {"role": "system", "content": f"[developer instructions]\n{developer}"},
@@ -857,9 +812,23 @@ class LLMClient:
         """
         model = self.config.model_for_tier(tier)
         effort = self.config.reasoning_effort_for_tier(tier)
-        if model == self.config.model and effort == self.config.tier_reasoning_effort:
+        # Claude's effort only means something on the Anthropic path, and an
+        # unset tier_effort already runs at the workhorse level.
+        claude_effort = self.config.tier_effort
+        if self.config.provider == "anthropic":
+            claude_effort = self.config.effort_for_tier(tier)
+        current = self.config.tier_effort or self.config.effort_for_tier()
+        if (
+            model == self.config.model
+            and effort == self.config.tier_reasoning_effort
+            and (self.config.provider != "anthropic" or claude_effort == current)
+        ):
             return self
-        return LLMClient(replace(self.config, model=model, tier_reasoning_effort=effort))
+        return LLMClient(
+            replace(
+                self.config, model=model, tier_reasoning_effort=effort, tier_effort=claude_effort
+            )
+        )
 
     def complete_agentic(
         self,
@@ -909,9 +878,14 @@ class LLMClient:
         self, *, system, developer, user, schema: type[T], tools, tier, max_steps, cancel_event
     ) -> T:
         client = self.for_tier(tier)
-        if not tools or client.provider == "anthropic" or client._cap_key() in _TOOLS_UNSUPPORTED:
+        if not tools or client._cap_key() in _TOOLS_UNSUPPORTED:
             return client.complete_json(
                 system=system, developer=developer, user=user, schema=schema, cancel_event=cancel_event
+            )
+        if client.provider == "anthropic":
+            return client._agentic_claude(
+                system=system, developer=developer, user=user,
+                schema=schema, tools=tools, max_steps=max_steps, cancel_event=cancel_event,
             )
         try:
             return client._agentic_openai(
@@ -927,6 +901,153 @@ class LLMClient:
             return client.complete_json(
                 system=system, developer=developer, user=user, schema=schema, cancel_event=cancel_event
             )
+
+    # ----- Claude ---------------------------------------------------------
+    @staticmethod
+    def _claude_system(system: str, developer: str) -> list[str]:
+        return [system, f"[developer instructions]\n{developer}"]
+
+    def _validated(self, text: str, schema: type[T]) -> tuple[T | None, str]:
+        data = _extract_json(text)
+        if data is None:
+            return None, "response was not valid JSON"
+        try:
+            return schema.model_validate(data), ""
+        except ValidationError as exc:
+            return None, f"schema validation failed: {exc.errors()[:3]}"
+
+    def _json_claude(self, *, system, developer, user, schema: type[T], cancel_event) -> T:
+        """Validated JSON from Claude, held to the schema where one exists.
+
+        For the fixed-shape answers the API enforces the schema itself, so the
+        repair loop below is a backstop rather than the normal path.
+        """
+        from .prompts import response_schema
+
+        transport = self._claude()
+        system_parts = self._claude_system(system, developer)
+        json_schema = response_schema(schema)
+        messages: list = [{"role": "user", "content": user}]
+        last_error = "unknown error"
+        for attempt in range(self.config.max_retries + 1):
+            if cancel_event is not None and cancel_event.is_set():
+                raise LLMCancelled("cancelled")
+            turn = transport.turn(
+                system=system_parts, messages=messages, schema=json_schema,
+                schema_name=schema.__name__, cancel_event=cancel_event,
+            )
+            result, last_error = self._validated(turn.text, schema)
+            if result is not None:
+                if attempt:
+                    log_event(logger, "ai.json_ok_after_retry", schema=schema.__name__, attempt=attempt + 1)
+                return result
+            log_event(
+                logger, "ai.json_retry", level=logging.WARNING, schema=schema.__name__,
+                attempt=attempt + 1, of=self.config.max_retries + 1, reason=str(last_error)[:120],
+            )
+            # Append-only: the turn goes back exactly as Claude wrote it.
+            messages += [
+                {"role": "assistant", "content": turn.content or turn.text or "(empty)"},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Your previous response was invalid ({last_error}). "
+                        "Respond again with ONLY a valid JSON object matching the "
+                        "required schema. No prose, no markdown, no code fences."
+                    ),
+                },
+            ]
+        log_event(logger, "ai.json_failed", level=logging.ERROR, schema=schema.__name__, reason=str(last_error)[:160])
+        raise LLMError(f"LLM did not return valid JSON after retries: {last_error}")
+
+    def _agentic_claude(self, *, system, developer, user, schema: type[T], tools, max_steps, cancel_event) -> T:
+        """Claude's tool loop: call tools until it answers, then validate the answer.
+
+        The conversation is strictly append-only. Each assistant turn goes back
+        exactly as received, thinking blocks included: Claude needs its own
+        reasoning alongside the tool results, and a changed history would
+        invalidate that reasoning.
+        """
+        from ..config import get_settings
+        from .prompts import response_schema
+
+        max_steps = max_steps or get_settings().ai_agent_max_steps
+        by_name = {t.name: t for t in tools}
+        tool_specs = [t.anthropic_schema() for t in tools]
+        dev = (
+            developer
+            + "\n\nYou may call the provided tools to gather evidence before "
+            "answering. When you have enough information, reply with ONLY the final "
+            "JSON object for the required schema and make no further tool calls."
+        )
+        transport = self._claude()
+        system_parts = self._claude_system(system, dev)
+        json_schema = response_schema(schema)
+        messages: list = [{"role": "user", "content": user}]
+        last_error = "no final answer produced"
+        for step in range(max_steps):
+            if cancel_event is not None and cancel_event.is_set():
+                raise LLMCancelled("cancelled")
+            turn = transport.turn(
+                system=system_parts, messages=messages, schema=json_schema,
+                schema_name=schema.__name__, tools=tool_specs, cancel_event=cancel_event,
+            )
+            if turn.tool_uses and turn.stop_reason == "tool_use":
+                messages.append({"role": "assistant", "content": turn.content})
+                results = []
+                for call in turn.tool_uses:
+                    spec = by_name.get(call.name)
+                    args = call.input
+                    is_error = False
+                    if spec is None:
+                        result, is_error = {"error": f"unknown tool '{call.name}'"}, True
+                    elif not isinstance(args, dict):
+                        # Eager input streaming leaves validating the input to us.
+                        result, is_error = {"error": "tool input must be a JSON object"}, True
+                    else:
+                        try:
+                            result = spec.run(args)
+                        except Exception as exc:  # tools must never crash the loop
+                            result, is_error = {"error": f"{type(exc).__name__}: {exc}"}, True
+                    results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": call.id,
+                            "content": json.dumps(result, ensure_ascii=False, default=str)[:8000],
+                            "is_error": is_error,
+                        }
+                    )
+                # Every result in one user message: splitting them teaches the
+                # model to stop calling tools in parallel.
+                messages.append({"role": "user", "content": results})
+                log_event(logger, "ai.agent_step", step=step + 1, tools=[c.name for c in turn.tool_uses])
+                continue
+            if turn.tool_uses:
+                # Cut off mid tool call: there is nothing valid to answer it with.
+                last_error = f"stopped mid tool call ({turn.stop_reason})"
+                break
+            result, last_error = self._validated(turn.text, schema)
+            if result is not None:
+                log_event(logger, "ai.agent_done", schema=schema.__name__, steps=step + 1)
+                return result
+            messages.append({"role": "assistant", "content": turn.content or turn.text or "(empty)"})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"Your previous response was invalid ({last_error}). Reply with "
+                        "ONLY a valid JSON object matching the required schema, no prose, "
+                        "no markdown, no tool calls."
+                    ),
+                }
+            )
+        log_event(
+            logger, "ai.agent_exhausted", level=logging.WARNING,
+            schema=schema.__name__, reason=str(last_error)[:120],
+        )
+        return self._json_claude(
+            system=system, developer=developer, user=user, schema=schema, cancel_event=cancel_event
+        )
 
     def _agentic_openai(self, *, system, developer, user, schema: type[T], tools, max_steps, cancel_event) -> T:
         from ..config import get_settings

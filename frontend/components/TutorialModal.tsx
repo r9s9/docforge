@@ -157,15 +157,15 @@ function MockAISettings() {
       <div className="tut-mock tut-mock-rows">
         <div className="tut-mock-row">
           <span>Provider</span>
-          <b>OpenRouter</b>
+          <b>Anthropic</b>
         </div>
         <div className="tut-mock-row">
           <span>Model · everyday work</span>
-          <b>nemotron-3-super</b>
+          <b>claude-haiku-5-5</b>
         </div>
         <div className="tut-mock-row">
           <span>Reasoning model · hard steps</span>
-          <b>nemotron-3-ultra</b>
+          <b>claude-haiku-5-5</b>
         </div>
         <div className="tut-mock-row">
           <span>API key</span>
@@ -352,7 +352,7 @@ const TABS: TutTab[] = [
         <MockAISettings />
         <ul className="tut-list">
           <li>
-            <b>Provider</b>: OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, or a local model
+            <b>Provider</b>: Anthropic (recommended), OpenRouter, OpenAI, Gemini, DeepSeek, or a local model
             (e.g. Ollama). Any other OpenAI compatible endpoint works too, by editing the
             base URL.
             Your key is stored for your account only. No key yet? A small free allowance lets you
@@ -361,7 +361,8 @@ const TABS: TutTab[] = [
           <li>
             <b>Two models</b>: a fast <b>workhorse</b> for everyday extraction and a{" "}
             <b>reasoning</b> model for the hardest steps (verification, tricky placement). The{" "}
-            <b>Use recommended</b> button configures a proven cheap-and-good pair in one click.
+            <b>Use recommended</b> button sets Claude Haiku 5.5 for both in one click: routine
+            steps run quickly, and the steps that write and review your document think harder.
           </li>
           <li>
             <b>Test</b>: checks your key and <i>both</i> models actually respond before you rely
