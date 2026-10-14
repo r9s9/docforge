@@ -268,9 +268,11 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
     setBusy(true);
     setError("");
     setExtracted(null);
-    startAiTimer("Mapping your document with AI…");
+    startAiTimer("Uploading your document…");
     try {
-      const r = await api.routeDocument(selectedId, docFile);
+      const r = await api.routeDocument(selectedId, docFile, () =>
+        setAiStage("Mapping your document with AI…"),
+      );
       setRouting(r.routing);
       setExtracted(r.extracted);
       setRouteUsage(r.token_usage ?? null);

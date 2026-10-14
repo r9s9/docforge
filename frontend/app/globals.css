@@ -1,85 +1,84 @@
-/* DocForge — monochrome theme: white/black/grey, ink accent, glassy buttons.
+/* DocForge — warm studio theme, matched to docforge.live: cream paper and warm
+   ink in light mode, warm charcoal and parchment in dark. The accent stays
+   ink-on-paper (near-black buttons in light, near-white in dark).
    Two functional accents only: red (errors/destructive) and green (success).
-   Amber is aliased to grey so warning UIs go neutral (paired with an icon). */
+   Amber is aliased to the muted tone so warning UIs go neutral (paired with an icon). */
 
 :root {
-  --paper: #ffffff; /* main content background */
-  --sidebar: #f6f6f6;
-  --card: #ffffff;
-  --card-2: #f4f4f5;
-  --border: #e6e6e8;
-  --border-strong: #d6d6da;
-  --text: #0a0a0b;
-  --muted: #6b6b70;
-  --faint: #9a9aa0;
-  /* "ink" — the primary accent is near-black in light mode */
-  --accent: #0a0a0b;
-  --accent-btn: #18181b;
-  --accent-press: #000000;
-  --accent-soft: #f0f0f1;
-  --accent-ink: #ffffff; /* text/glyph color on an ink button */
+  --paper: #f5f1ea; /* main content background (the site's paper) */
+  --sidebar: #efe9e0;
+  --card: #fcfaf7;
+  --card-2: #f0ebe3;
+  --border: #e4ddd2;
+  --border-strong: #d5ccbf;
+  --text: #231f1a; /* the site's ink */
+  --muted: #746d65;
+  --faint: #a39c93;
+  /* "ink" — the primary accent is warm near-black in light mode */
+  --accent: #231f1a;
+  --accent-btn: #2b2620;
+  --accent-press: #15120f;
+  --accent-soft: #ece6dd;
+  --accent-ink: #fbf8f3; /* text/glyph color on an ink button */
   --green: #1f8f4e;
-  --green-soft: #e8f5ec;
-  --amber: var(--muted); /* warning → neutral grey */
+  --green-soft: #e8f2e6;
+  --amber: var(--muted); /* warning → neutral */
   --amber-soft: var(--card-2);
   --red: #d33a2c;
-  --red-soft: #fbe9e7;
+  --red-soft: #fae7e3;
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow: 0 1px 2px rgba(35, 31, 26, 0.05), 0 2px 8px rgba(35, 31, 26, 0.04);
+  --shadow-lg: 0 4px 20px rgba(35, 31, 26, 0.08);
   --font-sans: var(--font-geist-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --font-serif: var(--font-serif-loaded), "Iowan Old Style", "Palatino Linotype", Georgia,
     "Times New Roman", serif;
-  /* Aurora background — soft drifting color washes behind the content. */
-  --aurora-1: rgba(99, 140, 255, 0.5);
-  --aurora-2: rgba(186, 120, 255, 0.4);
-  --aurora-3: rgba(80, 200, 180, 0.35);
-  --aurora-opacity: 0.5;
-  /* Liquid-glass sidebar: translucent tint + blur so the aurora bleeds through,
-     plus a bright/dark rim pair that reads as light catching a glass edge. */
-  --glass-tint: rgba(255, 255, 255, 0.55);
+  /* Background wash — a static, very dim warmth in the site's terracotta and
+     tan. It never moves: drifting colour looked unsettled on OLED and LCD. */
+  --wash-1: rgba(176, 98, 47, 0.07);
+  --wash-2: rgba(158, 124, 88, 0.06);
+  /* Glass sidebar: translucent tint + blur over the paper, plus a bright/dark
+     rim pair that reads as light catching a glass edge. */
+  --glass-tint: rgba(252, 250, 247, 0.62);
   --glass-rim-light: rgba(255, 255, 255, 0.7);
-  --glass-rim-dark: rgba(20, 20, 30, 0.06);
+  --glass-rim-dark: rgba(35, 31, 26, 0.07);
   --glass-shine: rgba(255, 255, 255, 0.5);
   /* Gap between the floating sidebar card and the viewport edge on all sides. */
   --sidebar-gap: 12px;
 }
 
-/* Dark mode — near-black surfaces, white ink accent. */
+/* Dark mode — warm charcoal surfaces, parchment ink accent. */
 :root[data-theme="dark"] {
-  --paper: #0c0c0d;
-  --sidebar: #141416;
-  --card: #1a1a1c;
-  --card-2: #161618;
-  --border: #2a2a2e;
-  --border-strong: #3a3a40;
-  --text: #f4f4f5;
-  --muted: #a1a1a8;
-  --faint: #6b6b72;
-  /* ink is white in dark mode */
-  --accent: #f4f4f5;
-  --accent-btn: #ededf0;
-  --accent-press: #ffffff;
-  --accent-soft: #232327;
-  --accent-ink: #0a0a0b;
+  --paper: #191511; /* the site's dark paper */
+  --sidebar: #201b16;
+  --card: #241f1a;
+  --card-2: #1e1914;
+  --border: #342d26;
+  --border-strong: #463d34;
+  --text: #f0eae1; /* the site's dark ink */
+  --muted: #aca59b;
+  --faint: #7a7369;
+  /* ink is parchment in dark mode */
+  --accent: #f0eae1;
+  --accent-btn: #ebe4d9;
+  --accent-press: #fbf8f3;
+  --accent-soft: #2b251f;
+  --accent-ink: #191511;
   --green: #4ec77d;
-  --green-soft: #16271d;
+  --green-soft: #18261a;
   --amber: var(--muted);
   --amber-soft: var(--card-2);
   --red: #ef6b5c;
-  --red-soft: #2a1714;
+  --red-soft: #2c1814;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.45);
-  --aurora-1: rgba(70, 100, 220, 0.35);
-  --aurora-2: rgba(140, 80, 220, 0.3);
-  --aurora-3: rgba(40, 150, 140, 0.28);
-  --aurora-opacity: 0.35;
-  --glass-tint: rgba(20, 20, 22, 0.45);
-  --glass-rim-light: rgba(255, 255, 255, 0.14);
+  --wash-1: rgba(217, 154, 108, 0.05);
+  --wash-2: rgba(201, 169, 128, 0.04);
+  --glass-tint: rgba(32, 27, 22, 0.55);
+  --glass-rim-light: rgba(255, 240, 225, 0.12);
   --glass-rim-dark: rgba(0, 0, 0, 0.35);
-  --glass-shine: rgba(255, 255, 255, 0.08);
+  --glass-shine: rgba(255, 240, 225, 0.06);
 }
 
 * {
@@ -134,7 +133,7 @@ a:hover {
   width: 66px;
   z-index: 50;
   /* Liquid glass: a translucent tint over a blurred, saturated sample of
-     whatever sits behind the panel (the aurora), with a bright/dark rim pair
+     whatever sits behind the panel (the paper's warm wash), with a bright/dark rim pair
      standing in for light catching the edge of a pane of glass. */
   background: linear-gradient(180deg, var(--glass-shine), transparent 220px), var(--glass-tint);
   -webkit-backdrop-filter: blur(28px) saturate(1.7);
@@ -164,7 +163,6 @@ a:hover {
 .sidebar.collapsed-hidden,
 .sidebar:not(.pinned):not(:hover) .label,
 .sidebar:not(.pinned):not(:hover) .brand-text,
-.sidebar:not(.pinned):not(:hover) .settings-icon-btn,
 .sidebar:not(.pinned):not(:hover) .pin-btn,
 .sidebar:not(.pinned):not(:hover) .sidebar-foot {
   display: none;
@@ -197,27 +195,6 @@ a:hover {
   color: var(--text);
 }
 .pin-btn.on {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-/* Small settings shortcut, up in the brand row rather than a full menu row. */
-.settings-icon-btn {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-}
-.settings-icon-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--text);
-}
-.settings-icon-btn.on {
   color: var(--accent);
   background: var(--accent-soft);
 }
@@ -263,6 +240,12 @@ a:hover {
   color: var(--text);
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+}
+/* A menu row pinned to the bottom of the panel (Settings): the menu above it
+   takes the free space, so this row never moves and is never reordered. */
+.nav-link-static {
+  flex: 0 0 auto;
+  margin-top: 6px;
 }
 .nav-link .ic {
   width: 20px;
@@ -1245,7 +1228,7 @@ tr.low-conf td {
 /* ---- Real DOCX preview (docx-preview render) ---- */
 .docx-canvas {
   position: relative;
-  background: #6b6f76;
+  background: #78716a;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 22px 14px;
@@ -1268,7 +1251,7 @@ tr.low-conf td {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(40, 42, 46, 0.55);
+  background: rgba(45, 40, 34, 0.55);
   border-radius: var(--radius);
   z-index: 2;
 }
@@ -2050,81 +2033,18 @@ tr.low-conf td {
   background: var(--card-2);
 }
 
-/* ---- Aurora background (animated, theme-aware, reduced-motion safe) ---- */
+/* ---- Background wash (static, theme-aware) ----
+   Two very dim warm glows in opposite corners, in the site's terracotta and
+   tan. Nothing animates: a moving colour field shimmered and banded on OLED
+   and LCD panels. */
 .aurora {
   position: fixed;
-  inset: -20%;
+  inset: 0;
   z-index: -1; /* above the body canvas background, below all content */
   pointer-events: none;
-  overflow: hidden;
-  filter: blur(70px); /* static blur on the container — never animated */
-  opacity: var(--aurora-opacity);
-}
-.aurora i {
-  position: absolute;
-  display: block;
-  width: 55vmax;
-  height: 55vmax;
-  border-radius: 50%;
-  will-change: transform;
-}
-/* Each blob wanders a closed loop rather than ping-ponging along one line, and
-   the three periods share no common factor — so they drift out of phase and the
-   picture takes hours to repeat instead of visibly cycling. Slow enough that you
-   notice it changed, not that it is moving. Transform and opacity only: both are
-   composited, so the whole thing costs nothing to run. */
-.aurora i:nth-child(1) {
-  top: -10%;
-  left: -10%;
-  background: radial-gradient(circle, var(--aurora-1) 0%, transparent 70%);
-  animation:
-    aurora-drift-1 210s ease-in-out infinite,
-    aurora-breathe 97s ease-in-out infinite;
-}
-.aurora i:nth-child(2) {
-  top: 20%;
-  right: -15%;
-  background: radial-gradient(circle, var(--aurora-2) 0%, transparent 70%);
-  animation:
-    aurora-drift-2 260s ease-in-out infinite,
-    aurora-breathe 127s ease-in-out infinite;
-  animation-delay: -70s, -40s;
-}
-.aurora i:nth-child(3) {
-  bottom: -15%;
-  left: 25%;
-  background: radial-gradient(circle, var(--aurora-3) 0%, transparent 70%);
-  animation:
-    aurora-drift-3 330s ease-in-out infinite,
-    aurora-breathe 151s ease-in-out infinite;
-  animation-delay: -150s, -90s;
-}
-@keyframes aurora-drift-1 {
-  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
-  25%  { transform: translate(7vw, 5vh) rotate(18deg) scale(1.12); }
-  50%  { transform: translate(3vw, 11vh) rotate(38deg) scale(1.04); }
-  75%  { transform: translate(-4vw, 6vh) rotate(20deg) scale(1.16); }
-  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
-}
-@keyframes aurora-drift-2 {
-  0%   { transform: translate(0, 0) rotate(0deg) scale(1.1); }
-  25%  { transform: translate(-6vw, 7vh) rotate(-14deg) scale(0.97); }
-  50%  { transform: translate(-9vw, -3vh) rotate(-28deg) scale(1.14); }
-  75%  { transform: translate(-2vw, -8vh) rotate(-12deg) scale(1.02); }
-  100% { transform: translate(0, 0) rotate(0deg) scale(1.1); }
-}
-@keyframes aurora-drift-3 {
-  0%   { transform: translate(0, 0) rotate(0deg) scale(0.95); }
-  25%  { transform: translate(5vw, -6vh) rotate(12deg) scale(1.18); }
-  50%  { transform: translate(10vw, 2vh) rotate(26deg) scale(1.05); }
-  75%  { transform: translate(4vw, 8vh) rotate(10deg) scale(1.2); }
-  100% { transform: translate(0, 0) rotate(0deg) scale(0.95); }
-}
-/* A gentle swell in intensity, on its own period, so the colours shift relative
-   to one another instead of the whole field moving as one piece. */
-@keyframes aurora-breathe {
-  0%, 100% { opacity: 0.85; }
-  50%      { opacity: 1; }
+  background:
+    radial-gradient(ellipse 75% 60% at 0% 0%, var(--wash-1), transparent 70%),
+    radial-gradient(ellipse 65% 55% at 100% 100%, var(--wash-2), transparent 70%);
 }
 
 /* ---- Entrance micro-animations ---- */
@@ -2265,8 +2185,12 @@ tr.low-conf td {
 }
 
 /* ---- Tutorial modal ---- */
+/* Every page of the tour is the same size: a fixed width and height, with the
+   page content scrolling inside it. A modal sized to its content grew and
+   shrank on each Next, moving the buttons out from under the pointer. */
 .tut-modal {
   max-width: 720px;
+  height: min(720px, 86vh);
 }
 .tut-head {
   display: flex;
@@ -2320,10 +2244,10 @@ tr.low-conf td {
   font-weight: 600;
 }
 .tut-body {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0; /* let it shrink inside the fixed-height modal, then scroll */
   overflow-y: auto;
   padding: 18px 24px 20px;
-  min-height: 300px;
 }
 .tut-body h3 {
   margin: 0 0 8px;
@@ -2401,7 +2325,11 @@ tr.low-conf td {
 }
 .tut-nav {
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
+  /* Room for Back + Next whether or not Back is showing, so the dots in the
+     middle don't shift when it appears. */
+  min-width: 190px;
 }
 
 /* Tutorial figures — CSS mini-mockups of real UI, theme-aware by construction. */
@@ -2717,7 +2645,6 @@ tr.low-conf td {
 
 /* ---- Reduced motion: disable decorative animation ---- */
 @media (prefers-reduced-motion: reduce) {
-  .aurora i,
   .page-anim,
   .field-card,
   .modal {

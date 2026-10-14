@@ -132,12 +132,18 @@ export default function NewTemplate() {
     setBusy(true);
     setError("");
     setProgress(0);
-    setStage("Uploading your document…");
+    const what = files.length === 1 ? "your document" : `${files.length} documents`;
+    setStage(`Uploading ${what}…`);
     setStageCode(null);
     cancelledRef.current = false;
     try {
       // Analysis runs in the background (the LLM can be slow); poll for live progress.
-      let result = await api.analyze(files, analysisMode);
+      // Once the upload itself is done, say so: on a serverless backend the whole
+      // analysis then runs inside this one request, and "Uploading" for the
+      // entire wait read as stuck.
+      let result = await api.analyze(files, analysisMode, () => {
+        if (!cancelledRef.current) setStage(`Processing ${what}…`);
+      });
       activeJobId.current = result.id;
       setProgress(result.progress || 0);
       setStage(result.stage);

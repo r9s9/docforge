@@ -36,11 +36,7 @@ function Shell({ children, userId }: { children: React.ReactNode; userId: string
 
   return (
     <div className="app">
-      <div className="aurora" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </div>
+      <div className="aurora" aria-hidden="true" />
       <Sidebar onOpenTutorial={() => setTutorialOpen(true)} />
       <main className="main">
         <div className="main-inner">{children}</div>

@@ -59,6 +59,36 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** POST a multipart form, calling ``onUploaded`` the moment its bytes are sent.
+ *
+ * fetch() can't report when a request body has finished uploading, and on a
+ * serverless host the server then does all of its work inside the same
+ * request — so without this the caller could only say "uploading" for the
+ * entire wait. XMLHttpRequest's upload events can tell the two phases apart.
+ */
+async function postForm<T>(path: string, form: FormData, onUploaded?: () => void): Promise<T> {
+  const headers = await withAuth();
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${BASE}${path}`);
+    headers.forEach((value, name) => xhr.setRequestHeader(name, value));
+    xhr.upload.onload = () => onUploaded?.();
+    xhr.onerror = () => reject(new Error("Network error while uploading."));
+    xhr.onload = () => {
+      let body: any = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        /* not JSON */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(body as T);
+      if (xhr.status === 401) return reject(new Error("Your session expired. Please sign in again."));
+      reject(new Error(body?.detail || (body ? JSON.stringify(body) : xhr.statusText)));
+    };
+    xhr.send(form);
+  });
+}
+
 // --- Direct-to-storage uploads ---------------------------------------------
 // On hosts where the API can issue signed storage URLs (Supabase backend, e.g.
 // on Vercel), the browser PUTs each file straight to object storage and then
@@ -99,9 +129,15 @@ async function uploadAllDirect(files: File[]): Promise<SourceRef[] | null> {
 export const api = {
   health: () => request<Health>("/health"),
 
-  analyze: async (files: File[], mode: "tags_only" | "smart" = "tags_only") => {
+  /** ``onUploaded`` fires once the files are uploaded and processing begins. */
+  analyze: async (
+    files: File[],
+    mode: "tags_only" | "smart" = "tags_only",
+    onUploaded?: () => void,
+  ) => {
     const refs = await uploadAllDirect(files);
     if (refs) {
+      onUploaded?.();
       return request<AnalysisJob>("/templates/analyze-refs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,7 +147,7 @@ export const api = {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
     form.append("mode", mode);
-    return request<AnalysisJob>("/templates/analyze", { method: "POST", body: form });
+    return postForm<AnalysisJob>("/templates/analyze", form, onUploaded);
   },
 
   getAnalysis: (id: string) => request<AnalysisJob>(`/analyses/${id}`),
@@ -271,9 +307,11 @@ export const api = {
     return res.arrayBuffer();
   },
 
-  routeDocument: async (id: string, file: File) => {
+  /** ``onUploaded`` fires once the file is uploaded and mapping begins. */
+  routeDocument: async (id: string, file: File, onUploaded?: () => void) => {
     const ref = await uploadDirect(file);
     if (ref) {
+      onUploaded?.();
       return request<RouteDocumentResult>(`/templates/${id}/route-document-refs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -282,10 +320,7 @@ export const api = {
     }
     const form = new FormData();
     form.append("file", file);
-    return request<RouteDocumentResult>(`/templates/${id}/route-document`, {
-      method: "POST",
-      body: form,
-    });
+    return postForm<RouteDocumentResult>(`/templates/${id}/route-document`, form, onUploaded);
   },
 
   compliance: async (id: string, file: File, version?: number) => {

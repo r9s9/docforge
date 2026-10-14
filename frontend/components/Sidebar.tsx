@@ -44,8 +44,9 @@ interface NavDef {
 }
 
 // Static registry: icons + routes never change (only order + labels are editable).
-// Settings lives outside this list — it's a small fixed icon up in the brand row,
-// not a reorderable menu row (see the `.settings-icon-btn` link below).
+// Settings lives outside this list: it is a fixed menu row at the bottom of the
+// panel, above the light/dark switch, so it is always in the same place and
+// can't be reordered away (see the `.nav-link-static` link below).
 const NAV_REGISTRY: Record<NavId, NavDef> = {
   dashboard: { id: "dashboard", href: "/", label: "Dashboard", Icon: LayoutGrid, exact: true },
   new: { id: "new", href: "/new", label: "New Template", Icon: Plus },
@@ -222,14 +223,6 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
         <span className="brand-text">
           Doc<b>Forge</b>
         </span>
-        <Link
-          href="/settings"
-          className={`settings-icon-btn ${isActive("/settings") ? "on" : ""}`}
-          title="Settings"
-          aria-label="Settings"
-        >
-          <Settings size={15} strokeWidth={1.9} />
-        </Link>
         <button
           className={`pin-btn ${pinned ? "on" : ""}`}
           onClick={togglePin}
@@ -308,6 +301,17 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
           </button>
         )}
       </div>
+
+      <Link
+        href="/settings"
+        className={`nav-link nav-link-static ${isActive("/settings") ? "active" : ""}`}
+        title="Settings"
+      >
+        <span className="ic">
+          <Settings size={20} strokeWidth={1.75} />
+        </span>
+        <span className="label">Settings</span>
+      </Link>
 
       <div className="sidebar-foot">
         <div className="sidebar-foot-row">
