@@ -4,19 +4,20 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 import docforge.db.models  # noqa: F401 — register all tables on the metadata
+from alembic import context
 from docforge.config import get_settings
 from docforge.db.base import Base
+from docforge.db.session import database_url_with_driver
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Inject the URL from DocForge settings (env-driven) instead of alembic.ini.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+config.set_main_option("sqlalchemy.url", database_url_with_driver(get_settings().database_url))
 
 target_metadata = Base.metadata
 

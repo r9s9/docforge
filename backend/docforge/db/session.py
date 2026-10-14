@@ -18,6 +18,23 @@ from .base import Base
 
 _settings = get_settings()
 
+
+def database_url_with_driver(url: str) -> str:
+    """Name the Postgres driver explicitly when the URL leaves it implicit.
+
+    A bare ``postgresql://`` URL means "SQLAlchemy's default driver", and that
+    default changed: SQLAlchemy 2.0 picked psycopg2, 2.1 picks psycopg 3. The
+    deployment installs psycopg2-binary, so a fresh build that pulled 2.1 failed
+    to import the app at all, and every request crashed. Pinning the driver here
+    makes the URL mean the same thing on every SQLAlchemy version. The Heroku
+    style ``postgres://`` scheme, which SQLAlchemy rejects, is accepted too.
+    """
+    for bare in ("postgresql://", "postgres://"):
+        if url.startswith(bare):
+            return "postgresql+psycopg2://" + url[len(bare):]
+    return url
+
+
 if _settings.database_url.startswith("sqlite"):
     engine = create_engine(
         _settings.database_url, connect_args={"check_same_thread": False}, future=True
@@ -29,7 +46,7 @@ else:
     # and closes it on return; pre_ping discards any connection a frozen instance
     # left half-dead. Pair this with Supabase's *transaction* pooler (port 6543).
     engine = create_engine(
-        _settings.database_url,
+        database_url_with_driver(_settings.database_url),
         poolclass=NullPool,
         pool_pre_ping=True,
         future=True,
