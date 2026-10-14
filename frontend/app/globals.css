@@ -48,23 +48,24 @@
   --sidebar-gap: 12px;
 }
 
-/* Dark mode — warm charcoal surfaces, parchment ink accent. */
+/* Dark mode — charcoal and parchment, with half the site's warmth: the full
+   tint read too warm on a dark screen. */
 :root[data-theme="dark"] {
-  --paper: #191511; /* the site's dark paper */
-  --sidebar: #201b16;
-  --card: #241f1a;
-  --card-2: #1e1914;
-  --border: #342d26;
-  --border-strong: #463d34;
-  --text: #f0eae1; /* the site's dark ink */
-  --muted: #aca59b;
-  --faint: #7a7369;
+  --paper: #171513; /* the site's dark paper, half as warm */
+  --sidebar: #1e1b19;
+  --card: #221f1d;
+  --card-2: #1c1917;
+  --border: #312e2a;
+  --border-strong: #423e39;
+  --text: #edeae6; /* the site's dark ink, half as warm */
+  --muted: #a9a5a0;
+  --faint: #77736e;
   /* ink is parchment in dark mode */
-  --accent: #f0eae1;
-  --accent-btn: #ebe4d9;
-  --accent-press: #fbf8f3;
-  --accent-soft: #2b251f;
-  --accent-ink: #191511;
+  --accent: #edeae6;
+  --accent-btn: #e8e4df;
+  --accent-press: #faf8f6;
+  --accent-soft: #292623;
+  --accent-ink: #171513;
   --green: #4ec77d;
   --green-soft: #18261a;
   --amber: var(--muted);
@@ -73,12 +74,12 @@
   --red-soft: #2c1814;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.45);
-  --wash-1: rgba(217, 154, 108, 0.05);
-  --wash-2: rgba(201, 169, 128, 0.04);
-  --glass-tint: rgba(32, 27, 22, 0.55);
-  --glass-rim-light: rgba(255, 240, 225, 0.12);
+  --wash-1: rgba(192, 161, 138, 0.05);
+  --wash-2: rgba(187, 171, 151, 0.04);
+  --glass-tint: rgba(30, 27, 25, 0.55);
+  --glass-rim-light: rgba(249, 241, 234, 0.12);
   --glass-rim-dark: rgba(0, 0, 0, 0.35);
-  --glass-shine: rgba(255, 240, 225, 0.06);
+  --glass-shine: rgba(249, 241, 234, 0.06);
 }
 
 * {
