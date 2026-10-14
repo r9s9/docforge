@@ -101,6 +101,10 @@ class NormalizedElement(BaseModel):
     section_index: int = 0
     formatting: ParagraphFormatting = Field(default_factory=ParagraphFormatting)
     semantic_hints: list[str] = Field(default_factory=list)
+    # Bookmarks this paragraph carries, and the bookmark it links to: a table
+    # of contents entry links to the bookmark Word put on its heading.
+    bookmarks: list[str] = Field(default_factory=list)
+    link_target: str | None = None
 
 
 class DocumentSection(BaseModel):

@@ -24,6 +24,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from ..ai_classifier import classify, derive_field_definitions
+from ..ai_classifier.contents import is_entry_number
 from ..ai_classifier.fields import include_field_name
 from ..common.textutil import slugify_field
 from ..multi_doc_differ import diff_documents, pick_representative
@@ -380,6 +381,81 @@ def _replaces_generated(cls) -> bool:
     return GENERATED_MARK in (cls.rationale or "")
 
 
+# --- table of contents -------------------------------------------------------
+def _contents_title_texts(p_el) -> list:
+    """The ``w:t`` elements holding a contents entry's heading text.
+
+    An entry reads "1.1<tab>Agenda<tab>3": a number, the heading, then a
+    PAGEREF field showing the page. Field codes and that page number are
+    skipped, tabs split the rest, and a leading number is left alone.
+    """
+    fields: list[dict] = []  # fields opened in this paragraph, innermost last
+    segments: list[list] = [[]]
+    for el in p_el.iter(qn("w:fldChar"), qn("w:instrText"), qn("w:t"), qn("w:tab")):
+        if el.tag == qn("w:fldChar"):
+            kind = el.get(qn("w:fldCharType"))
+            if kind == "begin":
+                fields.append({"code": "", "result": False})
+            elif kind == "separate" and fields:
+                fields[-1]["result"] = True
+            elif kind == "end" and fields:
+                fields.pop()
+        elif el.tag == qn("w:instrText"):
+            if fields:
+                fields[-1]["code"] += el.text or ""
+        elif any("PAGEREF" in f["code"].upper() for f in fields) or (
+            fields and not fields[-1]["result"]
+        ):
+            continue  # the page number, or a field's own code
+        elif el.tag == qn("w:tab"):
+            if el.getparent() is not None and el.getparent().tag == qn("w:r"):
+                segments.append([])  # a tab character (not a tab-stop definition)
+        else:
+            segments[-1].append(el)
+    texts = [s for s in segments if "".join(t.text or "" for t in s).strip()]
+    if len(texts) > 1 and is_entry_number("".join(t.text or "" for t in texts[0])):
+        texts = texts[1:]
+    return texts[0] if texts else []
+
+
+def _link_contents_entries(nodes: list, cls_by_node: dict, fd_by_node: dict) -> int:
+    """Give each linked contents entry its heading's tag; return how many.
+
+    The entry keeps everything Word put there (its number, the dotted leader,
+    the page number, the TOC field around the list); only the heading text
+    becomes the heading's own placeholder, so the list follows the headings.
+    An entry whose heading is not a field keeps the heading's fixed text.
+    """
+    linked = 0
+    for wn in nodes:
+        cls = cls_by_node.get(wn.node_id)
+        if wn.kind != "paragraph" or cls is None or not cls.links_to:
+            continue
+        target = cls_by_node.get(cls.links_to)
+        fd = fd_by_node.get(cls.links_to)
+        if target is None or fd is None or not is_dynamic(target.classification):
+            continue
+        if target.classification in (
+            ClassificationType.REPEATABLE_SECTION, ClassificationType.REPEATABLE_BLOCK,
+        ):
+            continue  # a looped heading has no single tag to show
+        name = _safe_ident(fd.field_name)
+        texts = _contents_title_texts(wn.obj._p)
+        if not name or not texts:
+            continue
+        expr = (
+            _neutralize_run(target.static_prefix or "")
+            + f"{{{{ {name} }}}}"
+            + _neutralize_run(target.static_suffix or "")
+        )
+        texts[0].text = expr
+        texts[0].set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+        for t in texts[1:]:
+            t.text = ""
+        linked += 1
+    return linked
+
+
 # --- main builder -----------------------------------------------------------
 def section_toggle_name(section_key: str) -> str | None:
     """The Jinja variable that decides whether a section renders at all.
@@ -689,6 +765,11 @@ def build_template_docx(
 
         if include_name:
             _wrap_optional(para, include_name)
+
+    # The table of contents shows each heading's tag, as the heading does.
+    toc_linked = _link_contents_entries(nodes, cls_by_node, fd_by_node)
+    if toc_linked:
+        logger.info("linked %d table of contents entries to their headings", toc_linked)
 
     # Image fields: tag each underlying picture with the field key so the
     # assembler can swap it via docxtpl.replace_pic at generation. The original

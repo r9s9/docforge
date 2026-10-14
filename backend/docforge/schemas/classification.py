@@ -32,6 +32,10 @@ class ElementClassification(BaseModel):
     source: str = "heuristic"  # "heuristic" | "llm" | "user"
     rationale: str = ""
 
+    # A table of contents entry: the node of the heading it lists. Not a field
+    # of its own; the builder gives it that heading's tag.
+    links_to: str | None = None
+
 
 class SectionUnderstanding(BaseModel):
     """Semantic understanding of a document section (AI task B)."""

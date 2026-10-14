@@ -8,6 +8,7 @@ relationships, numbering) to produce the renderer-agnostic schema in §7.
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 from docx import Document
@@ -220,6 +221,8 @@ def _element_from_walknode(
     if wn.row is not None:
         hints.append("in_table")
 
+    bookmarks, link_target = _links(para)
+
     return NormalizedElement(
         node_id=wn.node_id,
         parent_node_id=wn.parent_node_id,
@@ -236,7 +239,36 @@ def _element_from_walknode(
         section_index=wn.section_index,
         formatting=fmt,
         semantic_hints=hints,
+        bookmarks=bookmarks,
+        link_target=link_target,
     )
+
+
+_PAGEREF_RE = re.compile(r"PAGEREF\s+(\S+)", re.IGNORECASE)
+
+
+def _links(para: Paragraph) -> tuple[list[str], str | None]:
+    """The bookmarks in a paragraph, and the bookmark it links to (if any).
+
+    A contents entry links to its heading twice over: a hyperlink to the
+    heading's bookmark, and a PAGEREF field for its page number.
+    """
+    p = para._p
+    names = [
+        name
+        for b in p.iter(qn("w:bookmarkStart"))
+        if (name := b.get(qn("w:name"))) and name != "_GoBack"
+    ]
+    target = None
+    for h in p.iter(qn("w:hyperlink")):
+        if anchor := h.get(qn("w:anchor")):
+            target = anchor
+            break
+    if target is None:
+        instr = "".join(i.text or "" for i in p.iter(qn("w:instrText")))
+        if m := _PAGEREF_RE.search(instr):
+            target = m.group(1)
+    return names, target
 
 
 def build_extraction(

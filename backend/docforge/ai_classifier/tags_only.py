@@ -108,14 +108,17 @@ def is_generated_listing(e: NormalizedElement) -> bool:
 def _is_exempt(e: NormalizedElement, c: ElementClassification | None) -> bool:
     """Nodes that keep their existing classification in tags-only mode.
 
-    Only two things are exempt, and neither is text a person wrote: a picture
-    with no words of its own, and content Word generates for itself (page
-    numbers, a table of contents, a list of figures). Everything else — including
+    Only text no person wrote is exempt: a picture with no words of its own,
+    and a table of contents entry linked to its heading (it takes that
+    heading's tag; see ``contents.py``). Everything else — including
     the running header, the footer and every label — becomes a field, because
     "full template" has to mean it.
     """
     if (e.image_ref is not None or e.type == ElementType.IMAGE) and not (e.text or "").strip():
         return True  # a picture alone is swapped via its image field, not tagged
+
+    if c is not None and c.links_to:
+        return True  # a contents entry: it takes its heading's tag, not its own
 
     if not (e.text or "").strip() and e.type != ElementType.TABLE:
         return True  # nothing to templatize

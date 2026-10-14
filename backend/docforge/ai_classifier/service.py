@@ -9,6 +9,7 @@ from ..config import Settings
 from ..schemas.classification import ClassificationResult
 from ..schemas.diff import DiffRunResult
 from ..schemas.extraction import DocumentExtraction
+from .contents import link_contents_entries
 from .describe import describe_forced_fields
 from .heuristic import classify_heuristic
 from .llm import classify_llm
@@ -63,6 +64,10 @@ def classify(
 
     if result is None:
         result = classify_heuristic(extraction, diff)
+
+    # A table of contents lists the headings, so its entries follow them
+    # rather than becoming fields of their own (in every mode).
+    link_contents_entries(extraction, result)
 
     if mode == "tags_only":
         forced = enforce_tags_only(extraction, result)
