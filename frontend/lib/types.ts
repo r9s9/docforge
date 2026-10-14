@@ -348,6 +348,8 @@ export interface ComplianceAlignedPair {
   status: string; // match | changed | missing | field | field_missing | table | table_changed | missing_table | extra
   severity: string;
   template_text: string;
+  // How a field's line reads in the template's "with labels" view («Label»).
+  template_sample_text?: string;
   document_text: string;
   field_name: string | null;
   is_table: boolean;

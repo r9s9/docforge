@@ -12,6 +12,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from ..assembler import assemble
+from ..common.textutil import sample_label
 from ..config import Settings, get_settings
 from ..db.models import AnalysisJob, SourceDocument, Template
 from ..schemas.classification import ClassificationResult, ElementClassification
@@ -30,12 +31,12 @@ def _sample_value(field: FieldDefinition) -> object:
         return None
     if field.field_type == FieldType.TABLE:
         # One illustrative row keyed by each column's field_name.
-        return [{c.field_name: f"«{c.label or c.field_name}»" for c in field.columns}]
+        return [{c.field_name: sample_label(c.label, c.field_name) for c in field.columns}]
     if field.field_type == FieldType.BOOLEAN:
         return True
     if field.classification == ClassificationType.REPEATABLE_SECTION:
-        return [f"«{field.label or field.field_name}»"]
-    return f"«{field.label or field.field_name}»"
+        return [sample_label(field.label, field.field_name)]
+    return sample_label(field.label, field.field_name)
 
 
 def _sample_context(fields: list[FieldDefinition]) -> dict[str, object]:
@@ -76,6 +77,18 @@ def build_job_preview_docx(
         template_bytes = build_template_docx(str(rep_path), result, fields)
     if mode == "tags":
         return template_bytes
+    return assemble(template_bytes, _sample_context(fields), fields)
+
+
+def build_version_sample_docx(registry: TemplateRegistry, template_id: str, version: int) -> bytes:
+    """A published version's template.docx with each variable shown as «Label».
+
+    Rendered from the stored template itself (not rebuilt), so it is exactly the
+    published template, only readable: the "with labels" download, and the
+    expected side of the compliance comparison.
+    """
+    fields = registry.load_fields(template_id, version)
+    template_bytes = registry.template_docx_bytes(template_id, version)
     return assemble(template_bytes, _sample_context(fields), fields)
 
 

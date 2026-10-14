@@ -272,6 +272,41 @@ def test_compliance_alignment_and_fix(client, db_session, settings_tmp, project_
     body = "\n".join(p.text for p in Document(io.BytesIO(rf.content)).paragraphs)
     assert "[EDITED]" not in body  # the altered boilerplate was restored
 
+    # 3) Field rows carry their «Label» text, so the comparison can mark them on
+    #    the "with labels" page it shows as the expected side.
+    field_rows = [p for p in report["alignment"] if p["status"] in ("field", "field_missing")]
+    assert field_rows
+    assert all(p["template_sample_text"].startswith("«") for p in field_rows)
+
+
+def test_template_downloads_with_labels_and_with_tags(client, db_session, settings_tmp, project_docs):
+    import io
+
+    from docx import Document
+
+    template_id = _publish_via_services(db_session, settings_tmp, project_docs, "Downloads T")
+
+    def text_of(content: bytes) -> str:
+        return "\n".join(p.text for p in Document(io.BytesIO(content)).paragraphs)
+
+    labels = client.get(f"/api/templates/{template_id}/versions/1/sample.docx?download=true")
+    assert labels.status_code == 200, labels.text
+    assert "with_labels" in labels.headers["content-disposition"]
+    assert "«" in text_of(labels.content)
+    assert "{{" not in text_of(labels.content)
+
+    # Inline (no download flag): the compliance comparison renders it in place.
+    inline = client.get(f"/api/templates/{template_id}/versions/1/sample.docx")
+    assert inline.status_code == 200
+    assert "content-disposition" not in inline.headers
+
+    tags = client.get(f"/api/templates/{template_id}/versions/1/template.docx")
+    assert tags.status_code == 200, tags.text
+    assert "with_tags" in tags.headers["content-disposition"]
+    assert "{{" in text_of(tags.content)
+
+    assert client.get(f"/api/templates/{template_id}/versions/9/sample.docx").status_code == 404
+
 
 # --------------------------------------------------------------------------- #
 # Authentication & per-user isolation                                          #

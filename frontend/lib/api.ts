@@ -407,8 +407,13 @@ export const api = {
       method: "DELETE",
     }),
 
+  // The template with {{ tags }}: the file DocForge fills in.
   templateDownloadUrl: (id: string, version: number) =>
     `${BASE}/templates/${id}/versions/${version}/template.docx`,
+
+  // The same template with each variable shown as «Label».
+  templateSampleDownloadUrl: (id: string, version: number) =>
+    `${BASE}/templates/${id}/versions/${version}/sample.docx?download=true`,
 
   // Download a backend file with the Bearer token attached, then save it in the
   // browser. Needed because plain <a href> / window navigations can't send the
@@ -435,9 +440,9 @@ export const api = {
     URL.revokeObjectURL(href);
   },
 
-  // The template's stored example (left side of the compliance comparison).
-  representativeDocx: async (id: string, version: number): Promise<ArrayBuffer> => {
-    const res = await authFetch(`/templates/${id}/versions/${version}/representative.docx`);
+  // The template with labels (the expected side of the compliance comparison).
+  templateSampleDocx: async (id: string, version: number): Promise<ArrayBuffer> => {
+    const res = await authFetch(`/templates/${id}/versions/${version}/sample.docx`);
     if (!res.ok) await raiseForStatus(res);
     return res.arrayBuffer();
   },

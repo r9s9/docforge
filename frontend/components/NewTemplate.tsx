@@ -480,20 +480,20 @@ export default function NewTemplate() {
                     className={previewMode === "filled" ? "active" : ""}
                     onClick={() => setMode("filled")}
                   >
-                    Sample-filled
+                    With labels
                   </button>
                   <button
                     className={previewMode === "tags" ? "active" : ""}
                     onClick={() => setMode("tags")}
                   >
-                    Template tags
+                    With tags
                   </button>
                 </div>
               </div>
               <p className="muted" style={{ marginTop: 0 }}>
                 {previewMode === "filled"
-                  ? "A real Word page with each variable shown as «Label». This is how the document is structured."
-                  : "The raw template with {{ placeholders }} and loop tags: what the engine fills in."}
+                  ? "Each variable is shown as «Label», so the page reads like a finished document."
+                  : "Each variable is shown as its {{ tag }}, with the loop tags: what DocForge fills in."}
               </p>
               <DocxPreview
                 load={() => api.analysisPreviewDocx(job.id, previewMode, previewFields)}

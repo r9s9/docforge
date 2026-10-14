@@ -13,7 +13,7 @@ and an itemized list of differences with severities.
 
 from __future__ import annotations
 
-from ..common.textutil import similarity
+from ..common.textutil import sample_label, similarity
 from ..multi_doc_differ import align_to_representative
 from ..schemas.classification import ElementClassification
 from ..schemas.compliance import (
@@ -22,7 +22,7 @@ from ..schemas.compliance import (
     ComplianceReport,
     DimensionScore,
 )
-from ..schemas.enums import ClassificationType, ElementType, is_dynamic
+from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic
 from ..schemas.extraction import DocumentExtraction
 from ..schemas.template import FieldDefinition, ValidationRule
 from ..validator import validate
@@ -176,10 +176,16 @@ def _build_pair(node, c, field, doc_el) -> ComplianceAlignedPair | None:
         required = field.required if field else c.required
         value = _extract_value(doc_el.text, c.static_prefix) if doc_el is not None else ""
         status = "field_missing" if (required and not value) else "field"
+        # Image fields keep the original picture in the labelled view: no «Label».
+        sample = (
+            sample_label(field.label, field.field_name)
+            if field is not None and field.field_type != FieldType.IMAGE
+            else ""
+        )
         return ComplianceAlignedPair(
             node_id=node.node_id, classification=cls.value, status=status,
             severity="error" if status == "field_missing" else "info",
-            field_name=name, template_text=node.text.strip(),
+            field_name=name, template_text=node.text.strip(), template_sample_text=sample,
             document_text=(doc_el.text.strip() if doc_el is not None else ""),
         )
     return None

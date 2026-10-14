@@ -7,7 +7,11 @@ from .audit import record_decision
 from .compliance import check_document
 from .compliance_fix import fix_document
 from .generation import generate_document, preview_document, render_preview_docx, route_document
-from .preview_docx import build_job_preview_docx, build_template_edit_preview_docx
+from .preview_docx import (
+    build_job_preview_docx,
+    build_template_edit_preview_docx,
+    build_version_sample_docx,
+)
 from .publish import publish_template
 from .republish import republish_template
 from .retention import prune_generated
@@ -26,6 +30,7 @@ __all__ = [
     "route_document",
     "build_job_preview_docx",
     "build_template_edit_preview_docx",
+    "build_version_sample_docx",
     "check_document",
     "fix_document",
     "seed_demo_templates",

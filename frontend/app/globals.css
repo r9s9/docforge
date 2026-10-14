@@ -1203,7 +1203,7 @@ tr.low-conf td {
   color: var(--faint);
 }
 
-/* ---- Segmented toggle (Sample-filled / Template tags) ---- */
+/* ---- Segmented toggle (With labels / With tags) ---- */
 .seg-toggle {
   display: inline-flex;
   border: 1px solid var(--border);
@@ -1355,6 +1355,9 @@ tr.low-conf td {
 }
 .cmp-diff-item {
   text-align: left;
+  /* A <button>: it doesn't inherit the text colour, and the browser default
+     (black) is unreadable on a dark card. */
+  color: var(--text);
   border: 1px solid var(--border);
   border-left: 3px solid var(--border-strong);
   border-radius: var(--radius-sm);

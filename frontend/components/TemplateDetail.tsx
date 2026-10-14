@@ -12,7 +12,7 @@ import type {
   TemplateVersion,
 } from "@/lib/types";
 import { ClassificationBadge, ErrorBox, Spinner } from "@/components/ui";
-import { PenLine, RotateCw, Trash2 } from "@/components/icons";
+import { Download, PenLine, RotateCw, Trash2 } from "@/components/icons";
 import FieldCards, { type EditableField } from "@/components/FieldCards";
 import DocxPreview from "@/components/DocxPreview";
 
@@ -22,6 +22,7 @@ export default function TemplateDetail({ id }: { id: string }) {
   const router = useRouter();
   const [detail, setDetail] = useState<TDetail | null>(null);
   const [error, setError] = useState("");
+  const [downloadError, setDownloadError] = useState("");
   const [tab, setTab] = useState<Tab>("elements");
   // Edit mode mirrors the creation review: editable cards + a live Word preview.
   const [editFields, setEditFields] = useState<EditableField[] | null>(null);
@@ -149,6 +150,21 @@ export default function TemplateDetail({ id }: { id: string }) {
   if (!detail) return <Spinner label="Loading template…" />;
 
   const latest = detail.latest;
+
+  // Two downloads of the same template: «Label» (to read or share) and
+  // {{ tag }} (the file DocForge fills in). Named after the template.
+  function downloadTemplate(version: number, kind: "labels" | "tags") {
+    const base = detail!.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "template";
+    const url =
+      kind === "labels"
+        ? api.templateSampleDownloadUrl(detail!.id, version)
+        : api.templateDownloadUrl(detail!.id, version);
+    setDownloadError("");
+    api
+      .download(url, `${base}_v${version}_with_${kind}.docx`)
+      .catch((e: any) => setDownloadError(String(e.message || e)));
+  }
+
   const sections = ((latest?.intelligence?.sections as any[]) || []) as any[];
 
   return (
@@ -167,14 +183,17 @@ export default function TemplateDetail({ id }: { id: string }) {
           </Link>
           <button
             className="btn secondary"
-            onClick={() =>
-              api.download(
-                api.templateDownloadUrl(detail.id, detail.latest_version),
-                `template_v${detail.latest_version}.docx`,
-              )
-            }
+            onClick={() => downloadTemplate(detail.latest_version, "labels")}
+            title="Download the template with each variable shown as «Label»"
           >
-            Download template.docx
+            <Download size={15} strokeWidth={1.9} /> With labels
+          </button>
+          <button
+            className="btn secondary"
+            onClick={() => downloadTemplate(detail.latest_version, "tags")}
+            title="Download the template with each variable shown as its {{ tag }}"
+          >
+            <Download size={15} strokeWidth={1.9} /> With tags
           </button>
           <button className="btn secondary" onClick={startEdit}>
             <PenLine size={15} strokeWidth={1.9} /> Edit fields
@@ -191,6 +210,8 @@ export default function TemplateDetail({ id }: { id: string }) {
           </button>
         </div>
       </div>
+
+      {downloadError && <ErrorBox message={downloadError} />}
 
       {detail.project_id ? (
         <div className="banner info section" role="status">
@@ -294,7 +315,7 @@ export default function TemplateDetail({ id }: { id: string }) {
                       setPreviewKey((k) => k + 1);
                     }}
                   >
-                    Sample-filled
+                    With labels
                   </button>
                   <button
                     className={previewMode === "tags" ? "active" : ""}
@@ -303,14 +324,14 @@ export default function TemplateDetail({ id }: { id: string }) {
                       setPreviewKey((k) => k + 1);
                     }}
                   >
-                    Template tags
+                    With tags
                   </button>
                 </div>
               </div>
               <p className="muted" style={{ marginTop: 0 }}>
                 {previewMode === "filled"
-                  ? "A real Word page with each variable shown as «Label». This is how the document is structured."
-                  : "The raw template with {{ placeholders }} and loop tags: what the engine fills in."}
+                  ? "Each variable is shown as «Label», so the page reads like a finished document."
+                  : "Each variable is shown as its {{ tag }}, with the loop tags: what DocForge fills in."}
               </p>
               <DocxPreview
                 load={() => api.templateEditPreviewDocx(detail.id, previewMode, previewFields)}
@@ -463,17 +484,22 @@ export default function TemplateDetail({ id }: { id: string }) {
                 <td className="muted">{v.changelog}</td>
                 <td className="muted">{new Date(v.created_at).toLocaleString()}</td>
                 <td>
-                  <button
-                    className="btn secondary small"
-                    onClick={() =>
-                      api.download(
-                        api.templateDownloadUrl(detail.id, v.version),
-                        `template_v${v.version}.docx`,
-                      )
-                    }
-                  >
-                    .docx
-                  </button>
+                  <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+                    <button
+                      className="btn secondary small"
+                      onClick={() => downloadTemplate(v.version, "labels")}
+                      title="Download this version with each variable shown as «Label»"
+                    >
+                      <Download size={13} strokeWidth={1.9} /> With labels
+                    </button>
+                    <button
+                      className="btn secondary small"
+                      onClick={() => downloadTemplate(v.version, "tags")}
+                      title="Download this version with each variable shown as its {{ tag }}"
+                    >
+                      <Download size={13} strokeWidth={1.9} /> With tags
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

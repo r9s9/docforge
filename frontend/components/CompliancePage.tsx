@@ -147,9 +147,11 @@ function Report({
   const actionable = report.alignment.filter(
     (p) => p.status === "changed" || p.status === "missing" || p.status === "field_missing",
   );
+  // The left page is the template with labels, where a field's line reads
+  // «Label» rather than the example's value, so match fields by that text.
   const leftHighlights = actionable
-    .filter((p) => p.template_text)
-    .map((p) => ({ key: p.node_id, text: p.template_text }));
+    .filter((p) => p.template_sample_text || p.template_text)
+    .map((p) => ({ key: p.node_id, text: p.template_sample_text || p.template_text }));
   const rightHighlights = actionable
     .filter((p) => p.status === "changed" && p.document_text)
     .map((p) => ({ key: p.node_id, text: p.document_text }));
@@ -233,7 +235,7 @@ function Report({
       <div className="section" style={{ marginTop: 28 }}>
         <h2 className="section-h">Side-by-side comparison</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          The template&apos;s example (left) and your document (right) as full A4 pages, with the
+          The template with labels (left) and your document (right) as full A4 pages, with the
           differences listed between them. All differing lines are highlighted in{" "}
           <span className="cmp-hl-key">yellow</span>; click a difference to jump to it and mark that
           line in <span className="cmp-hl-sel">red</span>.
@@ -242,7 +244,7 @@ function Report({
           <div className="cmp-doc-col">
             <div className="cmp-docx-head">Template (expected)</div>
             <DocxPreview
-              load={() => api.representativeDocx(templateId, report.version)}
+              load={() => api.templateSampleDocx(templateId, report.version)}
               highlights={leftHighlights}
               fitWidth
             />

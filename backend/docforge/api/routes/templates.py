@@ -28,6 +28,7 @@ from ...jobs import submit
 from ...schemas.generation import GenerationInput
 from ...services import (
     build_template_edit_preview_docx,
+    build_version_sample_docx,
     generate_document,
     preview_document,
     publish_template,
@@ -401,8 +402,33 @@ def download_template_docx(
         raise HTTPException(status_code=404, detail="template file not found")
     return stored_file_response(
         registry.template_docx_key(template_id, version),
-        filename=f"template_v{version}.docx",
+        filename=f"template_v{version}_with_tags.docx",
         storage=registry.storage,
+    )
+
+
+@router.get("/templates/{template_id}/versions/{version}/sample.docx")
+def download_sample_docx(
+    template_id: str,
+    version: int,
+    download: bool = False,
+    db: Session = Depends(get_db),
+    registry: TemplateRegistry = Depends(get_registry),
+    user: CurrentUser = Depends(get_current_user),
+) -> Response:
+    """The template with each variable shown as «Label» ("with labels").
+
+    Used for the "with labels" download, and inline as the expected side of
+    the compliance comparison.
+    """
+    _get_template(db, template_id, user)
+    if not registry.version_exists(template_id, version):
+        raise HTTPException(status_code=404, detail="template file not found")
+    data = build_version_sample_docx(registry, template_id, version)
+    return generated_docx_response(
+        data,
+        owner_id=user.id,
+        filename=f"template_v{version}_with_labels.docx" if download else None,
     )
 
 

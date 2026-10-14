@@ -33,6 +33,9 @@ class ComplianceAlignedPair(BaseModel):
     status: str = "match"
     severity: str = "info"  # error | warning | info
     template_text: str = ""
+    # How a field's line reads in the template's "with labels" view («Label»),
+    # which is what the comparison shows as the expected side.
+    template_sample_text: str = ""
     document_text: str = ""
     field_name: str | None = None
     is_table: bool = False

@@ -220,3 +220,8 @@ def similarity(a: str, b: str) -> float:
     if not a and not b:
         return 1.0
     return SequenceMatcher(None, a, b).ratio()
+
+
+def sample_label(label: str | None, field_name: str) -> str:
+    """How a variable reads in the "with labels" view of a template: «Label»."""
+    return f"«{label or field_name}»"
