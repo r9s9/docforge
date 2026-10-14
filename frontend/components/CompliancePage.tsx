@@ -247,6 +247,7 @@ function Report({
               load={() => api.templateSampleDocx(templateId, report.version)}
               highlights={leftHighlights}
               fitWidth
+              fitTags
             />
           </div>
 

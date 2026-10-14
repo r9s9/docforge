@@ -38,6 +38,16 @@ def _unique(base: str, used: set[str]) -> str:
     return f"{name}_{i}"
 
 
+def _suffixed(where: str, kind: str) -> str:
+    """A name for one kind of element in a place: "key_findings_title".
+
+    With nowhere to name it after (content before the first heading), the kind
+    alone: "body", not "body_body".
+    """
+    base = short_field_name(where or "", fallback="")
+    return f"{base}_{kind}" if base and base != kind else kind
+
+
 def _synth_description(section: str, text: str) -> str:
     sample = " ".join(text.split())
     if len(sample) > 120:
@@ -301,7 +311,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 return
             if len(chunk) >= 2:
                 # One repeatable section: every node shares the field name.
-                name = _unique(short_field_name(section or "body", fallback="body") + "_body", used)
+                name = _unique(_suffixed(section, "body"), used)
                 used.add(name)
                 joined = " ".join(e.text.strip() for e, _ in chunk[:3])
                 for _e, c in chunk:
@@ -322,7 +332,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                     if len(txt) > _MULTILINE_THRESHOLD
                     else FieldType.TEXT
                 )
-                name = _unique(short_field_name(section or txt, fallback="body") + "_body", used)
+                name = _unique(_suffixed(section or txt, "body"), used)
                 used.add(name)
                 _force_dynamic(
                     c,
@@ -380,7 +390,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             text = (e.text or "").strip()
             section = text or section
             if not (c.field_name and is_dynamic(c.classification)):
-                name = _unique(short_field_name(text, fallback="label") + "_label", used)
+                name = _unique(_suffixed(text, "label"), used)
                 used.add(name)
                 _force_dynamic(
                     c,
@@ -407,7 +417,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 _mark_tags_only(c)
             else:
                 name = _unique(
-                    short_field_name(section or "section", fallback="section") + "_title", used
+                    _suffixed(section, "title"), used
                 )
                 used.add(name)
                 _force_dynamic(
@@ -429,7 +439,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             if already_looped or _is_data_table(e):
                 if not already_looped:
                     name = _unique(
-                        short_field_name(section or "rows", fallback="rows") + "_rows", used
+                        _suffixed(section, "rows"), used
                     )
                     used.add(name)
                     headers = e.table_structure.headers if e.table_structure else []
@@ -495,7 +505,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
         txt = e.text.strip()
         ftype = FieldType.MULTILINE_TEXT if len(txt) > _MULTILINE_THRESHOLD else FieldType.TEXT
         where = _page_area(e) or section or txt
-        name = _unique(short_field_name(where, fallback="content") + "_content", used)
+        name = _unique(_suffixed(where, "content"), used)
         used.add(name)
         _force_dynamic(
             c,

@@ -499,6 +499,7 @@ export default function NewTemplate() {
                 load={() => api.analysisPreviewDocx(job.id, previewMode, previewFields)}
                 refreshKey={previewKey}
                 markPersistent={false}
+                fitTags
                 highlights={previewFields.flatMap((f) => [
                   { key: f.field_name, text: f.field_name },
                   { key: f.field_name, text: f.label },

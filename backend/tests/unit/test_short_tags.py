@@ -90,6 +90,19 @@ def test_tags_only_names_are_short_and_carry_no_section_numbers(tmp_path):
     assert any(n.startswith("header") for n in names), names
 
 
+def test_content_before_the_first_heading_is_not_named_twice(tmp_path):
+    doc = Document()
+    doc.add_paragraph("Prepared for the board.")
+    doc.add_paragraph("Second line of the cover note.")
+    doc.add_heading("Summary", level=1)
+    doc.add_paragraph("All good.")
+    path = tmp_path / "cover.docx"
+    doc.save(str(path))
+    ext = build_extraction(path, "d0")
+    names = [f.field_name for f in derive_field_definitions(ext, classify(ext, None, mode="tags_only"))]
+    assert not any(n in ("body_body", "rows_rows", "title_title") for n in names), names
+
+
 def test_tags_only_template_has_one_line_per_field(tmp_path):
     path = _numbered_report(tmp_path)
     ext = build_extraction(path, "d0")

@@ -40,6 +40,7 @@ export {
   ChevronsDownUp,
   ChevronsUpDown,
   Mail,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

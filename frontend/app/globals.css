@@ -1412,6 +1412,12 @@ tr.low-conf td {
 /* Differing paragraphs inside the rendered Word pages: yellow by default; the
    paragraph for the currently-selected difference card turns mellow red. The
    ".docx-hl-selected" rule is declared after ".docx-hl" so it wins. */
+/* Viewing a template: lines that are only control tags ({%p if %}, {%tr for %})
+   are instructions to the engine, not content. The page is always white. */
+.docx-host .docx p.docx-ctl,
+.docx-host .docx p.docx-ctl span {
+  color: #a39c93 !important;
+}
 .docx-host .docx p.docx-hl {
   background: rgba(250, 204, 21, 0.32) !important;
   box-shadow: inset 3px 0 0 #eab308;
@@ -2701,6 +2707,28 @@ tr.low-conf td {
   color: var(--muted);
 }
 /* Sits at the foot of a full-height page, centred under the content. */
+/* Template page actions, in the order a person reaches for them: make a
+   document or adjust the fields; take the file away; rename or delete. */
+.tpl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  margin: 18px 0 24px;
+}
+.tpl-actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tpl-actions-group.end {
+  margin-left: auto;
+}
+.btn.secondary.danger {
+  color: var(--red);
+  border-color: var(--red);
+}
+
 .page-note.center {
   margin: auto auto 0;
   text-align: center;

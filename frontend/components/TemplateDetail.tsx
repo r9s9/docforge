@@ -12,7 +12,14 @@ import type {
   TemplateVersion,
 } from "@/lib/types";
 import { ClassificationBadge, ErrorBox, Spinner } from "@/components/ui";
-import { Download, PenLine, RotateCw, Trash2 } from "@/components/icons";
+import {
+  Download,
+  PenLine,
+  Pencil,
+  RotateCw,
+  SlidersHorizontal,
+  Trash2,
+} from "@/components/icons";
 import FieldCards, { type EditableField } from "@/components/FieldCards";
 import DocxPreview from "@/components/DocxPreview";
 
@@ -169,43 +176,42 @@ export default function TemplateDetail({ id }: { id: string }) {
 
   return (
     <div>
-      <div className="spread" style={{ marginBottom: 22 }}>
-        <div>
-          <h1 className="page-title">{detail.name}</h1>
-          <p className="page-sub" style={{ margin: 0 }}>
-            {detail.document_type || "Document"} · v{detail.latest_version} ·{" "}
-            {latest?.fields.length ?? 0} fields
-          </p>
-        </div>
-        <div className="row">
+      <h1 className="page-title">{detail.name}</h1>
+      <p className="page-sub" style={{ margin: 0 }}>
+        {detail.document_type || "Document"} · v{detail.latest_version} ·{" "}
+        {latest?.fields.length ?? 0} fields
+      </p>
+
+      <div className="tpl-actions" role="toolbar" aria-label="Template actions">
+        <div className="tpl-actions-group">
           <Link className="btn" href={`/generate/${detail.id}`}>
-            Generate Document
+            <PenLine size={15} strokeWidth={1.9} /> Generate Document
           </Link>
+          <button className="btn" onClick={startEdit}>
+            <SlidersHorizontal size={15} strokeWidth={1.9} /> Edit fields
+          </button>
+        </div>
+        <div className="tpl-actions-group">
           <button
             className="btn secondary"
             onClick={() => downloadTemplate(detail.latest_version, "labels")}
-            title="Download the template with each variable shown as «Label»"
+            title="Each variable shown as «Label»: to read or share"
           >
-            <Download size={15} strokeWidth={1.9} /> With labels
+            <Download size={15} strokeWidth={1.9} /> Download with labels
           </button>
           <button
             className="btn secondary"
             onClick={() => downloadTemplate(detail.latest_version, "tags")}
-            title="Download the template with each variable shown as its {{ tag }}"
+            title="Each variable shown as its {{ tag }}: the file DocForge fills in"
           >
-            <Download size={15} strokeWidth={1.9} /> With tags
+            <Download size={15} strokeWidth={1.9} /> Download with tags
           </button>
-          <button className="btn secondary" onClick={startEdit}>
-            <PenLine size={15} strokeWidth={1.9} /> Edit fields
-          </button>
+        </div>
+        <div className="tpl-actions-group end">
           <button className="btn secondary" onClick={rename}>
-            Rename
+            <Pencil size={14} strokeWidth={1.9} /> Rename
           </button>
-          <button
-            className="btn secondary"
-            onClick={remove}
-            style={{ color: "var(--red)", borderColor: "var(--red)" }}
-          >
+          <button className="btn secondary danger" onClick={remove}>
             <Trash2 size={15} strokeWidth={1.9} /> Delete
           </button>
         </div>
@@ -337,6 +343,7 @@ export default function TemplateDetail({ id }: { id: string }) {
                 load={() => api.templateEditPreviewDocx(detail.id, previewMode, previewFields)}
                 refreshKey={previewKey}
                 markPersistent={false}
+                fitTags
                 highlights={previewFields.flatMap((f) => [
                   { key: f.field_name, text: f.field_name },
                   { key: f.field_name, text: f.label },
@@ -490,14 +497,14 @@ export default function TemplateDetail({ id }: { id: string }) {
                       onClick={() => downloadTemplate(v.version, "labels")}
                       title="Download this version with each variable shown as «Label»"
                     >
-                      <Download size={13} strokeWidth={1.9} /> With labels
+                      <Download size={13} strokeWidth={1.9} /> Download with labels
                     </button>
                     <button
                       className="btn secondary small"
                       onClick={() => downloadTemplate(v.version, "tags")}
                       title="Download this version with each variable shown as its {{ tag }}"
                     >
-                      <Download size={13} strokeWidth={1.9} /> With tags
+                      <Download size={13} strokeWidth={1.9} /> Download with tags
                     </button>
                   </div>
                 </td>
