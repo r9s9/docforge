@@ -380,20 +380,6 @@ def _replaces_generated(cls) -> bool:
     return GENERATED_MARK in (cls.rationale or "")
 
 
-def _is_tags_only_forced(cls) -> bool:
-    """Whether ``enforce_tags_only`` touched this classification.
-
-    Marked via a rationale substring (see ``ai_classifier/tags_only.py``) so no
-    schema change was needed. Used to decide whether an unfilled field's whole
-    paragraph should vanish from the generated document (tags-only mode forces
-    EVERY text block into a field, so many of them legitimately have no content
-    for a given generation — a blank leftover line for each looks broken) versus
-    a normal smart-mode dynamic field, where leaving a blank value in place is
-    the existing, unsurprising behavior.
-    """
-    return "[tags_only]" in (cls.rationale or "")
-
-
 # --- main builder -----------------------------------------------------------
 def section_toggle_name(section_key: str) -> str | None:
     """The Jinja variable that decides whether a section renders at all.
@@ -517,10 +503,10 @@ def _wrap_section_spans(
         if close_after is None:
             logger.warning("skipping section toggle for %r — span crosses a loop", key)
             continue
-        # Default to showing: an undefined variable renders falsy in Jinja, so a
-        # bare "if" would make any caller that forgot to supply the toggles
-        # silently produce an empty document. Only an explicit False hides.
-        _insert_marker_before(nodes[span[0]].obj, f"{{%p if {name} is not defined or {name} %}}")
+        # Default to showing: an undefined variable renders falsy in Jinja, so
+        # the assembler supplies True for every _show_* the template names
+        # (assembler.default_section_toggles). Only an explicit False hides.
+        _insert_marker_before(nodes[span[0]].obj, f"{{%p if {name} %}}")
         close_after.addnext(_marker_paragraph_xml("{%p endif %}"))
         wrapped.append(key)
     return wrapped
@@ -604,7 +590,11 @@ def build_template_docx(
     # and replace_pic), so neither may become the text placeholder — a paragraph
     # holding a logo and a caption would otherwise render {{ image_1 }} as text.
     fd_by_node: dict[str, FieldDefinition] = {}
+    toggle_by_node: dict[str, str] = {}
     for f in fields:
+        if f.field_type == FieldType.BOOLEAN and f.field_name.startswith("include_"):
+            for nid in f.node_ids:
+                toggle_by_node.setdefault(nid, f.field_name)
         if f.field_type in (FieldType.BOOLEAN, FieldType.IMAGE):
             continue
         for nid in f.node_ids:
@@ -661,7 +651,11 @@ def build_template_docx(
             # original text exactly as it is instead.
             unfielded.append(cls.field_name)
         # Compute the optional toggle name from the ORIGINAL text (before edits).
-        include_name = _safe_ident(include_field_name(cls, para)) if cls.optional else None
+        include_name = (
+            _safe_ident(toggle_by_node.get(wn.node_id) or include_field_name(cls, para))
+            if cls.optional
+            else None
+        )
         # A placeholder standing in for Word-generated content (a contents entry)
         # must also remove the field that produced it, or Word rebuilds the list
         # on open and writes straight over the tag.
@@ -684,13 +678,10 @@ def build_template_docx(
                     para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or "",
                     keep_fields=keep_fields,
                 )
-                if _is_tags_only_forced(cls) and not _paragraph_has_picture(para):
-                    # Unfilled -> the whole paragraph disappears instead of
-                    # rendering a blank line (the field's own value is both
-                    # the condition and the content it guards). Never for a
-                    # paragraph holding a picture: the logo beside the text is
-                    # content in its own right and must not vanish with it.
-                    _wrap_optional(para, name)
+                # No "{%p if name %}" wrapper: a paragraph holding only this
+                # placeholder is removed at render when the value is empty
+                # (assembler.drop_empty_placeholders), which keeps the template
+                # one line per field instead of three.
             elif fd and fd.field_name:
                 logger.warning(
                     "skipping field with unsafe name %r (left as fixed text)", fd.field_name

@@ -18,7 +18,7 @@ old templates get the benefit without being republished.
 
 from __future__ import annotations
 
-from ..common.textutil import similarity, slugify_field
+from ..common.textutil import short_field_name, similarity, slugify_field
 from ..schemas.classification import ElementClassification, SectionUnderstanding
 from ..schemas.enums import ElementType
 from ..schemas.extraction import DocumentExtraction
@@ -51,9 +51,9 @@ def resolve_section_keys(
     by_slug: dict[str, str] = {}
     for s in sections:
         for name in s.field_names:
-            by_slug[slugify_field(name, fallback="")] = s.section_key
+            by_slug[short_field_name(name, fallback="")] = s.section_key
     for f in unassigned:
-        f.section_key = by_slug.get(slugify_field(f.field_name, fallback=""))
+        f.section_key = by_slug.get(short_field_name(f.field_name, fallback=""))
 
     still = [f for f in fields if not f.section_key]
     for f in still:

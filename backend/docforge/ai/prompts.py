@@ -348,7 +348,9 @@ Rules:
   ("TABLE OF CONTENTS", "REVISIONS", "FIGURES", "APPENDICES", "REFERENCES") are
   FIXED. They are furniture, not content.
 - An empty paragraph is spacing. Leave it FIXED and never give it a field_name.
-- field_name must be snake_case and unique.
+- field_name must be snake_case, unique and short: 1 to 3 words, at most 24
+  characters, no section numbers ("key_findings", not "f_1_2_key_findings_identified").
+  It becomes the tag a person reads in the template.
 - Output valid JSON only. No prose, no markdown, and no comments — the shapes above annotate them with // for readability, your answer must not.
 """
 
@@ -465,7 +467,8 @@ TAGS-ONLY MODE — the final template must contain ONLY placeholders, no origina
 - List items => same rule as consecutive paragraphs (one shared field_name per list).
 - Tables => REPEATABLE_TABLE.
 - static_prefix and static_suffix MUST be null — no literal text survives.
-- field_name: meaningful snake_case derived from the element's role in the document.
+- field_name: short snake_case (1 to 3 words) naming the element's role in the
+  document, without section numbers.
 - description: describe what content belongs there and cite the original text as an
   example, e.g. "The report's executive summary (2-3 paragraphs). Example: 'During
   Q3 the team…'". These descriptions drive AI routing later — make them specific.

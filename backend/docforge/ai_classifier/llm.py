@@ -16,7 +16,7 @@ from ..ai.prompts import (
     build_understanding_prompt,
 )
 from ..ai.tools import classify_tools
-from ..common.textutil import slugify_field
+from ..common.textutil import short_field_name
 from ..schemas.classification import (
     ClassificationResult,
     ElementClassification,
@@ -74,9 +74,9 @@ def map_response(extraction: DocumentExtraction, resp: LLMClassifyResponse, mode
         field_name = c.field_name or None
         if field_name:
             # The model may return a label-ish name ("1.1.1 Header 3", "Total (USD)")
-            # that isn't a valid Jinja identifier; slugify so the placeholder it
-            # becomes ({{ name }}) always compiles.
-            field_name = _unique(slugify_field(field_name), used_names)
+            # that isn't a valid Jinja identifier, or a long one; normalize so the
+            # placeholder it becomes ({{ name }}) always compiles and stays short.
+            field_name = _unique(short_field_name(field_name), used_names)
             used_names.add(field_name)
         classifications.append(
             ElementClassification(
@@ -248,7 +248,7 @@ def _apply_corrections(result: ClassificationResult, resp: LLMCritiqueResponse, 
         cls = _coerce_classification(cor.classification)
         c.classification = cls
         if needs_field(cls):
-            name = _unique(slugify_field(cor.field_name or c.field_name or "field"), used_names)
+            name = _unique(short_field_name(cor.field_name or c.field_name or "field"), used_names)
             used_names.add(name)
             c.field_name = name
             c.field_type = _coerce_field_type(cor.field_type) or c.field_type

@@ -25,6 +25,7 @@ from jinja2.sandbox import SandboxedEnvironment
 
 from ..schemas.enums import ClassificationType, FieldType
 from ..schemas.template import FieldDefinition
+from .placeholders import prepare_template
 from .postprocess import apply_rich_values, request_field_update, sentinel
 from .richtext import RichBlock, is_rich, parse_rich_blocks, strip_markers
 
@@ -214,9 +215,15 @@ def assemble(
     fields: list[FieldDefinition] | None = None,
 ) -> bytes:
     """Render ``template`` (path or bytes) with ``context`` -> output DOCX bytes."""
-    source: Any = BytesIO(template) if isinstance(template, (bytes, bytearray)) else str(template)
-    tpl = DocxTemplate(source)
-    render_ctx = build_render_context(fields, context) if fields else context
+    if isinstance(template, (bytes, bytearray)):
+        data = bytes(template)
+    else:
+        with open(str(template), "rb") as fh:
+            data = fh.read()
+    render_ctx = build_render_context(fields, context) if fields else dict(context)
+    # Drop the paragraphs of empty lone placeholders and default the section
+    # toggles to shown — what templates used to spell out as {%p if %} tags.
+    tpl = DocxTemplate(BytesIO(prepare_template(data, render_ctx)))
     # Image fields: swap the tagged picture in place (keeping its size/position),
     # or leave the original when no image was supplied. Must be queued before
     # render() — docxtpl applies replacements during its pre-processing pass.

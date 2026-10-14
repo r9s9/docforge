@@ -130,6 +130,58 @@ def slugify_field(text: str, fallback: str = "field", max_words: int = 5) -> str
     return slug
 
 
+# Words that make a name longer without telling the fields apart.
+_NAME_STOPWORDS = _STOPWORDS | {
+    "of", "for", "in", "on", "at", "with", "from", "into", "per", "via",
+    "this", "that", "these", "those", "its", "our", "your", "their",
+    "is", "are", "was", "were", "be", "been", "has", "have", "had", "will", "shall",
+}
+SHORT_NAME_MAX_WORDS = 3
+SHORT_NAME_MAX_CHARS = 24
+
+
+def short_field_name(
+    text: str,
+    fallback: str = "field",
+    *,
+    max_words: int = SHORT_NAME_MAX_WORDS,
+    max_chars: int = SHORT_NAME_MAX_CHARS,
+) -> str:
+    """A short snake_case name for a new field: what its tag will read.
+
+    Every tag in a template is a name a person has to read, and a long one
+    wraps across lines (in a table cell, across several). So at most three
+    meaningful words and 24 characters, and no section numbers: "4.2 SLA
+    Breach Analysis" -> "sla_breach_analysis", not "f_4_2_sla_breach_analysis".
+
+    Idempotent, so a name can be normalized with it again and stay the same.
+    """
+    t = (text or "").strip().rstrip(":").lower()
+    if ":" in t:
+        t = t.split(":", 1)[0]
+    words = [w for w in _WORD_SPLIT_RE.split(t) if w]
+    # Leading numbering ("1.2", "4)") names the position, not the content.
+    lead = 0
+    while lead < len(words) - 1 and words[lead].isdigit():
+        lead += 1
+    words = words[lead:]
+    words = [w for w in words if w not in _NAME_STOPWORDS] or words
+    words = words[:max_words]
+    while len(words) > 1 and len("_".join(words)) > max_chars:
+        words.pop()
+    slug = "_".join(words)[:max_chars].strip("_")
+    if not slug:
+        return fallback
+    if not re.match(r"[a-z_]", slug):
+        slug = f"f_{slug}"
+    return slug
+
+
+def sample_label(label: str | None, field_name: str) -> str:
+    """How a variable reads in the "with labels" view of a template: «Label»."""
+    return f"«{label or field_name}»"
+
+
 # --- multi-sample skeleton extraction --------------------------------------
 def common_skeleton(samples: list[str]) -> tuple[str | None, str | None, list[str]]:
     """Given several text variants of the same node, return the shared static
@@ -220,8 +272,3 @@ def similarity(a: str, b: str) -> float:
     if not a and not b:
         return 1.0
     return SequenceMatcher(None, a, b).ratio()
-
-
-def sample_label(label: str | None, field_name: str) -> str:
-    """How a variable reads in the "with labels" view of a template: «Label»."""
-    return f"«{label or field_name}»"

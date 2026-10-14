@@ -7,7 +7,7 @@ template package. The review UI edits these directly.
 
 from __future__ import annotations
 
-from ..common.textutil import slugify_field
+from ..common.textutil import short_field_name, slugify_field
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import (
     ClassificationType,
@@ -49,7 +49,7 @@ def _table_columns(headers: list[str]) -> list[TableColumn]:
     cols: list[TableColumn] = []
     used: set[str] = set()
     for i, h in enumerate(headers):
-        base = slugify_field(h, fallback=f"col{i + 1}")
+        base = short_field_name(h, fallback=f"col{i + 1}")
         name = base
         n = 2
         while name in used:
@@ -64,8 +64,11 @@ def _table_columns(headers: list[str]) -> list[TableColumn]:
 
 def include_field_name(c: ElementClassification, element) -> str:
     """Boolean toggle field name for an optional node (shared by builder)."""
-    base = c.field_name or slugify_field(element.text if element else "", fallback="section")
-    return f"include_{base}"
+    base = c.field_name or (element.text if element else "")
+    # The classifier may already call the node "include_…"; never say it twice.
+    while base.startswith("include_"):
+        base = base[len("include_"):]
+    return f"include_{short_field_name(base, fallback='section', max_words=2)}"
 
 
 def _label_from(field_name: str, classification: ElementClassification) -> str:
@@ -125,15 +128,15 @@ def derive_field_definitions(
     """Build the ordered list of fillable fields from classifications."""
     # Map field_name -> section_key (from section understanding). The model
     # writes section membership from memory, so its names routinely differ in
-    # case or punctuation from the slugified names we actually keep — match on
-    # the slug, not the raw string, or every field silently ends up section-less.
+    # case, punctuation or length from the shortened names we actually keep —
+    # match on the normalized name, or every field silently ends up section-less.
     field_section: dict[str, str] = {}
     for s in result.sections:
         for fname in s.field_names:
-            field_section[slugify_field(fname, fallback="")] = s.section_key
+            field_section[short_field_name(fname, fallback="")] = s.section_key
 
     def section_for(name: str) -> str | None:
-        return field_section.get(slugify_field(name, fallback=""))
+        return field_section.get(short_field_name(name, fallback=""))
 
     by_id = {e.node_id: e for e in extraction.elements}
     fields: list[FieldDefinition] = []

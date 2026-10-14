@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 
-from ..common.textutil import slugify_field, value_kind
+from ..common.textutil import short_field_name, value_kind
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic, needs_field
 from ..schemas.extraction import DocumentExtraction, NormalizedElement
@@ -148,7 +148,7 @@ def _cell_name(text: str) -> str:
     kind = value_kind(text)
     if kind != "text":
         return kind  # date / number / person — _unique adds the suffix
-    return slugify_field(text, fallback="cell")
+    return short_field_name(text, fallback="cell", max_words=2)
 
 
 def _field_table_cells(
@@ -166,7 +166,9 @@ def _field_table_cells(
     loop owns every row but the header.
     """
     forced: set[str] = set()
-    label = slugify_field(section or table.text or "cell", fallback="cell")
+    # A cell is named after itself ("status"); only a name another field
+    # already took gets the section's first word in front ("rating_status").
+    stem = short_field_name(section or table.text or "cell", fallback="cell", max_words=1)
     for e in extraction.elements:
         if e.parent_node_id != table.node_id:
             continue
@@ -182,7 +184,8 @@ def _field_table_cells(
             cls_by_node[e.node_id] = c
         if c.field_name and is_dynamic(c.classification):
             continue  # the model already named this cell
-        name = _unique(f"{label}_{_cell_name(text)}", used)
+        base = _cell_name(text)
+        name = base if base not in used else _unique(f"{stem}_{base}", used)
         used.add(name)
         _force_dynamic(
             c,
@@ -200,6 +203,16 @@ def _field_table_cells(
             _mark_structural(c)
         forced.add(e.node_id)
     return forced
+
+
+def _page_area(e: NormalizedElement) -> str | None:
+    """"header" or "footer" for text in a page header/footer, else None (body)."""
+    scope = e.header_footer_scope or ""
+    if scope.startswith("header"):
+        return "header"
+    if scope.startswith("footer"):
+        return "footer"
+    return None
 
 
 def _cell_row(e: NormalizedElement) -> int | None:
@@ -232,9 +245,8 @@ def _force_dynamic(
 def _mark_tags_only(c: ElementClassification) -> None:
     """Tag a classification as tags-only-touched (idempotent).
 
-    Used downstream by the template builder (to hide an empty field's whole
-    paragraph rather than leave a blank line) and by the description-writing
-    AI pass (to find nodes that still need a real, content-grounded blurb).
+    Used downstream by the description-writing AI pass (to find nodes that
+    still need a real, content-grounded blurb).
     """
     if "[tags_only]" not in (c.rationale or ""):
         c.rationale = f"{(c.rationale or '').rstrip()} [tags_only]".strip()
@@ -289,7 +301,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 return
             if len(chunk) >= 2:
                 # One repeatable section: every node shares the field name.
-                name = _unique(slugify_field(section or "body", fallback="body") + "_body", used)
+                name = _unique(short_field_name(section or "body", fallback="body") + "_body", used)
                 used.add(name)
                 joined = " ".join(e.text.strip() for e, _ in chunk[:3])
                 for _e, c in chunk:
@@ -310,7 +322,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                     if len(txt) > _MULTILINE_THRESHOLD
                     else FieldType.TEXT
                 )
-                name = _unique(slugify_field(section or txt, fallback="body") + "_body", used)
+                name = _unique(short_field_name(section or txt, fallback="body") + "_body", used)
                 used.add(name)
                 _force_dynamic(
                     c,
@@ -338,8 +350,23 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 unfielded.append((e, c))
         flush_unfielded()
 
+    # Header and footer text is named for where it sits, not after whichever
+    # section the body walk happened to end in ("certification_sign_off_3").
+    body_section: str | None = None
+
     for e in extraction.top_level_elements():
         c = cls_by_node[e.node_id]
+        area = _page_area(e)
+        if area and body_section is None:
+            flush_pending()
+            body_section, section = section, area
+        elif area and section != area:
+            flush_pending()
+            section = area
+        elif not area and body_section is not None:
+            flush_pending()
+            section, body_section = body_section, None
+
         if _is_exempt(e, c):
             flush_pending()
             continue
@@ -353,7 +380,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             text = (e.text or "").strip()
             section = text or section
             if not (c.field_name and is_dynamic(c.classification)):
-                name = _unique(slugify_field(text, fallback="label") + "_label", used)
+                name = _unique(short_field_name(text, fallback="label") + "_label", used)
                 used.add(name)
                 _force_dynamic(
                     c,
@@ -380,7 +407,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 _mark_tags_only(c)
             else:
                 name = _unique(
-                    slugify_field(section or "section", fallback="section") + "_title", used
+                    short_field_name(section or "section", fallback="section") + "_title", used
                 )
                 used.add(name)
                 _force_dynamic(
@@ -402,7 +429,7 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             if already_looped or _is_data_table(e):
                 if not already_looped:
                     name = _unique(
-                        slugify_field(section or "rows", fallback="rows") + "_rows", used
+                        short_field_name(section or "rows", fallback="rows") + "_rows", used
                     )
                     used.add(name)
                     headers = e.table_structure.headers if e.table_structure else []
@@ -467,7 +494,8 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
             continue  # a layout table's cells carry its fields, not the table
         txt = e.text.strip()
         ftype = FieldType.MULTILINE_TEXT if len(txt) > _MULTILINE_THRESHOLD else FieldType.TEXT
-        name = _unique(slugify_field(section or txt, fallback="content") + "_content", used)
+        where = _page_area(e) or section or txt
+        name = _unique(short_field_name(where, fallback="content") + "_content", used)
         used.add(name)
         _force_dynamic(
             c,

@@ -16,7 +16,7 @@ this when configured.
 
 from __future__ import annotations
 
-from ..common.textutil import slugify_field, value_kind
+from ..common.textutil import short_field_name, value_kind
 from ..schemas.classification import (
     ClassificationResult,
     ElementClassification,
@@ -117,7 +117,11 @@ def _dynamic_from_diff(
     label = ""
     if nd.static_prefix:
         label = nd.static_prefix.strip().rstrip(":").strip()
-    base = slugify_field(label) if label else slugify_field(section_title or e.text, fallback="field")
+    base = (
+        short_field_name(label)
+        if label
+        else short_field_name(section_title or e.text, fallback="field")
+    )
     name = _unique(base, used)
     kind = nd.detected_kind or value_kind(e.text)
     cls, ftype = _kind_to_classification(kind, label)
@@ -175,7 +179,7 @@ def _classify_table(
             rationale="static table",
         )
 
-    name = _unique(slugify_field(section_title or "rows", fallback="rows"), used)
+    name = _unique(short_field_name(section_title or "rows", fallback="rows"), used)
     cols = ts.headers if ts else []
     return ElementClassification(
         node_id=e.node_id,
@@ -205,7 +209,7 @@ def _classify_single_doc(
         if value:
             kind = value_kind(value)
             cls, ftype = _kind_to_classification(kind, label)
-            name = _unique(slugify_field(label), used)
+            name = _unique(short_field_name(label), used)
             return ElementClassification(
                 node_id=e.node_id,
                 classification=cls,
@@ -234,7 +238,7 @@ def _classify_single_doc(
     kind = value_kind(txt)
     if kind in ("date", "number", "person") and len(txt) < 60:
         cls, ftype = _kind_to_classification(kind, section_title)
-        name = _unique(slugify_field(section_title or kind, fallback=kind), used)
+        name = _unique(short_field_name(section_title or kind, fallback=kind), used)
         return ElementClassification(
             node_id=e.node_id,
             classification=cls,
@@ -259,7 +263,7 @@ def _classify_single_doc(
         return ElementClassification(
             node_id=e.node_id,
             classification=ClassificationType.DYNAMIC_TEXT,
-            field_name=_unique(slugify_field(section_title or "body", fallback="body"), used),
+            field_name=_unique(short_field_name(section_title or "body", fallback="body"), used),
             field_type=(
                 FieldType.MULTILINE_TEXT if len(txt) > _MULTILINE_THRESHOLD else FieldType.TEXT
             ),
@@ -402,6 +406,11 @@ def classify_heuristic(
     classifications: list[ElementClassification] = []
     for e in top:
         skey, stitle = section_of.get(e.node_id, ("preamble", "Preamble"))
+        # Page header/footer text sits on every page, not in the section the
+        # walk happens to be in: name it for where it is.
+        scope = e.header_footer_scope or ""
+        if scope.startswith(("header", "footer")):
+            stitle = "Header" if scope.startswith("header") else "Footer"
         nd = diff_by_node.get(e.node_id)
         c = _classify_element(e, nd, stitle, used)
         # Content present in some examples but not others becomes optional
