@@ -122,8 +122,9 @@ export default function Dashboard() {
         )}
       </div>
       <p className="page-note center">
-        DocForge is a work in progress and still under active development. Expect rough edges,
-        and please report anything that looks wrong.
+        DocForge is a work in progress and still under active development, so expect rough
+        edges. If anything looks wrong or you need help, email us at{" "}
+        <a href="mailto:support@docforge.live">support@docforge.live</a>.
       </p>
 
     </div>

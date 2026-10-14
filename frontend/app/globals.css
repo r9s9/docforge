@@ -2704,6 +2704,14 @@ tr.low-conf td {
   margin: auto auto 0;
   text-align: center;
 }
+/* Links in muted running text are underlined, or they don't read as links.
+   Kept in their own case: an email address in capitals reads as wrong. */
+.page-note a {
+  text-transform: none;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* Shown beside an upload control until something is chosen. Smaller than a
    page note: it sits inside the flow of a form, not at the end of a page. */

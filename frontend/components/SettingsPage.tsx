@@ -8,10 +8,10 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { AISettings, AIUsage, TokenTotals } from "@/lib/types";
 import { ErrorBox, formatCost, formatTokens, Spinner } from "@/components/ui";
-import { AlertTriangle, Check, KeyRound, Sparkles, Trash2 } from "@/components/icons";
+import { AlertTriangle, Check, KeyRound, Mail, Sparkles, Trash2 } from "@/components/icons";
 import LogsPage from "@/components/LogsPage";
 
-type Tab = "ai" | "profile" | "logs";
+type Tab = "ai" | "profile" | "logs" | "support";
 type UiProvider = "openrouter" | "openai" | "anthropic" | "gemini" | "deepseek" | "local";
 
 // OpenRouter, Gemini and DeepSeek all speak the OpenAI-compatible Chat
@@ -114,7 +114,7 @@ export default function SettingsPage() {
   return (
     <div>
       <h1 className="page-title">Settings</h1>
-      <p className="page-sub">AI provider and account management.</p>
+      <p className="page-sub">AI provider, account management and support.</p>
 
       <div className="tabs">
         <div className={`tab ${tab === "ai" ? "active" : ""}`} onClick={() => setTab("ai")}>
@@ -126,11 +126,37 @@ export default function SettingsPage() {
         <div className={`tab ${tab === "profile" ? "active" : ""}`} onClick={() => setTab("profile")}>
           Profile
         </div>
+        <div className={`tab ${tab === "support" ? "active" : ""}`} onClick={() => setTab("support")}>
+          Support
+        </div>
       </div>
 
       {tab === "ai" && <AISettingsForm />}
       {tab === "logs" && <LogsPage />}
       {tab === "profile" && <ProfileSettings />}
+      {tab === "support" && <SupportSection />}
+    </div>
+  );
+}
+
+const SUPPORT_EMAIL = "support@docforge.live";
+
+function SupportSection() {
+  return (
+    <div className="section" style={{ maxWidth: 560 }}>
+      <h2 className="section-h">Support</h2>
+      <div className="card" style={{ marginTop: 16 }}>
+        <h3 style={{ margin: "0 0 4px", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <Mail size={16} strokeWidth={1.9} /> Contact us
+        </h3>
+        <p className="muted" style={{ marginTop: 4 }}>
+          Found a bug, have a question, or need help with a template? Send us an email
+          and we will get back to you.
+        </p>
+        <a className="btn" href={`mailto:${SUPPORT_EMAIL}`}>
+          <Mail size={15} strokeWidth={1.9} /> {SUPPORT_EMAIL}
+        </a>
+      </div>
     </div>
   );
 }
