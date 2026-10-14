@@ -2740,6 +2740,13 @@ tr.low-conf td {
   text-underline-offset: 2px;
 }
 
+/* Under a Word preview: what it can't show exactly. */
+.preview-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* Shown beside an upload control until something is chosen. Smaller than a
    page note: it sits inside the flow of a form, not at the end of a page. */
 .upload-caution {

@@ -505,6 +505,10 @@ export default function NewTemplate() {
                   { key: f.field_name, text: f.label },
                 ])}
               />
+              <p className="preview-note">
+                The preview is close to Word but not exact: some shapes and text boxes may sit
+                differently. Once published, download the template to see its exact layout.
+              </p>
             </div>
 
             <div className="review-fields">

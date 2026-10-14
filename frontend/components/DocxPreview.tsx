@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/ui";
+import { placeAnchoredDrawings } from "@/lib/docxAnchors";
 
 /**
  * Renders a .docx as a real Word page, in the browser, with docx-preview.
@@ -174,6 +175,10 @@ export default function DocxPreview({
           renderEndnotes: true,
           useBase64URL: true,
         });
+        if (cancelled) return;
+
+        // Pictures anchored to the page or a margin, where Word puts them.
+        await placeAnchoredDrawings(host, buf);
         if (cancelled) return;
 
         // Before fitWidth's zoom, so the cells are measured at page size.

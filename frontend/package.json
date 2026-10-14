@@ -1,6 +1,6 @@
 {
   "name": "docforge-frontend",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
@@ -12,6 +12,7 @@
     "@supabase/supabase-js": "^2.107.0",
     "docx-preview": "^0.3.5",
     "geist": "^1.7.2",
+    "jszip": "3.10.1",
     "lucide-react": "^1.17.0",
     "next": "^14.2.25",
     "react": "^18.3.1",
