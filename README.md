@@ -1,357 +1,216 @@
-<div align="center">
+<p align="center">
+  <a href="https://www.docforge.live">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-dark.webp">
+      <img alt="DocForge. From a few examples, a thousand documents." src="docs/images/banner-light.webp" width="100%">
+    </picture>
+  </a>
+</p>
 
-# 📄 DocForge
+<p align="center">
+  <a href="https://www.docforge.live"><b>Website</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://app.docforge.live"><b>Try the app</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://www.docforge.live/tutorials/"><b>Tutorial</b></a>
+  &nbsp;·&nbsp;
+  <a href="DEPLOY.md"><b>Run your own copy</b></a>
+</p>
 
-### Turn filled Word documents into reusable templates — with an agentic AI pipeline that actually reads, reasons about, and reviews your content.
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/github/package-json/v/r9s9/docforge?filename=frontend%2Fpackage.json&label=version&color=b0622f&style=flat-square">
+  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-7a8e62?style=flat-square">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11+-231f1a?style=flat-square&logo=python&logoColor=white">
+  <img alt="Next.js 14" src="https://img.shields.io/badge/Next.js-14-231f1a?style=flat-square&logo=nextdotjs&logoColor=white">
+  <img alt="Claude Haiku 5.5" src="https://img.shields.io/badge/AI-Claude_Haiku_5.5-9e7c58?style=flat-square&logo=anthropic&logoColor=white">
+</p>
 
-Upload a few **filled** DOCX examples → DocForge reverse-engineers a reusable,
-layout-preserving **template**. Generate new documents from a form, raw notes,
-or another filled document → an AI agent **understands the content and decides
-where each piece belongs**, formats it to fit, and drafts what's missing. Check
-any document for compliance → a deterministic diff **plus an AI judge** tells
-you what actually matters.
+DocForge turns finished Word documents into reusable templates. Upload one to
+five `.docx` files of the same kind, and it works out what stays fixed, what
+changes and what repeats. Fonts, tables, headers and numbering stay exactly as
+they were, because DocForge edits the Word file itself instead of redrawing it.
+Then fill the template from a form, rough notes, another document or JSON, and
+download a finished `.docx` in the same layout. When a document comes back
+edited, DocForge checks it against its template and can put it back in shape.
 
-<br/>
+DocForge is a free, open-source prototype under the [MIT License](LICENSE).
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Claude](https://img.shields.io/badge/Claude_Haiku_5.5-D97757?style=for-the-badge&logo=anthropic&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
-![License: MIT](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)
+## How it works
 
-</div>
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/new-template-upload-dark.webp">
+        <img alt="Uploading example documents" src="docs/images/new-template-upload.webp">
+      </picture>
+      <p><b>1. Upload examples.</b> One to five finished documents of the same kind. Pick <b>Full template</b> to make every text fillable, or <b>Smart detect</b> to keep boilerplate fixed.</p>
+    </td>
+    <td width="50%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/template-review-dark.webp">
+        <img alt="Reviewing fields next to a live Word preview" src="docs/images/template-review.webp">
+      </picture>
+      <p><b>2. Review, then publish.</b> Every field sits next to a live Word preview. Rename it, change its type, untick it, or turn fixed text into a field. Publishing makes version 1.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/generate-form-dark.webp">
+        <img alt="Generating a document from the form" src="docs/images/generate-form.webp">
+      </picture>
+      <p><b>3. Generate.</b> Fill the form, paste notes, upload a filled document or send JSON. The AI puts each piece of content in the right field. Repeating table rows are added per item.</p>
+    </td>
+    <td width="50%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/compliance-dark.webp">
+        <img alt="A compliance report with highlighted differences" src="docs/images/compliance.webp">
+      </picture>
+      <p><b>4. Check compliance.</b> Compare an edited document with its template: a score, every difference highlighted side by side, and a one-click fix.</p>
+    </td>
+  </tr>
+</table>
 
----
+**Also in the box**
 
-## ✨ What it does
+- **Projects.** Group templates by client or team. Metadata set once on the project fills matching fields.
+- **Versions.** Every publish is a new version that never changes. Source documents and history stay on the template.
+- **Two downloads per template.** *With labels* reads like a finished document; *with tags* is a [docxtpl](https://docxtpl.readthedocs.io) template you can use in other tools.
+- **A table of contents that follows its headings.** Each entry shows its heading's tag, and Word offers to refresh the page numbers when the document opens.
+- **Costs you can see.** Tokens and estimated cost on every AI action, plus lifetime totals in Settings.
 
-DocForge takes 1–5 *filled* example Word documents of the same type, figures
-out what content is **fixed** boilerplate vs **dynamic** vs **repeatable** vs
-**auto**, and turns them into a reusable, layout-preserving **template** plus
-structured field intelligence — all with the original company formatting
-preserved (it edits the OOXML in place, not a re-render). You then generate new
-documents from a form, from pasted notes, or from another filled document, with
-validation and a live Word-page preview before anything is finalized.
+## AI, or none
 
-It's **local-first and privacy-aware**: with no AI key configured, every
-feature still works via a fully deterministic heuristic engine — no external
-calls. Connect **Claude Haiku 5.5** from Anthropic (recommended), NVIDIA
-Nemotron via **OpenRouter**, **Google Gemini**, **DeepSeek**, **OpenAI**, or any
-OpenAI-compatible endpoint (Ollama, LM Studio…) to turn
-on the agentic AI pipeline described below. Keys are bring-your-own, stored
-server-side, and never returned to the browser.
-
----
-
-## 🤖 Agentic AI
-
-DocForge doesn't just call an LLM once and hope. Every AI-touched action is a
-**bounded agent loop**: the model can call tools to gather real evidence before
-deciding, a second pass reviews the draft, and everything degrades safely to
-deterministic heuristics if AI is off, a call fails, or the endpoint doesn't
-support tool-calling.
-
-**1. Template analysis** — *understand → classify (with tools) → self-critique*
-- A reasoning pass reads the whole document first (type, sections, likely
-  variable content) before any element is labeled — not a blind first-batch guess.
-- Classification runs with tools: the model can pull an element's **full,
-  untruncated text**, its **neighbors**, and its **cross-document diff
-  evidence** instead of guessing from a 200-character snippet.
-- A self-critique pass re-examines only the low-confidence/ambiguous elements
-  and corrects mislabeled fields, wrong types, or vague descriptions.
-- Every field gets a real, specific description (auto-written if you don't
-  provide one) — that description is exactly what later drives accurate
-  content placement during generation.
-
-**2. Document generation** — *route → compose → validate*
-- **Routing** decides *where* your content goes: it reads your pasted notes or
-  an uploaded document's full text (nothing is truncated for the AI to see),
-  compares it against every field's label, type, description, and allowed
-  values, and returns a placement per field with a confidence score, an
-  "ambiguous" flag, and alternative candidates when content could fit more than
-  one place.
-- **Composing** makes the routed values document-ready: dates normalized to
-  ISO, numbers/currency cleaned up, terse notes expanded into full prose for
-  long-text fields, and missing **required** fields *drafted* from context
-  (flagged **"AI-drafted — review"** in the UI, never silently invented facts).
-- A deterministic pass then re-validates every final value against its field's
-  type/enum — a confidently-wrong self-rated placement gets its confidence
-  downgraded and flagged for review rather than trusted blindly.
-
-**3. Compliance check** — *deterministic diff + AI judge*
-- The structural comparison (alignment, boilerplate match, table schema) stays
-  100% deterministic and fast.
-- An AI judge then reviews each detected difference and decides whether it's a
-  **material violation** (missing obligation, altered required text) or a
-  **benign, cosmetic difference** (rewording, whitespace, an expected variable
-  value) — with a plain-English rationale, added as a fourth "semantic" score
-  dimension alongside structure/fields/tables.
-
-**Models, cost, and transparency**
-- Two-tier model config: a cheap **workhorse** model for high-volume steps and
-  a stronger **reasoning** model for understanding/critique/composition/judging.
-  One click in Settings applies the recommended setup: `claude-haiku-5-5` for
-  both tiers, with the routine steps at low effort and the steps that write and
-  judge at medium. Claude runs through the official Anthropic SDK with tool use,
-  structured outputs for the fixed-shape answers, prompt caching and streaming.
-- Every AI action shows its **token usage and estimated cost** right where it
-  ran (New Template, Generate, Compliance Check) plus a running total in
-  Settings — no black-box spend.
-- A **learning loop**: when you edit the AI's proposed fields at publish time,
-  those corrections are remembered and replayed as guidance the next time you
-  analyze a document of the same type.
-
----
-
-## 🚀 Highlights
-
-| | |
+| Mode | What happens |
 |---|---|
-| 🧠 **Reverse-engineer templates** | Upload filled DOCX; DocForge diffs them, classifies every element with an agentic pipeline, and builds a clean `template.docx` with Jinja placeholders by editing the original OOXML **in place**. |
-| ✍️ **Four ways to fill a template** | Structured form, JSON, pasted notes, or an uploaded filled document — the last two go through the routing + composing agent above. |
-| ✅ **Validation & AI-judged compliance** | Required fields, types, dates, numbers, enums, table schema, regex — plus a side-by-side compliance report with an AI-explained material-vs-benign verdict per difference, and an in-place fixer. |
-| 🔐 **Accounts & multi-user** | Email/password via **Supabase Auth**; every template, project, and document is owner-scoped. JWTs verified locally (HS256 + JWKS/ES256). |
-| 📁 **Projects + inherited metadata** | Group templates into projects with free-form key/value metadata that pre-fills matching fields at generation time. |
-| 🗄️ **Pluggable, serverless-ready storage** | Local filesystem for dev, or **Supabase Storage** with direct-to-storage signed uploads/downloads (keeps large files off the API request path entirely). |
-| ☁️ **Deploy to Vercel + Supabase** | Two Vercel projects (backend + frontend) from one repo, Supabase for Postgres/Auth/Storage — see [`DEPLOY-VERCEL.md`](./DEPLOY-VERCEL.md). |
-| 🎨 **Modern monochrome UI** | Light/dark, **Geist** + **Fraunces** type, **Lucide** icons, a real Word-page preview panel throughout. |
+| **No AI** | A deterministic engine compares your examples and fills templates. Nothing leaves your server. |
+| **Free AI actions** | A hosted instance can give every account a few actions on the operator's key. [app.docforge.live](https://app.docforge.live) gives 10, on Claude Haiku 5.5. |
+| **Your own key** | Anthropic (Claude, recommended), OpenAI, Google Gemini, DeepSeek, OpenRouter, or any OpenAI-compatible server such as Ollama or LM Studio. Keys are stored on the server and never sent back to the browser. |
 
----
+With AI on, each step reads the whole document before it decides anything, can
+look up evidence with tools (an element's full text, its neighbours, how it
+differs across your examples), and a second pass reviews the result. If a call
+fails, that step falls back to the deterministic engine, so a missing or broken
+key never breaks the app.
 
-## 🏗️ Architecture
+## Try it
 
-```
-        ┌──────────────────────┐                ┌──────────────────────────────┐
-        │   Next.js 14 web app │  Bearer JWT +  │        FastAPI backend       │
-        │      (frontend/)     │ ─────────────► │          (backend/)          │
-        │  Supabase Auth login │   JSON / REST  │  owner-scoped, JWT-verified  │
-        └──────────────────────┘ ◄───────────── └──────────────────────────────┘
-                   │                                    │            │
-                   ▼                                    ▼            ▼
-          ┌─────────────────┐                  ┌──────────────┐ ┌──────────────┐
-          │  Supabase Auth  │                  │   Postgres   │ │   Storage    │
-          │  (accounts/JWT) │                  │ (or SQLite)  │ │ local / S3-  │
-          └─────────────────┘                  └──────────────┘ │ like bucket  │
-                                                                └──────────────┘
+The hosted prototype at **[app.docforge.live](https://app.docforge.live)** is
+free. It is for trying DocForge out, so please don't upload confidential
+documents. For real documents, run your own copy.
 
-  analyze:  document_ingest → ooxml_extractor → structure_normalizer →
-            multi_doc_differ → ai_classifier (understand→classify→critique)
-            → template_builder → template_registry
-  generate: ai_router (route→compose) → project-metadata merge → validator → assembler
-  comply:   compliance (deterministic diff) → compliance/judge (AI verdicts)
-```
+## Run your own copy
 
-**Backend modules** (`backend/docforge/`):
-
-| Module | Responsibility |
-|---|---|
-| `ai/` | Shared AI core: the tool-calling agent loop (`client.py`), prompts, the tool registry (`tools.py`), token/cost accounting (`usage.py`, `pricing.py`) |
-| `ai_classifier` | Template-analysis agent: understand → classify-with-tools → self-critique → field/rule derivation |
-| `ai_router` | Generation agent: route content to fields, then `compose.py` refines/drafts/validates values |
-| `compliance` | Deterministic structural checker + `judge.py` (AI material-vs-benign verdicts) |
-| `services/learning.py` | Captures the user's field-edit corrections and replays them as few-shot guidance |
-| `api` + `api/auth.py` | REST endpoints, background jobs, Supabase JWT verification (HS256 + JWKS) |
-| `storage/` | Pluggable object store — local filesystem or Supabase Storage with signed URLs |
-| `document_ingest` | Upload validation, safe storage, zip-bomb/XXE guards |
-| `ooxml_extractor` | Defensive OPC/zip reading: parts, rels, media, numbering |
-| `structure_normalizer` | Normalized element tree with stable node IDs |
-| `multi_doc_differ` | Structural alignment + confidence-scored diffs across sample documents |
-| `template_builder` | Builds `template.docx` (docxtpl + lxml OOXML) |
-| `template_registry` | Versioned template packages, through the storage layer |
-| `assembler` / `validator` | Deterministic DOCX rendering + rule engine |
-| `services/` | Orchestration: analyze, publish, generate, projects, compliance, audit |
-
----
-
-## 🧰 Tech stack
-
-- **Backend:** Python 3.11+, FastAPI, SQLAlchemy 2 (SQLite dev / Postgres
-  prod), Pydantic v2, python-docx, docxtpl, lxml, `anthropic` (Claude) and `httpx` (OpenAI-compatible AI calls), PyJWT
-  (`[crypto]`).
-- **AI:** Claude through the official `anthropic` SDK (**Claude Haiku 5.5** is
-  the recommended default), or any OpenAI-compatible endpoint: NVIDIA Nemotron
-  on OpenRouter, Gemini, DeepSeek, OpenAI, or a local server
-  (Ollama/LM Studio). Bring your own key; nothing is shared or billed to you by
-  the platform. Keys are held one per provider, so switching never loses one.
-- **Frontend:** Next.js 14 (App Router) + React 18 + TypeScript, **Geist** +
-  **Fraunces** (`next/font`), `lucide-react`, `docx-preview`, `@supabase/supabase-js`.
-- **Cloud:** **Supabase** (Auth + Postgres + Storage), **Vercel** (hosting —
-  two projects from one repo).
-
----
-
-## ⚡ Quickstart (local dev)
-
-DocForge runs fully **offline & single-user** out of the box — no Supabase or
-AI key required.
-
-**1. Backend**
+**On your computer** (one user, no sign-in, no AI key needed). You need Python
+3.11+ and Node.js 18+.
 
 ```bash
 cd backend
 python -m venv .venv
-# Windows:  .venv\Scripts\activate     macOS/Linux: source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-
-cp ../.env.example .env            # defaults work out of the box (auth off, local storage)
-docforge seed                       # build demo templates (optional)
-docforge serve                      # API on http://localhost:8000 — creates tables on boot (docs at /docs)
+cp ../.env.example .env          # local defaults: no sign-in, files on disk
+docforge seed                    # optional: three demo templates
+docforge serve                   # API on http://localhost:8000
 ```
-
-> By default `DOCFORGE_AUTH_REQUIRED=false` → the app runs as a single local
-> user with no login. Set it to `true` + Supabase env vars to enable accounts.
-
-**2. Frontend**
 
 ```bash
 cd frontend
 npm install
-npm run dev                         # web app on http://localhost:3000
+npm run dev                      # app on http://localhost:3000
 ```
 
-With no `NEXT_PUBLIC_SUPABASE_URL` set, the UI runs in local no-auth mode.
+**With Docker**, the same single-user setup in two containers:
 
-**3. Turn on AI (optional)**
+```bash
+docker compose up --build        # app on http://localhost:3000
+```
 
-In the app, go to **Settings → LLM Settings → "Use recommended setup"**, paste
-an Anthropic API key ([get one here](https://platform.claude.com/settings/keys)), and enable
-it. Without a key, every feature still works via the offline heuristic engine —
-just less semantically aware.
+**For other people**, with accounts, use Supabase for sign-in, the database and
+file storage, and host on Vercel, Render or your own server.
+[`DEPLOY.md`](DEPLOY.md) walks through every option.
 
----
+> [!IMPORTANT]
+> The privacy policy shown at sign-up is the one for docforge.live. Before other
+> people sign up to your copy, replace it with your own in
+> [`frontend/lib/legal/privacy.ts`](frontend/lib/legal/privacy.ts).
 
-## ☁️ Deploy (Vercel + Supabase)
+## Configuration
 
-A complete deployment guide is in **[`DEPLOY-VERCEL.md`](./DEPLOY-VERCEL.md)**:
+The backend reads `DOCFORGE_*` environment variables (or `backend/.env`).
+[`.env.example`](.env.example) lists them all; these are the ones you are most
+likely to change:
 
-- **Supabase**: Postgres database + email/password **Auth** + a **Storage**
-  bucket. Files upload/download **directly to Supabase Storage via signed
-  URLs** — bytes never pass through the backend, which is what keeps large
-  DOCX uploads under Vercel's request-body cap.
-- **Vercel**: two projects from this one repo — `backend` (FastAPI as a Python
-  function) and `frontend` (Next.js) — each with its own Root Directory.
-- Run `docforge initdb` once against the production database (serverless
-  functions don't create tables on boot); after that, deploying is a push +
-  redeploy.
-
-Prefer to self-host with Docker instead? `docker-compose.yml` and the two
-`Dockerfile`s still work for a single always-on server; see `DEPLOY.md` for
-that path.
-
----
-
-## ⚙️ Configuration
-
-All settings are environment variables prefixed `DOCFORGE_` (see
-[`.env.example`](./.env.example)). Key ones:
-
-| Variable | Default | Purpose |
+| Variable | Default | What it does |
 |---|---|---|
-| `DOCFORGE_DATABASE_URL` | `sqlite:///./data/docforge.db` | DB (Postgres in prod; use the **session pooler**, port 5432, for one-off scripts and the **transaction pooler**, port 6543, on serverless) |
-| `DOCFORGE_SERVERLESS` | `false` | `true` on Vercel: runs analysis inline and skips table-creation-on-boot |
-| `DOCFORGE_AUTH_REQUIRED` | `true` | require a Supabase JWT (`false` = local single-user, no login) |
-| `DOCFORGE_SUPABASE_URL` | — | Supabase project URL (JWKS + storage) |
-| `DOCFORGE_SUPABASE_SERVICE_ROLE_KEY` | — | server-side key for Storage (secret) |
-| `DOCFORGE_STORAGE_BACKEND` | `local` | `local` or `supabase` |
-| `DOCFORGE_CORS_ALLOW_ORIGINS` | `*` | allowed frontend origin(s) |
-| `DOCFORGE_AI_ENABLED` | `false` | enable the LLM pipeline (else the heuristic engine) |
-| `DOCFORGE_AI_BASE_URL` / `_MODEL` / `_API_KEY` | OpenAI | the workhorse model config (any OpenAI-compatible provider, or Anthropic) |
-| `DOCFORGE_AI_REASONING_MODEL` | *(none — reuses the workhorse)* | a stronger model for understanding/critique/composition/judging |
-| `DOCFORGE_AI_AGENT_MAX_STEPS` | `6` | cap on tool-calling iterations per agentic action |
-| `DOCFORGE_AI_TEMPERATURE` | `0` | sampling temperature; raise only for a reasoning model that loops when greedy |
-| `DOCFORGE_AI_REASONING_EFFORT` | *(provider default)* | `none`/`low`/`medium`/`high` for the reasoning tier; setting it also stops the workhorse tier thinking |
+| `DOCFORGE_AUTH_REQUIRED` | `true` | Require a Supabase sign-in. `false` runs as one local user. |
+| `DOCFORGE_DATABASE_URL` | SQLite in `./data` | Postgres for anything shared. |
+| `DOCFORGE_STORAGE_BACKEND` | `local` | `supabase` keeps files in a Supabase Storage bucket. |
+| `DOCFORGE_CORS_ALLOW_ORIGINS` | `*` | Your frontend's address, once it is deployed. |
+| `DOCFORGE_FREE_AI_ENABLED` / `_API_KEY` / `_LIMIT` | off / none / `10` | Free AI actions per account, on your key. |
+| `DOCFORGE_AI_ENABLED` / `_PROVIDER` / `_MODEL` / `_API_KEY` | off / `anthropic` / `claude-haiku-5-5` / none | One shared AI key for everyone, used when the free tier is off. |
+| `DOCFORGE_GENERATED_RETENTION_DAYS` | `14` | Generated documents are deleted after this many days. |
+| `DOCFORGE_SERVERLESS` | `false` | `true` on Vercel. |
 
-Per-user AI provider/keys are configured in-app (**Settings**) and stored
-server-side — the env vars above are process-wide defaults, not required for
-users to have AI.
+The frontend needs `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+for sign-in, and `NEXT_PUBLIC_API_BASE_URL` when the backend lives at another
+address. Without the Supabase pair it runs in single-user mode.
 
-Frontend (`frontend/.env.local`): `NEXT_PUBLIC_API_BASE_URL`,
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+Each user picks their own AI provider and key in **Settings → LLM Settings**.
 
----
+## How it's built
 
-## 🔌 API (selected)
+```
+ Next.js app ──── REST + Supabase token ────► FastAPI backend ──► Postgres or SQLite
+ (frontend/)                                   (backend/)       └► Supabase Storage or disk
 
-All data routes require `Authorization: Bearer <supabase-jwt>` (unless auth is off).
+ analyze   read the .docx → compare the examples → classify each part → build the template
+ generate  place the content → write and check values → fill the template → .docx
+ comply    deterministic diff and score → optional AI note on what matters → fix
+```
 
-| Method & path | Purpose |
+| Folder | What lives there |
 |---|---|
-| `GET  /api/health` | health + AI status (public) |
-| `POST /api/uploads/sign` | request a direct-to-storage signed upload URL |
-| `POST /api/templates/analyze[-refs]` | upload 1–5 DOCX → the analysis agent → a review job |
-| `POST /api/templates` | publish a reviewed job |
-| `GET  /api/templates` · `GET /api/templates/{id}` | list / detail (owner-scoped) |
-| `POST /api/templates/{id}/generate` | route → compose → validate → assemble |
-| `POST /api/templates/{id}/route` | preview routing+composing without generating |
-| `POST /api/templates/{id}/route-document[-refs]` | map an uploaded filled document onto a template |
-| `POST /api/templates/{id}/compliance[-refs]` | deterministic diff + AI judge verdicts |
-| `POST /api/templates/{id}/compliance/fix[-refs]` | in-place fix of changed/missing boilerplate |
-| `GET/PUT /api/settings` | per-user AI provider config + token-usage totals |
-| `GET  /api/projects` · `POST /api/projects` | list / create projects |
-| `GET  /api/generations/{id}[/download]` | generation status / download DOCX (or `.pdf`) |
-| `GET  /api/logs` | recent server-side log entries for the signed-in user |
+| `backend/docforge/ooxml_extractor`, `structure_normalizer`, `multi_doc_differ` | Read Word files safely and line up the examples |
+| `backend/docforge/ai_classifier`, `template_builder`, `template_registry` | Decide fixed vs variable content and build versioned templates |
+| `backend/docforge/ai_router`, `assembler`, `validator` | Put content into fields, render the `.docx`, check the rules |
+| `backend/docforge/compliance` | Score a returned document and fix it |
+| `backend/docforge/ai` | The AI client, agent loop, prompts, tools and cost tracking |
+| `backend/docforge/api`, `services`, `storage`, `db` | HTTP routes, orchestration, file storage, database |
+| `frontend/app`, `components`, `lib` | Pages, UI and the API client |
 
-Interactive docs: **http://localhost:8000/docs**.
+The interactive API reference is at `/docs` on a running backend. A public,
+key-based API for your own pipelines is planned.
 
----
-
-## 🧪 Testing
+## Development
 
 ```bash
 cd backend
-pytest                 # unit + integration + API tests (148+)
-ruff check docforge    # lint
-mypy docforge          # types
+pytest -q                # unit and integration tests
+ruff check docforge      # lint
 
 cd ../frontend
-npx tsc --noEmit && npm run build
+npx tsc --noEmit         # type check
+npm run build            # production build
 ```
 
-Coverage includes the agentic AI core (tool-use loop + capability fallback,
-token/cost accounting, the compose/critique/judge passes, learning capture),
-auth (401s, per-user isolation, JWKS), storage round-trips, and the full
-analyze → publish → generate → comply flow — with every AI path exercised
-both "AI on" and "AI off / heuristic fallback".
+The tests need no API key: AI paths run against stubbed model replies and the
+deterministic fallback.
 
----
+## Security and privacy
 
-## 🗂️ Project layout
+- Each account sees only its own templates, projects and documents.
+- Sign-in is Supabase; the backend verifies every token.
+- Uploads are checked for type and size, and guarded against zip bombs, path
+  traversal and unsafe XML.
+- AI keys are stored on the server and never returned to the browser. Document
+  text is kept out of the logs.
+- Generated documents are deleted within 14 days. Deleting an account removes
+  all of its data.
 
-```
-DocForge/
-├── backend/
-│   ├── docforge/
-│   │   ├── ai/                  # agent loop, prompts, tools, usage/pricing
-│   │   ├── ai_classifier/       # template-analysis agent
-│   │   ├── ai_router/           # generation agent (route + compose)
-│   │   ├── compliance/          # deterministic checker + AI judge
-│   │   └── ...                  # storage/, services/, api/, db/, schemas/
-│   ├── tests/                   # unit + integration + api + fixtures
-│   ├── alembic/                 # DB migrations (prod path)
-│   └── pyproject.toml
-├── frontend/                    # Next.js 14 app
-│   ├── app/                     # pages: new, generate, compliance, projects, settings…
-│   ├── components/              # UI + page components (icons.tsx = Lucide hub)
-│   └── lib/                     # api client, types, auth context, supabase client
-├── DEPLOY-VERCEL.md             # Vercel + Supabase deployment guide (current)
-├── DEPLOY.md                    # Docker/Render self-host alternative
-├── docker-compose.yml · Makefile · .env.example
-```
+Found a problem? Email [support@docforge.live](mailto:support@docforge.live).
 
----
+## License
 
-## 🔒 Security & privacy
-
-Per-user data isolation (owner-scoped, no-leak 404s), Supabase JWT
-verification, file-type validation, upload size limits, zip-bomb &
-path-traversal guards, hardened (no-DTD/no-network) XML parsing. AI keys are
-bring-your-own, stored server-side only, and never returned to the client;
-document text is kept out of logs; an audit trail records every AI decision
-(classify/route/compliance) with its source (AI vs. heuristic) and model used.
-
-## 📜 License
-
-MIT.
+[MIT](LICENSE) © The DocForge Authors

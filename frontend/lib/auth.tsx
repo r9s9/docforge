@@ -14,7 +14,11 @@ interface AuthState {
   loading: boolean;
   configured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  signUp: (
+    email: string,
+    password: string,
+    metadata?: Record<string, string>,
+  ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -50,8 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw new Error(error.message);
       },
-      signUp: async (email, password) => {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+      signUp: async (email, password, metadata) => {
+        // Metadata lands on the new user (user_metadata), e.g. which privacy
+        // policy version they accepted and when.
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: metadata ? { data: metadata } : undefined,
+        });
         if (error) throw new Error(error.message);
         // When email confirmation is on, no session is returned until confirmed.
         return { needsConfirmation: !data.session };

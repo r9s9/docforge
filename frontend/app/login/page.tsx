@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import PrivacyModal from "@/components/PrivacyModal";
 import { useAuth } from "@/lib/auth";
+import { PRIVACY_VERSION } from "@/lib/legal/privacy";
 
 type Mode = "signin" | "signup";
 
@@ -10,21 +12,32 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const closePolicy = useCallback(() => setPolicyOpen(false), []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setNotice(null);
+    if (mode === "signup" && !accepted) {
+      setError("Please read and accept the Privacy Policy to create an account.");
+      return;
+    }
     setBusy(true);
     try {
       if (mode === "signin") {
         await signIn(email, password);
         // AppShell redirects to "/" once the session lands.
       } else {
-        const { needsConfirmation } = await signUp(email, password);
+        const { needsConfirmation } = await signUp(email, password, {
+          privacy_version: PRIVACY_VERSION,
+          privacy_accepted_at: new Date().toISOString(),
+        });
         if (needsConfirmation) {
           setNotice("Account created. Check your email to confirm, then sign in.");
           setMode("signin");
@@ -92,6 +105,24 @@ export default function LoginPage() {
           />
         </label>
 
+        {mode === "signup" && (
+          <label className="auth-consent">
+            <input
+              type="checkbox"
+              required
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+            />
+            <span>
+              I have read and accept the{" "}
+              <button type="button" className="linklike" onClick={() => setPolicyOpen(true)}>
+                Privacy Policy
+              </button>
+              .
+            </span>
+          </label>
+        )}
+
         <button className="btn btn-primary" type="submit" disabled={busy || !configured}>
           {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
@@ -114,6 +145,15 @@ export default function LoginPage() {
           )}
         </p>
       </form>
+
+      <PrivacyModal
+        open={policyOpen}
+        onClose={closePolicy}
+        onAccept={() => {
+          setAccepted(true);
+          setPolicyOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -1,153 +1,227 @@
-# Deploying DocForge for free (Render + Supabase)
+# Deploying DocForge
 
-This guide stands up a **public, multi-user** DocForge for **$0**:
+Pick the setup that fits. Everything with accounts uses
+[Supabase](https://supabase.com) for sign-in, the database and file storage.
 
-- **Render** (free) runs the backend (FastAPI) and the frontend (Next.js).
-- **Supabase** (free) provides the **database** (Postgres), **accounts** (Auth),
-  and **file storage** (template packages, uploads, generated docs).
+| Setup | Accounts | Good for |
+|---|---|---|
+| [Your computer](README.md#run-your-own-copy) | No | Trying it out, development |
+| [Docker Compose](#docker-compose) | No | One user on your own server |
+| [Vercel + Supabase](#vercel--supabase) | Yes | A public instance. This is what app.docforge.live runs. |
+| [Render + Supabase](#render--supabase) | Yes | A public instance from the included blueprint |
 
-Free-tier caveats to expect: Render free services **sleep after ~15 min idle**
-(the first request after that takes ~30–50s to wake), and Supabase pauses a
-project after ~1 week of inactivity. Because files live in Supabase Storage (not
-on Render's disk), nothing is lost when a service restarts.
-
-> **AI note:** your local LM Studio model can't be reached from the cloud. The
-> hosted app runs in **offline heuristic mode** by default (no AI). To enable
-> smart classification/routing, set the `DOCFORGE_AI_*` vars to a cloud LLM
-> (OpenAI/Anthropic — pay per token). See step 5.
+Before anyone else signs up, work through
+[Before you open sign-ups](#before-you-open-sign-ups).
 
 ---
 
-## 1. Create the Supabase project
+## Supabase
 
-1. Sign up at <https://supabase.com> → **New project**. Pick a region near you
-   and set a database password (save it).
-2. Copy these (the dashboard splits them across pages — **Project Settings**,
-   then the **API Keys** and **Data API** sub-pages):
-   - **Project URL** → `https://<ref>.supabase.co` (Settings → **Data API**, or
-     the top of **API Keys**)
-   - **anon / publishable** key — browser-safe (Settings → **API Keys**)
-   - **service_role / secret** key — ⚠️ server-side only (Settings → **API Keys**)
-   - **JWT secret:** only needed for *legacy* projects. New projects use **JWT
-     Signing Keys** (Settings → **JWT Keys**, asymmetric) — nothing to copy; the
-     backend verifies those via the JWKS endpoint from the Project URL.
-3. **Database connection string** — click the green **Connect** button in the top
-   bar → **Session pooler** (NOT "Direct connection") → copy the URI:
+You need this for every setup with accounts.
+
+1. **Create a project** at [supabase.com](https://supabase.com) and save the
+   database password.
+2. **Copy these values** (Project Settings → API Keys, and Data API):
+   - Project URL: `https://<ref>.supabase.co`
+   - The **anon** (publishable) key. It is safe in the browser.
+   - The **service_role** (secret) key. It is server-side only.
+   - The JWT secret, only if your project still uses the legacy shared secret.
+     New projects use JWT signing keys, which the backend checks through the
+     project URL with nothing to copy.
+3. **Copy the database address** (Connect, in the top bar):
+   - **Session pooler**, port `5432`, for long-running servers and one-off
+     commands.
+   - **Transaction pooler**, port `6543`, for serverless hosts such as Vercel.
+4. **Create a Storage bucket** named `docforge` and keep it **Private**. The
+   backend reads and writes it with the service_role key; browsers only get
+   short-lived signed links.
+5. **Lock the Data API.** DocForge talks to Postgres directly and never uses
+   Supabase's Data API. Its tables live in the `public` schema, which the Data
+   API exposes to anyone holding the public anon key. Either turn the Data API
+   off, or enable row level security on every table, without policies, by
+   running this in the SQL editor (again after every schema change):
+
+   ```sql
+   do $$
+   declare t record;
+   begin
+     for t in select tablename from pg_tables where schemaname = 'public' loop
+       execute format('alter table public.%I enable row level security', t.tablename);
+     end loop;
+   end $$;
    ```
-   postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+
+   The backend connects as the tables' owner, so it is not affected.
+6. **Set up sign-in** (Authentication):
+   - Keep the **Email** provider on.
+   - Under URL Configuration, set the **Site URL** to your app's address and add
+     it to the **Redirect URLs**. Confirmation links in emails go there.
+   - **Confirm email** stops people signing up with someone else's address. It
+     needs working email: Supabase's built-in sender is for testing only and
+     sends just a few messages an hour, so add your own SMTP server (Project
+     Settings → Authentication → SMTP) first.
+   - Leave **CAPTCHA** off. The sign-up form does not send a CAPTCHA token yet,
+     so turning it on would block every new account.
+7. **Create the tables.** Docker and Render do this on every start. For Vercel,
+   run it once from your machine against the session pooler:
+
+   ```bash
+   cd backend
+   DOCFORGE_DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres" \
+     .venv/bin/docforge initdb
    ```
-   Use the **Session pooler** (IPv4, port 5432) — the "direct" connection is
-   IPv6-only and Render can't reach it.
 
-## 2. Create the Storage bucket
-
-1. In Supabase → **Storage → New bucket**.
-2. Name it **`docforge`**. Keep it **Private** (the backend reads/writes it with
-   the service-role key; users never access it directly).
-
-## 3. Configure Auth (email + password)
-
-1. Supabase → **Authentication → Providers → Email**: ensure it's enabled.
-2. For the smoothest demo, **Authentication → Sign In / Providers → Email** and
-   turn **"Confirm email" OFF** (users can sign in immediately). Turn it back on
-   later and configure SMTP for production.
-3. (Recommended for a public app) **Authentication → Attack Protection**: enable
-   a CAPTCHA (Turnstile/hCaptcha) to stop bot signups.
-
-## 4. Deploy to Render with the Blueprint
-
-The repo includes `render.yaml`, which defines both services.
-
-1. Push the repo to GitHub (already at `https://github.com/r9s9/docforge`).
-2. Go to <https://dashboard.render.com> → **New → Blueprint**, connect the repo,
-   and apply. Render creates **docforge-backend** and **docforge-frontend**.
-3. Set the environment variables Render left blank (marked `sync: false`):
-
-   **docforge-backend**
-   | Variable | Value |
-   |---|---|
-   | `DOCFORGE_DATABASE_URL` | the Session-pooler URI from step 1.3 |
-   | `DOCFORGE_SUPABASE_URL` | `https://<ref>.supabase.co` |
-   | `DOCFORGE_SUPABASE_JWT_SECRET` | *legacy projects only* — leave unset if you use JWT Signing Keys |
-   | `DOCFORGE_SUPABASE_SERVICE_ROLE_KEY` | the **service_role** key |
-   | `DOCFORGE_CORS_ALLOW_ORIGINS` | the frontend URL (fill after it deploys, e.g. `https://docforge-frontend.onrender.com`) |
-
-   **docforge-frontend**
-   | Variable | Value |
-   |---|---|
-   | `NEXT_PUBLIC_API_BASE_URL` | the backend URL, e.g. `https://docforge-backend.onrender.com` |
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the **anon** key |
-
-4. The two URLs depend on each other, so: deploy once, copy each service's URL,
-   set `DOCFORGE_CORS_ALLOW_ORIGINS` (backend) and `NEXT_PUBLIC_API_BASE_URL`
-   (frontend), then **trigger a redeploy** of both (the frontend must rebuild
-   because `NEXT_PUBLIC_*` is baked in at build time).
-
-## 5. Enable the LLM (free tier + per-user keys)
-
-DocForge serves AI two ways, decided per user:
-
-1. **Free tier (shared key you pay for).** Give every signed-in user a small
-   allowance (default **10 actions**) on one shared key: a **Claude Haiku 5.5**
-   key from Anthropic. Users never see the key. `render.yaml` already
-   wires this up; you just add the **API key** secret on **docforge-backend**:
-   ```
-   DOCFORGE_FREE_AI_ENABLED=true
-   DOCFORGE_FREE_AI_PROVIDER=anthropic
-   DOCFORGE_FREE_AI_BASE_URL=https://api.anthropic.com
-   DOCFORGE_FREE_AI_MODEL=claude-haiku-5-5
-   DOCFORGE_FREE_AI_LIMIT=10
-   DOCFORGE_FREE_AI_API_KEY=sk-ant-...                  # ← set this secret in the dashboard
-   ```
-   Use a key scoped to a single workspace: a key that spans several workspaces
-   needs a workspace ID on every request, which DocForge does not send.
-
-2. **Each user's own key.** Once a user spends their free allowance, they add
-   their own provider + API key in **Settings → AI** (stored per-user,
-   server-side, never returned). This works with any **OpenAI-compatible** API or
-   **Anthropic**.
-
-Notes:
-- Until a key is present (free-tier or the user's own), DocForge safely falls back
-  to the **offline heuristic engine** (no external calls) — so a missing key
-  never breaks the app, it just reduces AI quality.
-- A legacy single global key (`DOCFORGE_AI_*`) still exists for one-shared-key
-  setups; it's **disabled by default** and superseded by the free tier when that
-  is enabled.
-- Reasoning models are supported and are now the recommended default, but their
-  thinking tokens are billed as output. Set `DOCFORGE_AI_REASONING_EFFORT` (e.g.
-  `high`) to control it: that also tells the *workhorse* tier `none`, so the
-  many mechanical calls stop paying to think. Leaving it empty keeps the
-  provider's own default, which is the safe choice for a model whose reasoning
-  cannot be switched off.
-
-## 6. Verify
-
-1. Open the frontend URL → you should land on the **login** page.
-2. **Create account** → you're signed in and the dashboard is empty.
-3. Create a template (upload example DOCX) → it appears, and is stored in the
-   Supabase `docforge` bucket (check **Storage** in Supabase).
-4. Generate a document and download it.
-5. Sign out, create a **second** account → its dashboard is empty and it can't
-   open the first account's template URL (404). Per-user isolation works.
+   On Windows PowerShell, set `$env:DOCFORGE_DATABASE_URL = "..."` and run
+   `.\.venv\Scripts\docforge.exe initdb`.
 
 ---
 
-## Optional: enable PDF export
+## Vercel + Supabase
 
-PDF export (DOCX→PDF) needs LibreOffice, which is heavy for the free tier and
-off by default. To include it, build the backend image with:
+Two Vercel projects from this one repository. File uploads and downloads go
+straight between the browser and Supabase Storage through signed links, so
+large documents never hit Vercel's 4.5 MB request limit.
+
+### Backend project
+
+Import the repository, set **Root Directory** to `backend` (Vercel detects
+FastAPI from `main.py`), and add these environment variables:
+
+| Variable | Value |
+|---|---|
+| `DOCFORGE_SERVERLESS` | `true` |
+| `DOCFORGE_ENV` | `production` |
+| `DOCFORGE_DATA_DIR` | `/tmp` |
+| `DOCFORGE_AUTH_REQUIRED` | `true` |
+| `DOCFORGE_DATABASE_URL` | the transaction pooler address (port `6543`) |
+| `DOCFORGE_STORAGE_BACKEND` | `supabase` |
+| `DOCFORGE_SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `DOCFORGE_SUPABASE_SERVICE_ROLE_KEY` | the service_role key |
+| `DOCFORGE_SUPABASE_STORAGE_BUCKET` | `docforge` |
+| `DOCFORGE_SUPABASE_JWT_SECRET` | only for legacy projects |
+| `DOCFORGE_CORS_ALLOW_ORIGINS` | your app's address, e.g. `https://app.docforge.live` |
+| `DOCFORGE_FREE_AI_ENABLED` | `true`, to give every account free AI actions |
+| `DOCFORGE_FREE_AI_PROVIDER` | `anthropic` |
+| `DOCFORGE_FREE_AI_BASE_URL` | `https://api.anthropic.com` |
+| `DOCFORGE_FREE_AI_MODEL` | `claude-haiku-5-5` |
+| `DOCFORGE_FREE_AI_LIMIT` | `10` |
+| `DOCFORGE_FREE_AI_API_KEY` | your Anthropic key, scoped to one workspace |
+
+Deploy, then open `https://<backend>/api/health`. It should answer with
+`"status": "ok"` and the current version.
+
+### Frontend project
+
+Import the same repository again, set **Root Directory** to `frontend`, and add:
+
+| Variable | Value |
+|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | the backend's address |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon key |
+
+`NEXT_PUBLIC_*` values are built into the app, so redeploy the frontend after
+you change them.
+
+### Connect the two
+
+1. Add your domain to the frontend project (for example `app.docforge.live`).
+2. Set `DOCFORGE_CORS_ALLOW_ORIGINS` on the backend to exactly that address, and
+   redeploy the backend.
+3. Put the same address in Supabase's Site URL and Redirect URLs.
+
+### Limits on Vercel
+
+- **No PDF export.** It needs LibreOffice, which can't run on Vercel. DOCX
+  downloads work, and the app hides the PDF button.
+- **The in-app Logs page is sparse.** Each serverless instance keeps its own
+  short buffer. Full logs are in the Vercel dashboard.
+- **Cold starts** add a second or two to the first request after a quiet spell.
+
+---
+
+## Render + Supabase
+
+[`render.yaml`](render.yaml) defines both services. In Render, choose **New →
+Blueprint**, connect the repository and apply it. Then fill in the values the
+blueprint leaves blank: the session pooler address (Render can't reach
+Supabase's IPv6-only direct connection), the Supabase URL and keys, the
+frontend's address for CORS, and the backend's address for the frontend.
+Redeploy both once the two addresses are known.
+
+Free Render services sleep after about 15 minutes without traffic, so the first
+request after that takes 30 to 50 seconds.
+
+---
+
+## Docker Compose
+
+```bash
+docker compose up --build        # app on http://localhost:3000
 ```
---build-arg INSTALL_LIBREOFFICE=true
+
+This runs one user without sign-in, with data in a Docker volume. For
+accounts, use Vercel or Render with Supabase: the frontend image is built
+without sign-in settings.
+
+**PDF export** works on Docker if you build the backend with LibreOffice:
+
+```bash
+docker compose build --build-arg INSTALL_LIBREOFFICE=true backend
 ```
-(In Render: backend service → **Settings → Docker Build Args**.) Without it, the
-PDF button returns a clear "install LibreOffice" message; DOCX download always
-works.
 
-## Known limitations (fine for a demo, revisit for scale)
+It adds about 1 GB to the image.
 
-- Free Render services sleep when idle (cold starts).
-- AI provider settings are machine-global (set via env), not per-user.
-- A single backend instance only (file storage is in Supabase, but there's no
-  horizontal-scale story yet).
+---
+
+## AI
+
+Every user without AI gets the deterministic engine, so the app always works.
+On top of that:
+
+- **Free AI actions.** With `DOCFORGE_FREE_AI_*` set, every account gets
+  `DOCFORGE_FREE_AI_LIMIT` actions on your key. Users never see the key.
+- **Their own key.** Users add a provider and key in **Settings → LLM Settings**.
+  It is stored on the server and never returned to the browser.
+- **One shared key** (`DOCFORGE_AI_*`) is used only when the free tier is off,
+  which suits a private team instance.
+
+A user's own key always wins. When the free actions run out and there is no own
+key, that user is back on the deterministic engine.
+
+---
+
+## Before you open sign-ups
+
+- [ ] **Privacy policy.** Replace [`frontend/lib/legal/privacy.ts`](frontend/lib/legal/privacy.ts)
+      with your own. The shipped one describes docforge.live only.
+- [ ] **Data API locked** (Supabase step 5).
+- [ ] **Email.** Custom SMTP set up, and Confirm email on.
+- [ ] **CORS** set to your exact app address, not `*`.
+- [ ] **Keys.** Every secret lives only in the host's settings, and any key that
+      was ever pasted into a chat, file or commit has been rotated.
+- [ ] **Spend limit.** If you offer free AI actions, set a monthly limit on that
+      key in the provider's console.
+
+## Check it end to end
+
+1. Open the app, create an account (tick the privacy policy), and confirm it
+   from the email.
+2. **New Template**: upload two examples, then review and publish.
+3. **Generate Document**: fill it in and download the `.docx`.
+4. **Compliance Check**: upload an edited copy, then fix it.
+5. Create a second account. It sees an empty dashboard and gets a 404 on the
+   first account's template address.
+6. **Settings → Profile**: delete the second account.
+
+## Troubleshooting
+
+- **Analysis never finishes on Vercel.** `DOCFORGE_SERVERLESS` must be `true`;
+  otherwise analysis waits for a background thread that never runs.
+- **`/api/health` fails with a database error.** Use the transaction pooler
+  (port `6543`) on Vercel, and check the password has no trailing space.
+- **CORS errors on upload or download** (requests to `*.supabase.co`). Open a
+  signed link directly in a tab to check it works, then allow your app's
+  address for Storage in Supabase.
+- **New users never get a confirmation email.** Supabase's built-in sender is
+  for testing only; add your own SMTP server.

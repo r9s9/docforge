@@ -1992,6 +1992,23 @@ tr.low-conf td {
   padding: 0;
   text-decoration: underline;
 }
+.auth-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  cursor: pointer;
+}
+.auth-consent input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 .auth-splash {
   min-height: 100vh;
   display: grid;
@@ -2192,6 +2209,76 @@ tr.low-conf td {
 .modal-close:hover {
   color: var(--text);
   background: var(--card-2);
+}
+
+/* ---- Privacy policy (sign-up) ---- */
+.policy-modal {
+  max-width: 680px;
+  height: min(760px, 86vh);
+}
+.policy-modal .tut-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.policy-modal .tut-head .sub a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+}
+.policy-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 24px 20px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.policy-body:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.policy-body h2 {
+  margin: 20px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.policy-body p {
+  margin: 0 0 10px;
+}
+.policy-body ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+.policy-body li {
+  margin-bottom: 5px;
+}
+.policy-body a {
+  color: var(--accent);
+}
+.policy-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.policy-body .callout {
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+.policy-body .callout p:last-child {
+  margin-bottom: 0;
+}
+.policy-foot {
+  justify-content: flex-end;
+}
+.policy-hint {
+  margin-right: auto;
+  font-size: 12.5px;
+  color: var(--muted);
 }
 
 /* ---- Tutorial modal ---- */

@@ -1,16 +1,25 @@
 # DocForge — two services: FastAPI backend + Next.js frontend.
 # Visit http://localhost:3000 (the Next server proxies /api to the backend).
+# One local user, no sign-in: the frontend image has no Supabase settings, so
+# the backend must not ask for a sign-in token either. For accounts, see DEPLOY.md.
 
 services:
   backend:
     build: ./backend
     environment:
-      # Override to enable an LLM (defaults to the offline heuristic engine):
+      DOCFORGE_ENV: production
+      DOCFORGE_AUTH_REQUIRED: "false"
+      # Optional AI (otherwise the offline deterministic engine), e.g. Claude:
       # DOCFORGE_AI_ENABLED: "true"
+      # DOCFORGE_AI_PROVIDER: "anthropic"
+      # DOCFORGE_AI_BASE_URL: "https://api.anthropic.com"
+      # DOCFORGE_AI_MODEL: "claude-haiku-5-5"
+      # DOCFORGE_AI_API_KEY: "sk-ant-..."
+      # or a local model on the host (Ollama):
+      # DOCFORGE_AI_PROVIDER: "openai"
       # DOCFORGE_AI_BASE_URL: "http://host.docker.internal:11434/v1"
       # DOCFORGE_AI_API_KEY: "ollama"
       # DOCFORGE_AI_MODEL: "llama3.1"
-      DOCFORGE_ENV: production
     volumes:
       - docforge-data:/data
     ports:

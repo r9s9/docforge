@@ -242,6 +242,30 @@ def _edit_fixed_text(path):
     return buf.getvalue()
 
 
+def test_deleting_the_account_leaves_no_compliance_records(
+    client, db_session, settings_tmp, project_docs
+):
+    """The privacy policy promises an account deletes with all of its data,
+    including compliance reports and the documents uploaded for them."""
+    from docforge.db.models import ComplianceRun, SourceDocument
+    from docforge.storage import get_storage
+
+    template_id = _publish_via_services(db_session, settings_tmp, project_docs, "Delete me")
+    r = client.post(
+        f"/api/templates/{template_id}/compliance",
+        files=[("file", ("cand.docx", _edit_fixed_text(project_docs[0]), DOCX))],
+    )
+    assert r.status_code == 200, r.text
+    assert db_session.query(ComplianceRun).filter_by(owner_id=TEST_USER_ID).count() == 1
+    paths = [s.stored_path for s in db_session.query(SourceDocument).filter_by(owner_id=TEST_USER_ID)]
+
+    assert client.delete("/api/settings/account").status_code == 200
+    db_session.expire_all()
+    for model in (ComplianceRun, SourceDocument):
+        assert db_session.query(model).filter_by(owner_id=TEST_USER_ID).count() == 0
+    assert not any(get_storage().exists(p) for p in paths if p)
+
+
 def test_compliance_alignment_and_fix(client, db_session, settings_tmp, project_docs):
     import io
 

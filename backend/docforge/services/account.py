@@ -21,6 +21,7 @@ from ..config import Settings, get_settings
 from ..db.models import (
     AIDecisionLog,
     AnalysisJob,
+    ComplianceRun,
     ExtractedDocument,
     GeneratedDocument,
     GenerationRequest,
@@ -129,6 +130,7 @@ def delete_account(
         GenerationRequest,
         Template,
         AnalysisJob,
+        ComplianceRun,
         SourceDocument,
         Project,
         AIDecisionLog,
