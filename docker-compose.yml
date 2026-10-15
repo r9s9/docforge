@@ -1,7 +1,7 @@
 # DocForge — two services: FastAPI backend + Next.js frontend.
 # Visit http://localhost:3000 (the Next server proxies /api to the backend).
 # One local user, no sign-in: the frontend image has no Supabase settings, so
-# the backend must not ask for a sign-in token either. For accounts, see DEPLOY.md.
+# the backend must not ask for a sign-in token either.
 
 services:
   backend:

@@ -14,7 +14,7 @@
   &nbsp;·&nbsp;
   <a href="https://www.docforge.live/tutorials/"><b>Tutorial</b></a>
   &nbsp;·&nbsp;
-  <a href="DEPLOY.md"><b>Run your own copy</b></a>
+  <a href="#run-it-on-your-computer"><b>Run it on your computer</b></a>
 </p>
 
 <p align="center">
@@ -85,7 +85,7 @@ DocForge is a free, open-source prototype under the [MIT License](LICENSE).
 | Mode | What happens |
 |---|---|
 | **No AI** | A deterministic engine compares your examples and fills templates. Nothing leaves your server. |
-| **Free AI actions** | A hosted instance can give every account a few actions on the operator's key. [app.docforge.live](https://app.docforge.live) gives 10, on Claude Haiku 5.5. |
+| **Free AI actions** | On [app.docforge.live](https://app.docforge.live), every account gets 10, on Claude Haiku 5.5. |
 | **Your own key** | Anthropic (Claude, recommended), OpenAI, Google Gemini, DeepSeek, OpenRouter, or any OpenAI-compatible server such as Ollama or LM Studio. Keys are stored on the server and never sent back to the browser. |
 
 With AI on, each step reads the whole document before it decides anything, can
@@ -98,12 +98,12 @@ key never breaks the app.
 
 The hosted prototype at **[app.docforge.live](https://app.docforge.live)** is
 free. It is for trying DocForge out, so please don't upload confidential
-documents. For real documents, run your own copy.
+documents. For real documents, run it on your own computer.
 
-## Run your own copy
+## Run it on your computer
 
-**On your computer** (one user, no sign-in, no AI key needed). You need Python
-3.11+ and Node.js 18+.
+One user, no sign-in, and no AI key needed. You need Python 3.11+ and
+Node.js 18+.
 
 ```bash
 cd backend
@@ -127,37 +127,22 @@ npm run dev                      # app on http://localhost:3000
 docker compose up --build        # app on http://localhost:3000
 ```
 
-**For other people**, with accounts, use Supabase for sign-in, the database and
-file storage, and host on Vercel, Render or your own server.
-[`DEPLOY.md`](DEPLOY.md) walks through every option.
-
-> [!IMPORTANT]
-> The privacy policy shown at sign-up is the one for docforge.live. Before other
-> people sign up to your copy, replace it with your own in
-> [`frontend/lib/legal/privacy.ts`](frontend/lib/legal/privacy.ts).
-
 ## Configuration
 
-The backend reads `DOCFORGE_*` environment variables (or `backend/.env`).
-[`.env.example`](.env.example) lists them all; these are the ones you are most
-likely to change:
+The easiest way to turn on AI is in the app: **Settings → LLM Settings**, then
+**Use recommended setup** and paste your Anthropic key. Without a key, the
+deterministic engine does the work.
+
+The backend also reads `DOCFORGE_*` settings from `backend/.env`.
+[`.env.example`](.env.example) lists them; these are the useful ones on your
+computer:
 
 | Variable | Default | What it does |
 |---|---|---|
-| `DOCFORGE_AUTH_REQUIRED` | `true` | Require a Supabase sign-in. `false` runs as one local user. |
-| `DOCFORGE_DATABASE_URL` | SQLite in `./data` | Postgres for anything shared. |
-| `DOCFORGE_STORAGE_BACKEND` | `local` | `supabase` keeps files in a Supabase Storage bucket. |
-| `DOCFORGE_CORS_ALLOW_ORIGINS` | `*` | Your frontend's address, once it is deployed. |
-| `DOCFORGE_FREE_AI_ENABLED` / `_API_KEY` / `_LIMIT` | off / none / `10` | Free AI actions per account, on your key. |
-| `DOCFORGE_AI_ENABLED` / `_PROVIDER` / `_MODEL` / `_API_KEY` | off / `anthropic` / `claude-haiku-5-5` / none | One shared AI key for everyone, used when the free tier is off. |
+| `DOCFORGE_AI_ENABLED` / `_PROVIDER` / `_MODEL` / `_API_KEY` | off / `anthropic` / `claude-haiku-5-5` / none | A default AI key, instead of setting one in the app. |
+| `DOCFORGE_DATA_DIR` | `./data` | Where the database, templates and documents are kept. |
 | `DOCFORGE_GENERATED_RETENTION_DAYS` | `14` | Generated documents are deleted after this many days. |
-| `DOCFORGE_SERVERLESS` | `false` | `true` on Vercel. |
-
-The frontend needs `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-for sign-in, and `NEXT_PUBLIC_API_BASE_URL` when the backend lives at another
-address. Without the Supabase pair it runs in single-user mode.
-
-Each user picks their own AI provider and key in **Settings → LLM Settings**.
+| `DOCFORGE_MAX_UPLOAD_MB` | `25` | The largest `.docx` you can upload. |
 
 ## How it's built
 

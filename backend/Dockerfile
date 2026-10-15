@@ -33,6 +33,6 @@ ENV DOCFORGE_ENV=production \
 VOLUME ["/data"]
 EXPOSE 8000
 
-# Create tables on start, then serve on the platform's $PORT (Render sets it;
+# Create tables on start, then serve on $PORT (if the host sets one;
 # defaults to 8000 locally).
 CMD ["sh", "-c", "docforge initdb && docforge serve --host 0.0.0.0 --port ${PORT:-8000}"]
