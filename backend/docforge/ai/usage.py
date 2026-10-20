@@ -14,11 +14,15 @@ transparently — no plumbing through every function signature. Do not nest
 from __future__ import annotations
 
 import contextlib
+import threading
 from collections.abc import Iterator
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 
 from .pricing import cost_for_call
+
+# Parallel AI calls (docforge.ai.parallel) add to one accumulator at once.
+_ADD_LOCK = threading.Lock()
 
 
 @dataclass
@@ -48,6 +52,11 @@ class Usage:
     ) -> None:
         i, o = int(in_tokens or 0), int(out_tokens or 0)
         cr, cw = int(cache_read or 0), int(cache_write or 0)
+        cost = cost_for_call(model, i, o, cache_read=cr, cache_write=cw)
+        with _ADD_LOCK:
+            self._add(model, i, o, cr, cw, cost)
+
+    def _add(self, model, i: int, o: int, cr: int, cw: int, cost: float | None) -> None:
         prompt = i + cr + cw
         self.in_tokens += prompt
         self.out_tokens += o
@@ -62,7 +71,6 @@ class Usage:
         m["calls"] += 1
         m["cache_read"] = m.get("cache_read", 0) + cr
         m["cache_write"] = m.get("cache_write", 0) + cw
-        cost = cost_for_call(model, i, o, cache_read=cr, cache_write=cw)
         if cost is not None:
             self.cost_usd += cost
             self.priced_calls += 1

@@ -46,13 +46,42 @@ class AISettingsIn(BaseModel):
     no_think: bool | None = None  # prepend /no_think for Qwen3
 
 
-def _ai_dto(row: UserAIConfig | None) -> dict:
+def _blank(row: UserAIConfig) -> bool:
+    """A row that holds no AI settings of the user's own.
+
+    Spending a first free AI action creates the row just to count it, so most
+    free-tier users have one of these: it must read like having no row at all.
+    """
+    return not any(
+        (getattr(row, f) or "").strip()
+        for f in ("provider", "base_url", "api_key", "model", "reasoning_model")
+    )
+
+
+def _ai_dto(row: UserAIConfig | None, owner_id: str) -> dict:
     """Public view of a user's AI config (never includes the key itself).
 
-    A brand-new user (no row yet) is shown the recommended default: Claude
-    Haiku 5.5 for every step. They still need to add their own key.
+    Two things live here and must not be mixed up: the user's OWN settings,
+    which the Settings form shows and edits, and what is SERVING them right
+    now (``source`` / ``serving_*``), which can be the free tier or a shared
+    key instead. Status displays read the second; showing the form's values
+    there announced "openai/gpt-4o-mini" to free-tier users served on Haiku.
     """
-    if row is None:
+    # "active" must mean exactly what the pipeline means by it, or the page can
+    # report a working key while every action quietly runs the offline engine.
+    plan = plan_ai_for_owner(owner_id)
+    serving = {
+        "active": plan.config.active,
+        # Which key is actually serving this user right now. Without it the page
+        # cannot tell "your key" from "the free tier" and the banners contradict
+        # the form.
+        "source": plan.mode,
+        "serving_provider": plan.config.provider if plan.config.active else None,
+        "serving_model": plan.config.model if plan.config.active else None,
+    }
+    if row is None or _blank(row):
+        # Nothing saved yet: offer the recommended default, Claude Haiku 5.5
+        # for every step. They still need to add their own key.
         return {
             "provider": "anthropic",
             "enabled": False,
@@ -61,19 +90,15 @@ def _ai_dto(row: UserAIConfig | None) -> dict:
             "reasoning_model": ANTHROPIC_HAIKU_MODEL,
             "has_key": False,
             "saved_endpoints": [],
-            "no_think": False,
-            "active": False,
-            "source": "none",
+            "no_think": bool(row.no_think) if row is not None else False,
+            **serving,
         }
-    # "active" must mean exactly what the pipeline means by it, or the page can
-    # report a working key while every action quietly runs the offline engine.
-    plan = plan_ai_for_owner(row.owner_id)
     base_url = row.base_url or default_base_url(row.provider)
     return {
         "provider": row.provider or "openai",
         "enabled": bool(row.enabled),
         "base_url": base_url,
-        "model": row.model or "gpt-4o-mini",
+        "model": row.model or "",
         "reasoning_model": (row.reasoning_model or "").strip(),
         # Asked of the endpoint this row talks to, so it agrees with
         # usage.has_own_key and with what the pipeline will actually send.
@@ -83,11 +108,7 @@ def _ai_dto(row: UserAIConfig | None) -> dict:
         # implying the key is gone.
         "saved_endpoints": sorted(stored_keys(row.api_key, base_url)),
         "no_think": bool(row.no_think),
-        "active": plan.config.active,
-        # Which key is actually serving this user right now. Without it the page
-        # cannot tell "your key" from "the free tier" and the banners contradict
-        # the form.
-        "source": plan.mode,
+        **serving,
     }
 
 
@@ -125,7 +146,7 @@ def get_settings_api(
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
     row = db.get(UserAIConfig, user.id)
-    return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
+    return {"ai": _ai_dto(row, user.id), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
 
 
 @router.delete("/settings/account")
@@ -187,7 +208,7 @@ def put_settings_api(
         )
     db.commit()
     db.refresh(row)
-    return {"ai": _ai_dto(row), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
+    return {"ai": _ai_dto(row, user.id), "usage": usage_snapshot(user.id), "tokens": _token_totals(db, user.id)}
 
 
 @router.post("/settings/ai/test")

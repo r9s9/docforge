@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 
 from ..ai.client import LLMCancelled, LLMClient, LLMError
+from ..ai.parallel import run_all, slots_for_client
 from ..ai.prompts import LLMFieldDescriptions, build_describe_prompt
 from ..schemas.classification import ClassificationResult
 from ..schemas.extraction import DocumentExtraction
@@ -83,18 +84,14 @@ def describe_forced_fields(
     tiered = client.for_tier(WORKHORSE_TIER)
     batches = _chunk(items, _BATCH_SIZE)
     n_batches = len(batches)
-    for bi, batch in enumerate(batches):
+
+    def describe(batch):
+        """One batch's descriptions, or None to keep the deterministic text."""
         if cancel_event is not None and cancel_event.is_set():
-            break
-        if on_progress is not None:
-            on_progress(
-                f"AI writing field descriptions… batch {bi + 1}/{n_batches}",
-                0.90 + 0.09 * bi / n_batches,
-                "describe",
-            )
+            return None
         system, developer, user = build_describe_prompt(batch)
         try:
-            resp = tiered.complete_json(
+            return tiered.complete_json(
                 system=system, developer=developer, user=user,
                 schema=LLMFieldDescriptions, cancel_event=cancel_event,
             )
@@ -105,6 +102,26 @@ def describe_forced_fields(
                 "field-description pass failed for a batch; keeping deterministic text",
                 exc_info=True,
             )
+            return None
+
+    def progress(done: int, total: int) -> None:
+        if on_progress is not None:
+            on_progress(
+                f"AI writing field descriptions… {done}/{total} batches",
+                0.90 + 0.09 * done / total,
+                "describe",
+            )
+
+    if on_progress is not None:
+        on_progress(f"AI writing field descriptions… 0/{n_batches} batches", 0.90, "describe")
+    # The batches are independent, so they run at the same time.
+    responses = run_all(
+        [lambda b=batch: describe(b) for batch in batches],
+        slots=slots_for_client(client),
+        on_done=progress,
+    )
+    for batch, resp in zip(batches, responses, strict=True):
+        if resp is None:
             continue
         node_to_name = {it["node_id"]: it["field_name"] for it in batch}
         for d in resp.descriptions:

@@ -79,11 +79,11 @@ function AiStatus({
   usage: AIUsage | null;
   health: Health;
 }) {
-  if (ai?.active) {
+  if (ai?.active && (ai.source ?? "own") === "own") {
     return (
       <>
         <span className="dot" />
-        AI: {ai.model}
+        AI: {ai.serving_model || ai.model}
       </>
     );
   }

@@ -77,11 +77,17 @@ export function AiStatusBanner() {
   if (!health) return null;
 
   // 1) The user's own key (unlimited) — or, in local/no-auth dev, the local key.
-  if (ai?.active) {
+  //    Only "own": the form's provider/model are the user's saved settings, not
+  //    what serves a free-tier user (that showed "openai/gpt-4o-mini" to people
+  //    the free tier was serving on Claude).
+  if (ai?.active && (ai.source ?? "own") === "own") {
     return (
       <div className="ai-status on">
-        <span className="dot" /> AI connected: <strong>{ai.provider}/{ai.model}</strong>.
-        Smart classification, unstructured-text routing and document mapping are enabled.
+        <span className="dot" /> AI connected:{" "}
+        <strong>
+          {ai.serving_provider || ai.provider}/{ai.serving_model || ai.model}
+        </strong>
+        . Smart classification, unstructured-text routing and document mapping are enabled.
       </div>
     );
   }
@@ -90,7 +96,13 @@ export function AiStatusBanner() {
     return (
       <div className="ai-status on">
         <span className="dot" /> AI connected: <strong>{usage.free_remaining} free AI action(s)</strong>{" "}
-        remaining. Smart classification and document mapping are enabled.{" "}
+        remaining
+        {ai?.source === "free" && ai.serving_model ? (
+          <>
+            {" "}on <strong>{ai.serving_model}</strong>
+          </>
+        ) : null}
+        . Smart classification and document mapping are enabled.{" "}
         <a href="/settings">Add your own key →</a>
       </div>
     );

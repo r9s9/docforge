@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 
 from ..ai.client import LLMCancelled, LLMClient, LLMError
+from ..ai.parallel import run_all, slots_for_client
 from ..ai.prompts import (
     LLMClassifyResponse,
     LLMCritiqueResponse,
@@ -334,28 +335,38 @@ def classify_llm(
     sections: list = list(understanding.sections) if understanding else []
     document_type_guess = understanding.document_type if understanding else ""
 
-    for bi, batch_ids in enumerate(batches):
+    def classify_batch(bi: int, batch_ids: list[str]) -> LLMClassifyResponse:
         if cancel_event is not None and cancel_event.is_set():
             raise LLMCancelled("cancelled before classify batch")
-        first = bi == 0
-        if on_progress is not None:
-            on_progress(
-                f"AI naming fields… batch {bi + 1}/{n_batches}",
-                0.35 + 0.55 * bi / n_batches,
-                "classify",
-            )
         system, developer, user = build_classify_prompt(
             extraction, diff, node_ids=set(batch_ids),
-            include_sections=first and understanding is None,
+            include_sections=bi == 0 and understanding is None,
             understanding_summary=understanding_summary, learned_hints=learned_hints,
             tags_only=tags_only,
         )
-        resp = client.complete_agentic(
+        return client.complete_agentic(
             system=system, developer=developer, user=user, schema=LLMClassifyResponse,
             tools=tools, tier=WORKHORSE_TIER, cancel_event=cancel_event,
         )
+
+    def progress(done: int, total: int) -> None:
+        if on_progress is not None:
+            on_progress(
+                f"AI naming fields… {done}/{total} batches", 0.35 + 0.55 * done / total, "classify"
+            )
+
+    if on_progress is not None:
+        on_progress(f"AI naming fields… 0/{n_batches} batches", 0.35, "classify")
+    # Each batch is classified on its own, so the batches run at the same time
+    # and are merged back in document order.
+    responses = run_all(
+        [lambda bi=bi, ids=ids: classify_batch(bi, ids) for bi, ids in enumerate(batches)],
+        slots=slots_for_client(client),
+        on_done=progress,
+    )
+    for bi, resp in enumerate(responses):
         merged.extend(resp.classifications)
-        if first and not sections and resp.sections:
+        if bi == 0 and not sections and resp.sections:
             sections = resp.sections
         if not document_type_guess and resp.document_type_guess:
             document_type_guess = resp.document_type_guess

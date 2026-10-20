@@ -26,6 +26,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..logging_setup import log_event
 from ..settings_store import AIConfig, get_ai_config
+from . import deadline
 from .errors import LLMCancelled, LLMError, LLMUnavailable
 from .errors import LLMRefused as LLMRefused  # re-exported: callers import errors from here
 from .usage import record_usage
@@ -111,6 +112,8 @@ def _post_with_retry(
     for attempt in range(_TRANSIENT_ATTEMPTS):
         if cancel_event is not None and cancel_event.is_set():
             raise LLMCancelled("cancelled")
+        if attempt:
+            deadline.budgeted(0)  # a retry needs time left in the request's budget
         resp = client.post(path, json=payload, headers=headers)
         if resp.status_code not in _RETRYABLE_STATUS:
             return resp
@@ -582,12 +585,15 @@ class LLMClient:
         cancelled = False
         stream_usage: dict = {}
         try:
-            with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
+            with httpx.Client(base_url=base, timeout=deadline.budgeted(self.config.timeout_seconds)) as client:
                 with self._stream_with_retry(client, payload, headers, cancel_event) as resp:
                     for line in resp.iter_lines():
                         if cancel_event is not None and cancel_event.is_set():
                             cancelled = True
                             break  # closes the connection -> server stops generating
+                        # A read timeout only bounds the gap between chunks, so a
+                        # model that keeps talking needs the budget checked here.
+                        deadline.check()
                         if not line:
                             continue
                         if line.startswith("data:"):
@@ -643,6 +649,8 @@ class LLMClient:
         for attempt in range(_TRANSIENT_ATTEMPTS):
             if cancel_event is not None and cancel_event.is_set():
                 raise LLMCancelled("cancelled")
+            if attempt:
+                deadline.budgeted(0)  # a retry needs time left in the request's budget
             with client.stream("POST", "chat/completions", json=payload, headers=headers) as resp:
                 if resp.status_code in _RETRYABLE_STATUS:
                     resp.read()
@@ -705,7 +713,7 @@ class LLMClient:
         )
         t0 = time.perf_counter()
         try:
-            with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
+            with httpx.Client(base_url=base, timeout=deadline.budgeted(self.config.timeout_seconds)) as client:
                 resp = _post_with_retry(client, "chat/completions", payload, headers)
                 # Some servers (LM Studio) reject json_object outright; a gateway
                 # asked to guarantee it answers 404 when no upstream can. Either
@@ -1149,7 +1157,7 @@ class LLMClient:
         )
         t0 = time.perf_counter()
         try:
-            with httpx.Client(base_url=base, timeout=self.config.timeout_seconds) as client:
+            with httpx.Client(base_url=base, timeout=deadline.budgeted(self.config.timeout_seconds)) as client:
                 resp = _post_with_retry(client, "chat/completions", payload, headers)
                 # A single-vendor server validates the field and says 400; a
                 # gateway with no tool-capable upstream says 404. Both mean "no

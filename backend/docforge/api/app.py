@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .. import __version__
+from ..ai.deadline import time_budget
 from ..config import get_settings
 from ..db.session import init_db
 from ..logging_setup import (
@@ -159,8 +160,13 @@ def create_app() -> FastAPI:
             client=request.client.host if request.client else "?",
         )
         status = 500
+        # On serverless the platform cuts a request off at a fixed limit; the
+        # AI work inside it stops a little earlier (see docforge.ai.deadline).
+        settings = get_settings()
+        budget = settings.serverless_time_budget_seconds if settings.serverless else 0
         try:
-            response = await call_next(request)
+            with time_budget(budget):
+                response = await call_next(request)
             status = response.status_code
             return response
         except Exception as exc:  # log, then let FastAPI's handlers produce the 500

@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # and table creation + startup maintenance are skipped (run migrations out of
     # band). Defaults off for the long-running server / local dev.
     serverless: bool = False
+    # On serverless the platform stops a request at a fixed limit (Vercel: 300 s
+    # at most) with an error the browser shows as "network error". AI work inside
+    # one request stops at this budget, a little under that limit, and the rest is
+    # finished by the deterministic engine. 0 = no budget.
+    serverless_time_budget_seconds: int = 240
 
     # --- Uploads / safety ---
     max_upload_mb: int = 25
@@ -64,6 +69,10 @@ class Settings(BaseSettings):
     # Hard cap on tool-calling iterations per agentic action (latency/cost guard,
     # important under the serverless request budget).
     ai_agent_max_steps: int = 6
+    # Independent AI calls (classify and description batches) run this many at
+    # once. Local servers (Ollama, LM Studio) always get 1: they answer one
+    # request at a time.
+    ai_max_parallel_calls: int = 4
     ai_timeout_seconds: int = 240  # generous for slow local models (background work)
     # Shorter cap for tiny in-request calls (e.g. the Settings "test connection").
     ai_interactive_timeout_seconds: int = 90

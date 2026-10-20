@@ -24,6 +24,7 @@ import anthropic
 
 from ..logging_setup import log_event
 from ..settings_store import AIConfig
+from . import deadline
 from .errors import LLMCancelled, LLMError, LLMRefused, LLMUnavailable
 from .usage import record_usage
 
@@ -288,14 +289,18 @@ class AnthropicTransport:
             structured="format" in (params.get("output_config") or {}),
             tools=len(params.get("tools") or []),
         )
+        timeout = deadline.budgeted(float(self.config.timeout_seconds))
         t0 = time.perf_counter()
         try:
-            with client.messages.stream(**params) as stream:
+            with client.messages.stream(**params, timeout=timeout) as stream:
                 for event in stream:
                     if cancel_event is not None and cancel_event.is_set():
                         # Leaving the block closes the connection, which is
                         # what makes the server stop generating.
                         raise LLMCancelled("cancelled mid-stream")
+                    # The timeout only bounds the gap between events, so a
+                    # long answer needs the request's budget checked here.
+                    deadline.check()
                     if on_delta is not None and event.type == "text":
                         on_delta(event.text, event.snapshot)
                 message = stream.get_final_message()

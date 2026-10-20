@@ -297,6 +297,11 @@ export interface AISettings {
   active: boolean;
   /** Which key is actually serving this user: own, free tier, legacy global, or none. */
   source?: "own" | "free" | "global" | "none";
+  /** The provider and model serving this user right now (null when AI is off).
+   *  Status displays show these, not the form fields above, which are only the
+   *  user's own saved settings. */
+  serving_provider?: string | null;
+  serving_model?: string | null;
 }
 
 // Free-tier AI allowance for the signed-in user. The shared key is never exposed.
