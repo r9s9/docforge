@@ -29,7 +29,7 @@ def free_settings(monkeypatch):
     monkeypatch.setattr(s, "free_ai_api_key", "sk-ant-test")
     monkeypatch.setattr(s, "free_ai_provider", "anthropic")
     monkeypatch.setattr(s, "free_ai_base_url", "https://api.anthropic.com")
-    monkeypatch.setattr(s, "free_ai_model", "claude-haiku-4-5-20251001")
+    monkeypatch.setattr(s, "free_ai_model", "claude-haiku-5-5")
     monkeypatch.setattr(s, "free_ai_limit", 10)
     return s
 
@@ -49,7 +49,7 @@ def test_free_tier_when_no_own_key(monkeypatch, free_settings):
     monkeypatch.setattr(ai_quota, "_row", lambda oid: _row(free_used=3))
     plan = ai_quota.plan_ai_for_owner("u1")
     assert plan.mode == "free"
-    assert plan.config.model == "claude-haiku-4-5-20251001"
+    assert plan.config.model == "claude-haiku-5-5"
     assert plan.config.api_key == "sk-ant-test"  # the shared key, used server-side only
     assert plan.counts_against_free is True
 
@@ -104,6 +104,6 @@ def test_use_ai_plan_publishes_config(monkeypatch, free_settings):
     plan = ai_quota.plan_ai_for_owner("u1")
     with ai_quota.use_ai_plan(plan):
         # get_ai_config must transparently resolve to the planned (free) config.
-        assert get_ai_config().model == "claude-haiku-4-5-20251001"
+        assert get_ai_config().model == "claude-haiku-5-5"
         assert ai_quota.planned_ai_config() is plan.config
     assert ai_quota.planned_ai_config() is None  # scope cleaned up

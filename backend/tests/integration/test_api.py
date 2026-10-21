@@ -102,6 +102,24 @@ def test_health(client):
     assert r.json()["status"] == "ok"
 
 
+def test_the_free_actions_run_on_haiku_5_5_and_health_says_so(client, settings_tmp, monkeypatch):
+    """Haiku 5.5 is the shipped free-tier model. A model pinned in the host's
+    environment overrides it (the hosted app kept running Haiku 4.5 that way),
+    so health names the one in use, without anyone signing in."""
+    from docforge.config import Settings
+
+    assert Settings.model_fields["free_ai_model"].default == "claude-haiku-5-5"
+    monkeypatch.setattr(settings_tmp, "free_ai_enabled", False)
+    assert client.get("/api/health").json()["free_ai_model"] is None  # no free tier
+
+    monkeypatch.setattr(settings_tmp, "free_ai_enabled", True)
+    monkeypatch.setattr(settings_tmp, "free_ai_api_key", "sk-ant-test-key")
+    monkeypatch.setattr(settings_tmp, "free_ai_model", "claude-haiku-5-5")
+    body = client.get("/api/health").json()
+    assert body["free_ai_model"] == "claude-haiku-5-5"
+    assert "sk-ant-test-key" not in str(body)
+
+
 def test_analyze_accepts_and_queues(client, project_docs):
     r = _upload(client, project_docs)
     assert r.status_code == 202, r.text

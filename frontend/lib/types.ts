@@ -279,6 +279,8 @@ export interface Health {
   ai_active: boolean;
   ai_provider: string | null;
   ai_model: string | null;
+  /** The model every account's free AI actions run on (null: no free tier). */
+  free_ai_model?: string | null;
   pdf_export: boolean;
   generation_modes: string[];
 }

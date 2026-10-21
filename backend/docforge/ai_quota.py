@@ -142,6 +142,17 @@ def _free_configured(s) -> bool:
     return bool(s.free_ai_enabled and (s.free_ai_api_key or "").strip())
 
 
+def free_tier_model() -> str | None:
+    """The model the free AI actions run on, or None when there are none.
+
+    Public (no key material): the hosted service names it in its privacy
+    policy, and a value pinned in the host's environment overrides the code's
+    default, so it has to be checkable without signing in.
+    """
+    s = get_settings()
+    return (s.free_ai_model or "").strip() or None if _free_configured(s) else None
+
+
 # --- Planning -------------------------------------------------------------
 
 def plan_ai_for_owner(owner_id: str | None, *, allow_free: bool = True) -> AIPlan:

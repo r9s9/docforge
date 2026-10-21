@@ -41,8 +41,9 @@ const MODEL_OPTIONS: Record<Exclude<UiProvider, "local">, string[]> = {
     "nvidia/nemotron-3-nano-30b-a3b",
   ],
   openai: ["gpt-5-nano", "gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
-  // Current generation first. Haiku 5.5 is the default for every step.
-  anthropic: ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-4-5"],
+  // Current generation only. Haiku 5.5 is the default for every step (Haiku 4.5
+  // is older and costs ten times as much; a key saved with it still shows).
+  anthropic: ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"],
   // Newest first: the list is a menu, and the top of it is what people pick.
   gemini: [
     "gemini-3.5-flash",

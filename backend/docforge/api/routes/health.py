@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from ... import __version__
-from ...ai_quota import plan_ai_for_owner
+from ...ai_quota import free_tier_model, plan_ai_for_owner
 from ...services.pdf import pdf_available
 from ...settings_store import get_ai_config
 from ..auth import CurrentUser, get_current_user, get_optional_user
@@ -34,6 +34,8 @@ def health(user: CurrentUser | None = Depends(get_optional_user)) -> dict:
         "ai_active": ai.active,
         "ai_provider": ai.provider if ai.active else None,
         "ai_model": ai.model if ai.active else None,
+        # What every account's free AI actions run on (None: no free tier).
+        "free_ai_model": free_tier_model(),
         "pdf_export": pdf_available(),
         "generation_modes": ["structured_json", "structured_form", "unstructured_text"],
     }
