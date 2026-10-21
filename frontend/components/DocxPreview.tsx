@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/ui";
 import { placeAnchoredDrawings } from "@/lib/docxAnchors";
+import { paginate, prepareDocx } from "@/lib/docxPages";
 
 /**
  * Renders a .docx as a real Word page, in the browser, with docx-preview.
@@ -27,6 +28,50 @@ const STAND_IN = /\{\{|\{%|«/;
 const CONTROL_ONLY = /^\s*(\{%[^%]*%\}\s*)+$/;
 // Never shrink below this share of the original size: still readable.
 const MIN_SCALE = 0.5;
+// Pages are scaled to fit the canvas whole, but never past this.
+const MAX_ZOOM = 1.5;
+// Room kept under the canvas for the note below it (screen pixels).
+const BELOW = 40;
+
+/**
+ * Size the canvas to the window and scale the pages so one shows whole, like a
+ * PDF viewer's "fit page": no scrolling needed to see a page.
+ */
+function fitPage(canvas: HTMLElement, host: HTMLElement) {
+  const rect = canvas.getBoundingClientRect();
+  // Screen pixels per CSS pixel here: the app is drawn at 93%, so lengths set
+  // in CSS come out smaller than the window sizes they are worked out from.
+  const scale = canvas.offsetHeight ? rect.height / canvas.offsetHeight : 1;
+  const column = canvas.closest<HTMLElement>(".review-doc");
+  const columnStyle = column ? getComputedStyle(column) : null;
+  let screenH: number;
+  if (column && columnStyle?.position === "sticky") {
+    // The preview column stays in view as the fields scroll past it: the
+    // canvas gets the window, less what sits above and below it in the column.
+    const col = column.getBoundingClientRect();
+    const around = rect.top - col.top + (col.bottom - rect.bottom);
+    const gap = (parseFloat(columnStyle.top) || 0) * scale;
+    screenH = window.innerHeight - around - 2 * gap;
+  } else {
+    // Fill the window below where the canvas starts; one that sits low on its
+    // page fills the window, for when it is scrolled to.
+    const below = window.innerHeight - (rect.top + window.scrollY) - BELOW;
+    screenH = below >= window.innerHeight * 0.6 ? below : window.innerHeight - 2 * 24;
+  }
+  canvas.style.height = `${Math.round(Math.max(screenH, 320) / scale)}px`;
+
+  const page = host.querySelector<HTMLElement>("section.docx");
+  if (!page) return;
+  const cs = getComputedStyle(canvas);
+  const availW = canvas.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const availH = canvas.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const ps = getComputedStyle(page);
+  const pageW = parseFloat(ps.width);
+  const pageH = parseFloat(ps.minHeight) || parseFloat(ps.height);
+  if (availW > 0 && availH > 0 && pageW > 0 && pageH > 0) {
+    host.style.setProperty("zoom", String(Math.min(availW / pageW, availH / pageH, MAX_ZOOM)));
+  }
+}
 
 /** Lines a paragraph's text occupies, as laid out. */
 function lineCount(p: HTMLElement): number {
@@ -132,23 +177,39 @@ export default function DocxPreview({
   load,
   refreshKey = 0,
   highlights,
-  fitWidth = false,
   markPersistent = true,
   fitTags = false,
 }: {
   load: () => Promise<ArrayBuffer>;
   refreshKey?: number;
   highlights?: DocxHighlight[];
-  fitWidth?: boolean;
   // When false, paragraphs are tagged with data-hl (for click-to-jump) but NOT
   // given the persistent highlight background — used by the Generate preview.
   markPersistent?: boolean;
   // Viewing a template: shrink tags/«Labels» that overflow their table cell.
   fitTags?: boolean;
 }) {
+  const canvasRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Keep one page fitting the window as it is resized.
+  useEffect(() => {
+    let frame = 0;
+    const onResize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (canvasRef.current && hostRef.current) fitPage(canvasRef.current, hostRef.current);
+      });
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,10 +218,20 @@ export default function DocxPreview({
 
     (async () => {
       try {
-        const [{ renderAsync }, buf] = await Promise.all([import("docx-preview"), load()]);
+        const [{ renderAsync }, raw] = await Promise.all([import("docx-preview"), load()]);
+        // Mark where Word starts pages, so the preview can start them there too.
+        const buf = await prepareDocx(raw);
         if (cancelled || !hostRef.current) return;
         const host = hostRef.current;
+        // Render and measure at true size. The app is drawn at 93% (html zoom),
+        // and docx-preview works out tab stops from on-screen positions as if
+        // they were not scaled: every contents line, with its dotted leader and
+        // page number, wrapped onto two. Undo the app's zoom here until the
+        // pages are laid out; fitPage sets the zoom they are shown at.
         host.style.removeProperty("zoom");
+        const canvas = canvasRef.current;
+        const shown = canvas ? canvas.getBoundingClientRect().width / (canvas.offsetWidth || 1) : 1;
+        if (shown > 0 && Math.abs(shown - 1) > 0.001) host.style.setProperty("zoom", String(1 / shown));
         host.innerHTML = "";
         await renderAsync(buf, host, undefined, {
           className: "docx",
@@ -176,13 +247,23 @@ export default function DocxPreview({
           useBase64URL: true,
         });
         if (cancelled) return;
+        // docx-preview lays tab stops out half a second after it finishes (the
+        // dotted leaders and page numbers of a contents list), and a line can
+        // wrap once they are in: measure only after that.
+        if (host.querySelector(".docx-tab-stop")) {
+          await new Promise((resolve) => setTimeout(resolve, 520));
+          if (cancelled) return;
+        }
 
-        // Pictures anchored to the page or a margin, where Word puts them.
+        // Measured at page size, before the zoom; tags first, as they change
+        // how tall the tables are.
+        if (fitTags) fitStandIns(host);
+        // Real pages: where the document starts them, and where it runs over.
+        paginate(host);
+        // Pictures anchored to the page or a margin, where Word puts them, on
+        // the page their paragraph ended up on.
         await placeAnchoredDrawings(host, buf);
         if (cancelled) return;
-
-        // Before fitWidth's zoom, so the cells are measured at page size.
-        if (fitTags) fitStandIns(host);
 
         if (highlights && highlights.length) {
           const used = new Set<HTMLElement>();
@@ -204,16 +285,7 @@ export default function DocxPreview({
           }
         }
 
-        if (fitWidth) {
-          const page = host.querySelector<HTMLElement>("section.docx");
-          if (page) {
-            const avail = host.clientWidth;
-            const pageW = page.getBoundingClientRect().width;
-            if (avail > 0 && pageW > 0) {
-              host.style.setProperty("zoom", String(Math.min(1, avail / pageW)));
-            }
-          }
-        }
+        if (canvasRef.current) fitPage(canvasRef.current, host);
       } catch (e: any) {
         if (!cancelled) setError(String(e?.message || e));
       } finally {
@@ -228,7 +300,7 @@ export default function DocxPreview({
   }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={`docx-canvas ${fitWidth ? "fit" : ""}`}>
+    <div ref={canvasRef} className="docx-canvas">
       {loading && (
         <div className="docx-overlay">
           <Spinner label="Rendering Word preview…" />

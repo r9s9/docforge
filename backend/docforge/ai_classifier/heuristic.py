@@ -34,6 +34,32 @@ _MIN_ROWS_FOR_LOOP = 2
 _MULTILINE_THRESHOLD = 120
 
 
+def _label_like(text: str) -> bool:
+    """A short label ("Document ID", "Version / Status"), not a value."""
+    t = (text or "").strip()
+    return bool(t) and len(t) <= 40 and len(t.split()) <= 5 and value_kind(t) not in ("date", "number")
+
+
+def looks_like_key_value_table(ts) -> bool:
+    """Rows of "label | value": a form, such as a document's information block.
+
+    Each row starts with its own label, so each row is something different and
+    none of them repeats. Seen as a list, the first pair ("Document title" |
+    "Project HELIX: Enterprise Document Management …") passed for column
+    headings, and the table became a loop that dropped every row but one from
+    the template. The tell is that first row: in a form it is a pair like the
+    rest, its second cell plainly a value (a sentence, a date, a number); over
+    a list it is headings ("Item | Owner", "TERM | DEFINITION").
+    """
+    if ts is None or (ts.n_cols or 0) != 2 or len(ts.rows or []) < 2:
+        return False
+    labels = [(row[0] if row else "").strip() for row in ts.rows]
+    if not all(_label_like(x) for x in labels) or len({x.lower() for x in labels}) < len(labels):
+        return False
+    first_value = (ts.rows[0][1] if len(ts.rows[0]) > 1 else "").strip()
+    return bool(first_value) and not _label_like(first_value)
+
+
 def looks_like_data_table(ts) -> bool:
     """Whether a table's rows are several of one thing, or page layout.
 
@@ -48,6 +74,8 @@ def looks_like_data_table(ts) -> bool:
     losing the layout, and any logo sitting in it.
     """
     if ts is None or not ts.n_rows or ts.n_rows < 2 or (ts.n_cols or 0) < 2:
+        return False
+    if looks_like_key_value_table(ts):
         return False
     distinct_headers = {h.strip() for h in (ts.headers or []) if h and h.strip()}
     if len(distinct_headers) >= 2:
@@ -340,6 +368,27 @@ def _classify_element(
     return _classify_single_doc(e, section_title, used)
 
 
+def holds_picture(e: NormalizedElement) -> bool:
+    """Whether a paragraph carries a picture (a logo, a cover's background)."""
+    return bool(e.image_ref) or "image" in (e.semantic_hints or [])
+
+
+def paragraph_look(e: NormalizedElement) -> tuple:
+    """How a paragraph looks: its kind, style and main character formatting.
+
+    Paragraphs grouped into one repeating field are all written with the
+    first one's look, so only paragraphs that look alike may share one.
+    """
+    f = e.formatting
+    color = (f.color or "").upper()
+    if color in ("AUTO", "000000"):
+        color = ""
+    return (
+        e.type, e.style_name or "", f.size, bool(f.bold), bool(f.italic), color,
+        f.alignment or "", e.numbering_info is not None,
+    )
+
+
 def _group_single_doc_body(
     top: list[NormalizedElement], by_node: dict[str, ElementClassification]
 ) -> None:
@@ -351,8 +400,10 @@ def _group_single_doc_body(
     value is a list of lines.
     """
     run: list[ElementClassification] = []
+    run_look: list[tuple] = []
 
     def flush() -> None:
+        run_look.clear()
         if len(run) < 2:
             run.clear()
             return
@@ -372,7 +423,15 @@ def _group_single_doc_body(
             and e.type in (ElementType.PARAGRAPH, ElementType.LIST_ITEM)
         )
         if is_body:
+            # A picture would repeat (or vanish) with a repeated paragraph, and
+            # a paragraph that looks different (a cover's subtitle under its
+            # title) would take the first one's look: both end the run.
+            if holds_picture(e) or (run_look and run_look[0] != paragraph_look(e)):
+                flush()
             run.append(c)
+            run_look.append(paragraph_look(e))
+            if holds_picture(e):
+                flush()
         else:
             flush()
     flush()

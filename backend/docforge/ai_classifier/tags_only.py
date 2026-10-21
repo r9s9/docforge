@@ -20,7 +20,7 @@ from ..common.textutil import short_field_name, value_kind
 from ..schemas.classification import ClassificationResult, ElementClassification
 from ..schemas.enums import ClassificationType, ElementType, FieldType, is_dynamic, needs_field
 from ..schemas.extraction import DocumentExtraction, NormalizedElement
-from .heuristic import looks_like_data_table
+from .heuristic import holds_picture, looks_like_data_table, paragraph_look
 
 # Body text longer than this becomes a multiline field rather than a one-liner.
 _MULTILINE_THRESHOLD = 120
@@ -196,7 +196,11 @@ def _field_table_cells(
             result.classifications.append(c)
             cls_by_node[e.node_id] = c
         if c.field_name and is_dynamic(c.classification):
-            continue  # the model already named this cell
+            # The model already named this cell: keep its name, but every text
+            # is the tag's alone here, as for paragraphs.
+            c.static_prefix = None
+            c.static_suffix = None
+            continue
         base = _cell_name(text)
         name = base if base not in used else _unique(f"{stem}_{base}", used)
         used.add(name)
@@ -359,6 +363,16 @@ def enforce_tags_only(extraction: DocumentExtraction, result: ClassificationResu
                 if not (c.description or "").strip():
                     c.description = _synth_description(section, e.text)
                 _mark_tags_only(c)
+            elif holds_picture(e) or (unfielded and paragraph_look(unfielded[0][0]) != paragraph_look(e)):
+                # A repeated paragraph is written with the first one's look, so
+                # only paragraphs that look alike share a field: a cover's title
+                # and subtitle, or an intro above body text, each keep their own.
+                # And a picture in a repeated paragraph would repeat (or vanish)
+                # with it, so a paragraph holding one stands alone.
+                flush_unfielded()
+                unfielded.append((e, c))
+                if holds_picture(e):
+                    flush_unfielded()
             else:
                 unfielded.append((e, c))
         flush_unfielded()

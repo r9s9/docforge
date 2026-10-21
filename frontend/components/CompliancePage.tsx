@@ -246,7 +246,6 @@ function Report({
             <DocxPreview
               load={() => api.templateSampleDocx(templateId, report.version)}
               highlights={leftHighlights}
-              fitWidth
               fitTags
             />
           </div>
@@ -294,7 +293,7 @@ function Report({
 
           <div className="cmp-doc-col">
             <div className="cmp-docx-head">Your document</div>
-            <DocxPreview load={() => file.arrayBuffer()} highlights={rightHighlights} fitWidth />
+            <DocxPreview load={() => file.arrayBuffer()} highlights={rightHighlights} />
           </div>
         </div>
       </div>

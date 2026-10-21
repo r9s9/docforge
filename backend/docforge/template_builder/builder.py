@@ -230,6 +230,43 @@ def _append_run(paragraph: Paragraph, text: str, fmt: dict):
     return run
 
 
+def _skeleton(s: str) -> str:
+    """Letters and digits only: compares text however it is spaced or punctuated."""
+    return re.sub(r"\W+", "", (s or "").lower())
+
+
+def _starts_with(text: str, part: str) -> bool:
+    sk = _skeleton(part)
+    if sk:
+        return _skeleton(text).startswith(sk)
+    return (text or "").lstrip().startswith((part or "").strip())
+
+
+def _ends_with(text: str, part: str) -> bool:
+    sk = _skeleton(part)
+    if sk:
+        return _skeleton(text).endswith(sk)
+    return (text or "").rstrip().endswith((part or "").strip())
+
+
+def _real_affixes(text: str, prefix: str, suffix: str) -> tuple[str, str]:
+    """The label text to keep around a tag: only what the paragraph really says.
+
+    A prefix stays in front of the tag as written, so it must be how the
+    paragraph's own text starts (and a suffix how it ends). A classifier can
+    hand a table cell its *row's* label as a prefix ("Document ID" for the cell
+    "VLT-PMP-2026-014"); written as is, the label landed in the value cell and
+    the template read "Document ID«Document ID»".
+    """
+    keep_prefix = prefix if prefix and _starts_with(text, prefix) else ""
+    keep_suffix = suffix if suffix and _ends_with(text, suffix) else ""
+    if keep_prefix and keep_suffix and (
+        len(_skeleton(keep_prefix)) + len(_skeleton(keep_suffix)) > len(_skeleton(text))
+    ):
+        keep_suffix = ""  # they overlap: the paragraph is shorter than both
+    return keep_prefix, keep_suffix
+
+
 def _templatize_paragraph(
     paragraph: Paragraph, prefix: str, expr: str, suffix: str, *, keep_fields: bool = True
 ) -> None:
@@ -418,7 +455,9 @@ def _contents_title_texts(p_el) -> list:
     return texts[0] if texts else []
 
 
-def _link_contents_entries(nodes: list, cls_by_node: dict, fd_by_node: dict) -> int:
+def _link_contents_entries(
+    nodes: list, cls_by_node: dict, fd_by_node: dict, affixes: dict[str, tuple[str, str]]
+) -> int:
     """Give each linked contents entry its heading's tag; return how many.
 
     The entry keeps everything Word put there (its number, the dotted leader,
@@ -443,11 +482,8 @@ def _link_contents_entries(nodes: list, cls_by_node: dict, fd_by_node: dict) -> 
         texts = _contents_title_texts(wn.obj._p)
         if not name or not texts:
             continue
-        expr = (
-            _neutralize_run(target.static_prefix or "")
-            + f"{{{{ {name} }}}}"
-            + _neutralize_run(target.static_suffix or "")
-        )
+        prefix, suffix = affixes.get(cls.links_to, ("", ""))
+        expr = _neutralize_run(prefix) + f"{{{{ {name} }}}}" + _neutralize_run(suffix)
         texts[0].text = expr
         texts[0].set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
         for t in texts[1:]:
@@ -511,6 +547,13 @@ def _span_close_anchor(first: Paragraph, last: Paragraph):
     return None
 
 
+def _is_heading_node(wn) -> bool:
+    if wn.kind != "paragraph":
+        return False
+    style = (getattr(wn.obj, "style", None) and wn.obj.style.name) or ""
+    return style.lower().startswith(("heading", "title"))
+
+
 def _wrap_section_spans(
     nodes: list,
     fields: list[FieldDefinition],
@@ -551,10 +594,8 @@ def _wrap_section_spans(
         # Take the heading directly above the first field with the section: a
         # section hidden without its own title leaves a stranded heading.
         prev = body[body.index(first) - 1] if body.index(first) > 0 else None
-        if prev is not None and nodes[prev].kind == "paragraph":
-            style = (getattr(nodes[prev].obj, "style", None) and nodes[prev].obj.style.name) or ""
-            if style.lower().startswith(("heading", "title")):
-                first = prev
+        if prev is not None and _is_heading_node(nodes[prev]) and not _is_heading_node(nodes[first]):
+            first = prev
         starts.append((first, key))
 
     starts.sort()
@@ -565,6 +606,12 @@ def _wrap_section_spans(
             continue
         end = starts[n + 1][0] - 1 if n + 1 < len(starts) else body[-1]
         span = [i for i in body if start <= i <= end]
+        # A heading just before the next section opens what follows (a chapter
+        # title above that section's own heading), so it is not this section's
+        # to hide: leaving "Executive Summary" out took "02 Project Overview"
+        # with it.
+        while len(span) > 1 and _is_heading_node(nodes[span[-1]]):
+            span.pop()
         # Both ends must be plain body paragraphs: a marker cannot open before a
         # table row or close inside another section's loop.
         if not span or nodes[span[0]].kind != "paragraph" or nodes[span[-1]].kind != "paragraph":
@@ -661,6 +708,16 @@ def build_template_docx(
     nodes = walk_document(doc)
 
     cls_by_node = {c.node_id: c for c in result.classifications}
+    # The label text each tag keeps around it, checked against the paragraph.
+    affixes = {
+        wn.node_id: _real_affixes(
+            wn.obj.text or "",
+            cls_by_node[wn.node_id].static_prefix or "",
+            cls_by_node[wn.node_id].static_suffix or "",
+        )
+        for wn in nodes
+        if wn.kind == "paragraph" and wn.node_id in cls_by_node
+    }
     # Map node -> its VALUE field. Boolean "include_*" toggles and image fields
     # also carry the node id but are applied elsewhere (a conditional wrapper,
     # and replace_pic), so neither may become the text placeholder — a paragraph
@@ -750,9 +807,9 @@ def build_template_docx(
         elif is_dynamic(cls.classification):
             name = _safe_ident(fd.field_name) if fd else None
             if name:
+                prefix, suffix = affixes.get(wn.node_id, ("", ""))
                 _templatize_paragraph(
-                    para, cls.static_prefix or "", f"{{{{ {name} }}}}", cls.static_suffix or "",
-                    keep_fields=keep_fields,
+                    para, prefix, f"{{{{ {name} }}}}", suffix, keep_fields=keep_fields,
                 )
                 # No "{%p if name %}" wrapper: a paragraph holding only this
                 # placeholder is removed at render when the value is empty
@@ -767,7 +824,7 @@ def build_template_docx(
             _wrap_optional(para, include_name)
 
     # The table of contents shows each heading's tag, as the heading does.
-    toc_linked = _link_contents_entries(nodes, cls_by_node, fd_by_node)
+    toc_linked = _link_contents_entries(nodes, cls_by_node, fd_by_node, affixes)
     if toc_linked:
         logger.info("linked %d table of contents entries to their headings", toc_linked)
 

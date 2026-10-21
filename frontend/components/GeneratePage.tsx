@@ -683,7 +683,6 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                       api.generatePreviewDocx(selectedId, { mode: "structured_json", data: values })
                     }
                     refreshKey={previewKey}
-                    fitWidth
                     markPersistent={false}
                     highlights={previewHighlights}
                   />

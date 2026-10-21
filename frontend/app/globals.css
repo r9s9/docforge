@@ -1046,6 +1046,14 @@ tr.low-conf td {
   justify-content: space-between;
   gap: 12px;
 }
+/* Side by side, the page preview stays in view while the field list scrolls
+   past it (DocxPreview sizes the canvas so the whole column fits the window). */
+@media (min-width: 1281px) {
+  .review-grid > .review-doc {
+    position: sticky;
+    top: 16px;
+  }
+}
 /* With Refine open the preview gives up its fixed page width so three columns
    fit; the document scales down rather than being clipped. */
 .review-grid.with-refine {
@@ -1226,14 +1234,17 @@ tr.low-conf td {
   color: var(--accent-ink);
 }
 
-/* ---- Real DOCX preview (docx-preview render) ---- */
+/* ---- Real DOCX preview (docx-preview render) ----
+   Like a PDF viewer's "fit page": DocxPreview sizes the canvas to the window
+   and scales the pages so one shows whole. No scroll snapping: with pages this
+   tall, each wheel step snapped straight back to the page it left. */
 .docx-canvas {
   position: relative;
   background: #78716a;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 22px 14px;
-  max-height: 78vh;
+  padding: 14px;
+  height: 78vh; /* replaced by the window-fitted height once mounted */
   overflow: auto;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
 }
@@ -1242,7 +1253,7 @@ tr.low-conf td {
   padding: 0;
 }
 .docx-host .docx-wrapper > section.docx {
-  margin: 0 auto 18px;
+  margin: 0 auto 14px;
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
   background: #fff;
 }
@@ -1328,16 +1339,6 @@ tr.low-conf td {
   color: var(--red);
   padding: 0 6px;
   border-radius: 4px;
-}
-
-/* Full-A4 pages: the canvas frames a whole page (page is scaled to fit width). */
-.docx-canvas.fit {
-  max-height: 84vh;
-  padding: 14px;
-}
-.docx-canvas.fit .docx-host {
-  display: flex;
-  justify-content: center;
 }
 
 /* Middle differences column — clickable items that jump to the docs. */
