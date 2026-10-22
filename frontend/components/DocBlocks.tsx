@@ -11,7 +11,7 @@ export default function DocBlocks({ blocks }: { blocks: PreviewBlock[] }) {
       {blocks.map((b, i) => {
         if (b.type === "table") {
           return (
-            <table key={i} style={{ margin: "12px 0" }}>
+            <table key={i} className="scroll-x" style={{ margin: "12px 0" }}>
               {b.headers && b.headers.length > 0 && (
                 <thead>
                   <tr>

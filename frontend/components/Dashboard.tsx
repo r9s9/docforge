@@ -85,9 +85,9 @@ export default function Dashboard() {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Type</th>
-                <th>Version</th>
-                <th>Created</th>
+                <th className="hide-phone">Type</th>
+                <th className="hide-phone">Version</th>
+                <th className="hide-phone">Created</th>
                 <th></th>
               </tr>
             </thead>
@@ -96,10 +96,11 @@ export default function Dashboard() {
                 <tr key={t.id}>
                   <td>
                     <Link href={`/templates/${t.id}`}>{t.name}</Link>
+                    <span className="show-phone muted"> · v{t.latest_version}</span>
                   </td>
-                  <td className="muted">{t.document_type || "None"}</td>
-                  <td>v{t.latest_version}</td>
-                  <td className="muted">{new Date(t.created_at).toLocaleDateString()}</td>
+                  <td className="muted hide-phone">{t.document_type || "None"}</td>
+                  <td className="hide-phone">v{t.latest_version}</td>
+                  <td className="muted hide-phone">{new Date(t.created_at).toLocaleDateString()}</td>
                   <td>
                     <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
                       <Link className="btn secondary small" href={`/generate/${t.id}`}>

@@ -79,6 +79,7 @@ DocForge is a free, open-source prototype under the [MIT License](LICENSE).
 - **Two downloads per template.** *With labels* reads like a finished document; *with tags* is a [docxtpl](https://docxtpl.readthedocs.io) template you can use in other tools.
 - **A table of contents that follows its headings.** Each entry shows its heading's tag, and Word offers to refresh the page numbers when the document opens.
 - **Costs you can see.** Tokens and estimated cost on every AI action, plus lifetime totals in Settings.
+- **Works on your phone.** Small screens get a layout of their own: a slide-out menu, full-width forms and a preview that fits one page.
 
 ## AI, or none
 

@@ -93,9 +93,9 @@ export default function ProjectsList() {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Description</th>
-                <th>Metadata</th>
-                <th>Created</th>
+                <th className="hide-phone">Description</th>
+                <th className="hide-phone">Metadata</th>
+                <th className="hide-phone">Created</th>
                 <th></th>
               </tr>
             </thead>
@@ -104,10 +104,13 @@ export default function ProjectsList() {
                 <tr key={p.id}>
                   <td>
                     <Link href={`/projects/${p.id}`}>{p.name}</Link>
+                    {p.description && <div className="show-phone muted">{p.description}</div>}
                   </td>
-                  <td className="muted">{p.description || "None"}</td>
-                  <td className="muted">{Object.keys(p.metadata || {}).length} field(s)</td>
-                  <td className="muted">{new Date(p.created_at).toLocaleDateString()}</td>
+                  <td className="muted hide-phone">{p.description || "None"}</td>
+                  <td className="muted hide-phone">
+                    {Object.keys(p.metadata || {}).length} field(s)
+                  </td>
+                  <td className="muted hide-phone">{new Date(p.created_at).toLocaleDateString()}</td>
                   <td>
                     <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
                       <button

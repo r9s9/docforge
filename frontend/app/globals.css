@@ -1070,11 +1070,17 @@ tr.low-conf td {
   }
 }
 @media (max-width: 1280px) {
+  /* minmax(0, …), not 1fr: a column sized by its content grew to the width of
+     the document page, so the preview never shrank and the page scrolled
+     sideways (Generate and Edit fields at 1024px). */
   .review-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .review-grid.with-refine {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .review-grid > * {
+    min-width: 0;
   }
 }
 
@@ -2847,4 +2853,559 @@ tr.low-conf td {
   text-transform: uppercase;
   color: var(--red);
   opacity: 0.9;
+}
+
+/* ==== Phones =============================================================
+   Portrait phones get a layout of their own: a top bar with a menu button,
+   the sidebar as a slide-out menu, full-width content and finger-sized
+   controls. Everything for phones lives in the block below, and the
+   elements it shows are hidden everywhere else, so the desktop layout is
+   exactly as it was. The width matches PHONE_QUERY in lib/phone.ts. */
+.m-topbar,
+.m-backdrop,
+.docx-zoom-row,
+.show-phone {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* The desktop app is drawn at 93% for density; a phone needs every pixel
+     of type it has. */
+  html {
+    zoom: 1;
+  }
+
+  /* --- Shell: top bar, slide-out menu, full-width content --- */
+  .app,
+  .app:has(.sidebar.pinned) {
+    display: block;
+    padding-left: 0;
+    min-height: 100dvh;
+  }
+  .m-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 54px;
+    padding: 0 10px 0 6px;
+    background: linear-gradient(180deg, var(--glass-shine), transparent 54px), var(--glass-tint);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    border-bottom: 1px solid var(--glass-rim-dark);
+  }
+  .m-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .m-menu-btn:active {
+    background: var(--card-2);
+  }
+  .m-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .m-brand:hover {
+    text-decoration: none;
+  }
+  .m-brand .mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: grid;
+    place-items: center;
+  }
+  .m-brand b {
+    font-weight: 600;
+  }
+  .m-ai {
+    margin-left: auto;
+    min-width: 0;
+    max-width: 48%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .m-ai:hover {
+    text-decoration: none;
+  }
+  .m-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .m-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* The sidebar becomes the menu: off-screen until the menu button opens it,
+     and always fully expanded (a phone has no hover, and nothing to pin). */
+  .sidebar,
+  .sidebar.pinned,
+  .sidebar:not(.pinned):hover {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 300px);
+    z-index: 60;
+    border-radius: 0 20px 20px 0;
+    padding: 18px 14px 16px;
+    background: linear-gradient(180deg, var(--glass-shine), transparent 220px),
+      color-mix(in srgb, var(--card) 94%, transparent);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+  }
+  .sidebar.m-open {
+    transform: none;
+  }
+  .sidebar:not(.pinned):not(:hover) .label,
+  .sidebar:not(.pinned):not(:hover) .brand-text {
+    display: inline;
+  }
+  .sidebar:not(.pinned):not(:hover) .sidebar-foot {
+    display: block;
+  }
+  .sidebar:not(.pinned):not(:hover) .nav-link {
+    justify-content: flex-start;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .sidebar:not(.pinned):not(:hover) .brand {
+    justify-content: flex-start;
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+  /* Pinning means nothing here, and drag-to-reorder needs a mouse. */
+  .sidebar .pin-btn,
+  .sidebar:not(.pinned):not(:hover) .nav-edit-btn,
+  .sidebar .nav-edit-btn {
+    display: none;
+  }
+  .sidebar .nav-link {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .sidebar .theme-switch,
+  .sidebar .help-btn {
+    min-height: 36px;
+  }
+  .sidebar .help-btn {
+    width: 36px;
+  }
+
+  .main {
+    display: block;
+    padding: 16px 16px 28px;
+  }
+
+  /* --- Type and controls --- */
+  .page-title {
+    font-size: 26px;
+  }
+  .page-sub {
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+  h2.section-h {
+    font-size: 18px;
+  }
+  .section {
+    margin-bottom: 24px;
+  }
+  /* iOS zooms the page into any text field set smaller than 16px. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select {
+    min-height: 40px;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 18px;
+    height: 18px;
+  }
+  .btn {
+    min-height: 40px;
+  }
+  .btn.small {
+    min-height: 36px;
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+  .btn.icon {
+    width: 40px;
+    height: 40px;
+    min-height: 0;
+  }
+  .btn.small.icon {
+    width: 36px;
+    height: 36px;
+  }
+  .btn.icon,
+  .btn.small.icon {
+    padding: 0;
+  }
+  .seg-toggle button {
+    padding: 8px 14px;
+  }
+  .linklike {
+    padding: 4px 0;
+  }
+
+  /* --- Tab strips: one line that scrolls sideways --- */
+  .tabs,
+  .tut-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar,
+  .tut-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab,
+  .tut-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* --- Tables --- */
+  .hide-phone {
+    display: none !important;
+  }
+  /* Long names (a file name, a template named after one) break rather than
+     push the table off the screen; button labels never do. The document
+     preview's own tables are left exactly as Word lays them out. */
+  td:not(.docx-host td) {
+    overflow-wrap: anywhere;
+  }
+  td .btn {
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+  /* A row's buttons stack at its end, leaving the name the room. */
+  table:not(.stack-phone) td > .row {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  /* Grids of values (a table field's rows, a table read from a document)
+     scroll sideways on their own, with every column a usable width. */
+  table.scroll-x {
+    display: block;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  table.scroll-x th {
+    white-space: nowrap;
+  }
+  table.scroll-x td {
+    min-width: 9em;
+    overflow-wrap: normal;
+  }
+
+  /* Detail tables read as a list: a block per row, the first cell as its
+     title and every other value under its column's name. Short values
+     (data-half) pair up two to a line. */
+  table.stack-phone,
+  table.stack-phone tbody {
+    display: block;
+  }
+  table.stack-phone thead {
+    display: none;
+  }
+  table.stack-phone tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-flow: row dense;
+    gap: 10px 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.stack-phone tbody tr:last-child {
+    border-bottom: none;
+  }
+  table.stack-phone td {
+    grid-column: 1 / -1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+  }
+  table.stack-phone td[data-half] {
+    grid-column: auto;
+  }
+  table.stack-phone td:first-child {
+    font-weight: 600;
+  }
+  table.stack-phone td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  table.stack-phone td > .row {
+    flex-wrap: wrap !important;
+  }
+
+  /* --- Text that must wrap, rows that must break --- */
+  .placeholder,
+  .mono,
+  code {
+    overflow-wrap: anywhere;
+  }
+  .show-phone {
+    display: revert;
+  }
+  .ai-status {
+    display: block;
+  }
+  .ai-status .dot {
+    vertical-align: middle;
+  }
+  .spread {
+    flex-wrap: wrap;
+  }
+  .review-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tpl-actions {
+    gap: 8px;
+  }
+  .tpl-actions-group {
+    width: 100%;
+  }
+  .tpl-actions-group > .btn {
+    flex: 1 1 auto;
+  }
+  .tpl-actions-group.end {
+    margin-left: 0;
+  }
+  .logs-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  /* A chosen file's name can be longer than the screen is wide. */
+  .file-btn {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+  .file-btn svg {
+    flex: 0 0 auto;
+  }
+
+  /* --- Cards and pages --- */
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .card {
+    padding: 16px;
+  }
+  .dropzone {
+    padding: 28px 16px;
+  }
+  .empty {
+    padding: 32px 16px;
+  }
+  .steps {
+    margin-bottom: 20px;
+  }
+  .auth-page {
+    min-height: 100dvh;
+    padding: 16px;
+  }
+
+  /* --- Field cards --- */
+  .field-card-head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .field-card-toggle {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  .field-card-name {
+    min-width: 0;
+  }
+  .field-card-chevron {
+    width: 36px;
+    height: 36px;
+  }
+  input.field-card-name {
+    min-height: 40px;
+  }
+  .field-card-summary {
+    min-height: 36px;
+    margin-top: 2px;
+    padding-left: 46px; /* under the name, past the larger chevron */
+  }
+  /* "None" in a collapsed card is a value, not an empty-page message. */
+  .fc-sum-value.empty {
+    padding: 0;
+  }
+  .field-card-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fc-jump {
+    min-height: 36px;
+    padding: 7px 12px;
+  }
+  .fc-expand-all {
+    min-height: 36px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+  }
+
+  /* --- Review screens: the stacked preview, fields and Refine --- */
+  .refine-panel {
+    max-height: 70dvh;
+  }
+  .docx-canvas {
+    padding: 10px;
+  }
+  .docx-zoom-row {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    display: flex;
+    justify-content: flex-end;
+    height: 0;
+  }
+  .docx-zoom {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    margin: -4px -4px 0 0;
+    padding: 0 13px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--text);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+  }
+
+  /* --- Compliance: the differences list sits between the two documents --- */
+  .cmp-3col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cmp-diff-mid {
+    position: static;
+  }
+  .cmp-diff-list {
+    max-height: 55dvh;
+  }
+  /* The score card: the score and grade on one line, then the bars, then
+     the fix button, each the card's full width. */
+  .cmp-score {
+    flex-wrap: wrap;
+    gap: 16px !important;
+    overflow-wrap: anywhere;
+  }
+  .cmp-score > * {
+    flex: 1 1 100% !important;
+    min-width: 0;
+  }
+  .cmp-score > :first-child {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .cmp-score > :last-child {
+    text-align: left !important;
+  }
+
+  /* --- Pop-ups --- */
+  .modal-overlay,
+  .auth-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .modal-overlay {
+    padding: 10px;
+  }
+  .modal-close {
+    width: 40px;
+    height: 40px;
+  }
+  .modal {
+    max-height: 94dvh;
+  }
+  .tut-modal,
+  .policy-modal {
+    height: 94dvh;
+  }
+  .tut-head,
+  .tut-tabs,
+  .tut-body,
+  .tut-foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .tut-foot {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .tut-nav {
+    min-width: 0;
+  }
+  .policy-body {
+    padding: 4px 16px 16px;
+  }
+}
+
+/* The smallest phones (320–380px). */
+@media (max-width: 380px) {
+  .main {
+    padding: 12px 12px 24px;
+  }
+  .page-title {
+    font-size: 23px;
+  }
+  .btn {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }

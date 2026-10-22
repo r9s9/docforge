@@ -467,8 +467,10 @@ export default function NewTemplate() {
           <div className="banner info section">
             <strong>Here’s your reusable template.</strong> DocForge turned your example
             into a Word template, where each <em>variable</em> part becomes a fillable field.
-            Check the document preview on the left and the fields on the right; adjust any
-            names or types, then <strong>Publish</strong>.
+            Check the document preview{" "}
+            <span className="hide-phone">on the left and the fields on the right</span>
+            <span className="show-phone">below and the fields under it</span>; adjust any names or
+            types, then <strong>Publish</strong>.
           </div>
 
           <div className="review-grid">

@@ -42,6 +42,9 @@ export {
   Mail,
   SlidersHorizontal,
   ExternalLink,
+  Menu,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

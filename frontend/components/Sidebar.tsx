@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { usePhone } from "@/lib/phone";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { useAiStatus } from "@/lib/useAiStatus";
 import type { AISettings, AIUsage, Health } from "@/lib/types";
@@ -16,6 +17,7 @@ import {
   GripVertical,
   LayoutGrid,
   type LucideIcon,
+  Menu,
   Moon,
   PenLine,
   Pencil,
@@ -114,6 +116,11 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
   // a page reload — the sidebar never remounts on a client-side navigation.
   const { ai, usage } = useAiStatus();
   const [pinned, setPinned] = useState(false);
+  // Phones: the sidebar is a slide-out menu behind a button in the top bar.
+  const phone = usePhone();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
 
   // Editable / reorderable navigation state (persisted to localStorage).
   const [order, setOrder] = useState<NavId[]>(DEFAULT_ORDER);
@@ -133,6 +140,39 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
     await signOut();
     router.replace("/login");
   }
+
+  // Going to another page closes the menu.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // A closed menu on a phone is off-screen: keep it out of reach of the keyboard
+  // and screen readers too. (React 18 has no ``inert`` prop.) Declared before
+  // the effect below, so an opening menu is reachable when that one focuses it.
+  useEffect(() => {
+    asideRef.current?.toggleAttribute("inert", phone && !menuOpen);
+  }, [phone, menuOpen]);
+
+  // While it is open: Escape closes it, the page behind it holds still, and
+  // keyboard focus moves into it (and back to the menu button after).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const aside = asideRef.current;
+    aside?.querySelector<HTMLElement>(".nav-link")?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+      if (aside?.contains(document.activeElement)) {
+        menuBtnRef.current?.focus({ preventScroll: true });
+      }
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     setTheme(getStoredTheme());
@@ -215,160 +255,201 @@ export default function Sidebar({ onOpenTutorial }: { onOpenTutorial?: () => voi
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className={`sidebar ${pinned ? "pinned" : ""}`}>
-      <div className="brand">
-        <span className="mark">
-          <FileText size={16} strokeWidth={2} />
-        </span>
-        <span className="brand-text">
-          Doc<b>Forge</b>
-        </span>
+    <>
+      {/* Phones only (hidden by CSS elsewhere): the top bar and the menu's backdrop. */}
+      <header className="m-topbar">
         <button
-          className={`pin-btn ${pinned ? "on" : ""}`}
-          onClick={togglePin}
-          title={pinned ? "Unpin, collapse to icons" : "Pin sidebar open"}
-          aria-pressed={pinned}
+          ref={menuBtnRef}
+          className="m-menu-btn"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          aria-controls="app-sidebar"
         >
-          <Pin size={15} strokeWidth={1.9} fill={pinned ? "currentColor" : "none"} />
+          <Menu size={22} strokeWidth={1.9} />
         </button>
-      </div>
-
-      <div className="nav-section">
-        <div className="nav-section-head">
-          <span className="label">Menu</span>
+        <Link href="/" className="m-brand">
+          <span className="mark">
+            <FileText size={15} strokeWidth={2} />
+          </span>
+          <span>
+            Doc<b>Forge</b>
+          </span>
+        </Link>
+        {health && (
+          <Link href="/settings" className="m-ai">
+            <AiStatus ai={ai} usage={usage} health={health} />
+          </Link>
+        )}
+      </header>
+      <div
+        className={`m-backdrop ${menuOpen ? "open" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        ref={asideRef}
+        id="app-sidebar"
+        className={`sidebar ${pinned ? "pinned" : ""} ${menuOpen ? "m-open" : ""}`}
+        // A tap on any link in the menu closes it, even one to the page already open.
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("a")) setMenuOpen(false);
+        }}
+      >
+        <div className="brand">
+          <span className="mark">
+            <FileText size={16} strokeWidth={2} />
+          </span>
+          <span className="brand-text">
+            Doc<b>Forge</b>
+          </span>
           <button
-            className="nav-edit-btn label"
-            onClick={() => setEditing((e) => !e)}
-            title={editing ? "Done editing" : "Edit & reorder menu"}
+            className={`pin-btn ${pinned ? "on" : ""}`}
+            onClick={togglePin}
+            title={pinned ? "Unpin, collapse to icons" : "Pin sidebar open"}
+            aria-pressed={pinned}
           >
-            {editing ? <Check size={14} strokeWidth={2.4} /> : <Pencil size={13} strokeWidth={2} />}
+            <Pin size={15} strokeWidth={1.9} fill={pinned ? "currentColor" : "none"} />
           </button>
         </div>
 
-        {order.map((id) => {
-          const n = NAV_REGISTRY[id];
-          const label = labelOf(id);
-          if (editing) {
-            return (
-              <div
-                key={id}
-                className={`nav-edit-row ${dragId === id ? "dragging" : ""}`}
-                draggable
-                onDragStart={() => setDragId(id)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  reorder(id);
-                }}
-                onDrop={() => {
-                  persistOrder(order);
-                  setDragId(null);
-                }}
-                onDragEnd={() => setDragId(null)}
-              >
-                <span className="nav-grip" title="Drag to reorder">
-                  <GripVertical size={16} strokeWidth={1.9} />
-                </span>
-                <span className="ic">
-                  <n.Icon size={18} strokeWidth={1.75} />
-                </span>
-                <input
-                  className="nav-edit-input"
-                  value={label}
-                  onChange={(e) => rename(id, e.target.value)}
-                  aria-label={`Rename ${NAV_REGISTRY[id].label}`}
-                />
-              </div>
-            );
-          }
-          return (
-            <Link
-              key={id}
-              href={n.href}
-              className={`nav-link ${isActive(n.href, n.exact) ? "active" : ""}`}
-              title={label}
-            >
-              <span className="ic">
-                <n.Icon size={20} strokeWidth={1.75} />
-              </span>
-              <span className="label">{label}</span>
-            </Link>
-          );
-        })}
-
-        {editing && (
-          <button className="nav-reset label" onClick={resetNav}>
-            Reset to default
-          </button>
-        )}
-      </div>
-
-      <Link
-        href="/settings"
-        className={`nav-link nav-link-static ${isActive("/settings") ? "active" : ""}`}
-        title="Settings"
-      >
-        <span className="ic">
-          <Settings size={20} strokeWidth={1.75} />
-        </span>
-        <span className="label">Settings</span>
-      </Link>
-
-      <div className="sidebar-foot">
-        <div className="sidebar-foot-row">
-          <button
-            className="theme-switch"
-            onClick={toggleTheme}
-            role="switch"
-            aria-checked={theme === "dark"}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            title={theme === "dark" ? "Light mode" : "Dark mode"}
-          >
-            <span className={`theme-switch-track ${theme === "dark" ? "on" : ""}`}>
-              <span className="theme-switch-thumb">
-                {theme === "dark" ? (
-                  <Moon size={11} strokeWidth={2} />
-                ) : (
-                  <Sun size={11} strokeWidth={2} />
-                )}
-              </span>
-            </span>
-            <span className="label">{theme === "dark" ? "Dark" : "Light"}</span>
-          </button>
-          {onOpenTutorial && (
+        <div className="nav-section">
+          <div className="nav-section-head">
+            <span className="label">Menu</span>
             <button
-              className="help-btn"
-              onClick={onOpenTutorial}
-              title="Show tutorial"
-              aria-label="Show tutorial"
+              className="nav-edit-btn label"
+              onClick={() => setEditing((e) => !e)}
+              title={editing ? "Done editing" : "Edit & reorder menu"}
             >
-              <CircleQuestionMark size={15} strokeWidth={1.9} />
+              {editing ? <Check size={14} strokeWidth={2.4} /> : <Pencil size={13} strokeWidth={2} />}
+            </button>
+          </div>
+
+          {order.map((id) => {
+            const n = NAV_REGISTRY[id];
+            const label = labelOf(id);
+            if (editing) {
+              return (
+                <div
+                  key={id}
+                  className={`nav-edit-row ${dragId === id ? "dragging" : ""}`}
+                  draggable
+                  onDragStart={() => setDragId(id)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    reorder(id);
+                  }}
+                  onDrop={() => {
+                    persistOrder(order);
+                    setDragId(null);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                >
+                  <span className="nav-grip" title="Drag to reorder">
+                    <GripVertical size={16} strokeWidth={1.9} />
+                  </span>
+                  <span className="ic">
+                    <n.Icon size={18} strokeWidth={1.75} />
+                  </span>
+                  <input
+                    className="nav-edit-input"
+                    value={label}
+                    onChange={(e) => rename(id, e.target.value)}
+                    aria-label={`Rename ${NAV_REGISTRY[id].label}`}
+                  />
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={id}
+                href={n.href}
+                className={`nav-link ${isActive(n.href, n.exact) ? "active" : ""}`}
+                title={label}
+              >
+                <span className="ic">
+                  <n.Icon size={20} strokeWidth={1.75} />
+                </span>
+                <span className="label">{label}</span>
+              </Link>
+            );
+          })}
+
+          {editing && (
+            <button className="nav-reset label" onClick={resetNav}>
+              Reset to default
             </button>
           )}
         </div>
 
-        {health ? (
-          <>
-            <Link href="/settings" style={{ color: "inherit", textDecoration: "none" }}>
-              <AiStatus ai={ai} usage={usage} health={health} />
-            </Link>
-            <br />
-            <span style={{ opacity: 0.7 }}>v{health.version}</span>
-          </>
-        ) : (
-          "connecting…"
-        )}
+        <Link
+          href="/settings"
+          className={`nav-link nav-link-static ${isActive("/settings") ? "active" : ""}`}
+          title="Settings"
+        >
+          <span className="ic">
+            <Settings size={20} strokeWidth={1.75} />
+          </span>
+          <span className="label">Settings</span>
+        </Link>
 
-        {user && (
-          <div className="user-menu">
-            <span className="user-email label" title={user.email ?? undefined}>
-              {user.email}
-            </span>
-            <button className="signout label" onClick={handleSignOut}>
-              Sign out
+        <div className="sidebar-foot">
+          <div className="sidebar-foot-row">
+            <button
+              className="theme-switch"
+              onClick={toggleTheme}
+              role="switch"
+              aria-checked={theme === "dark"}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+            >
+              <span className={`theme-switch-track ${theme === "dark" ? "on" : ""}`}>
+                <span className="theme-switch-thumb">
+                  {theme === "dark" ? (
+                    <Moon size={11} strokeWidth={2} />
+                  ) : (
+                    <Sun size={11} strokeWidth={2} />
+                  )}
+                </span>
+              </span>
+              <span className="label">{theme === "dark" ? "Dark" : "Light"}</span>
             </button>
+            {onOpenTutorial && (
+              <button
+                className="help-btn"
+                onClick={onOpenTutorial}
+                title="Show tutorial"
+                aria-label="Show tutorial"
+              >
+                <CircleQuestionMark size={15} strokeWidth={1.9} />
+              </button>
+            )}
           </div>
-        )}
-      </div>
-    </aside>
+
+          {health ? (
+            <>
+              <Link href="/settings" style={{ color: "inherit", textDecoration: "none" }}>
+                <AiStatus ai={ai} usage={usage} health={health} />
+              </Link>
+              <br />
+              <span style={{ opacity: 0.7 }}>v{health.version}</span>
+            </>
+          ) : (
+            "connecting…"
+          )}
+
+          {user && (
+            <div className="user-menu">
+              <span className="user-email label" title={user.email ?? undefined}>
+                {user.email}
+              </span>
+              <button className="signout label" onClick={handleSignOut}>
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }

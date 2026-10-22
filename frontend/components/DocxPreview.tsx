@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ZoomIn, ZoomOut } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { placeAnchoredDrawings } from "@/lib/docxAnchors";
 import { paginate, prepareDocx } from "@/lib/docxPages";
+import { isPhone } from "@/lib/phone";
 
 /**
  * Renders a .docx as a real Word page, in the browser, with docx-preview.
@@ -33,11 +35,14 @@ const MAX_ZOOM = 1.5;
 // Room kept under the canvas for the note below it (screen pixels).
 const BELOW = 40;
 
+/** Phones: the whole page in view, or the document at its own size to read. */
+type ZoomMode = "fit" | "actual";
+
 /**
  * Size the canvas to the window and scale the pages so one shows whole, like a
  * PDF viewer's "fit page": no scrolling needed to see a page.
  */
-function fitPage(canvas: HTMLElement, host: HTMLElement) {
+function fitPage(canvas: HTMLElement, host: HTMLElement, mode: ZoomMode = "fit") {
   const rect = canvas.getBoundingClientRect();
   // Screen pixels per CSS pixel here: the app is drawn at 93%, so lengths set
   // in CSS come out smaller than the window sizes they are worked out from.
@@ -69,7 +74,21 @@ function fitPage(canvas: HTMLElement, host: HTMLElement) {
   const pageW = parseFloat(ps.width);
   const pageH = parseFloat(ps.minHeight) || parseFloat(ps.height);
   if (availW > 0 && availH > 0 && pageW > 0 && pageH > 0) {
-    host.style.setProperty("zoom", String(Math.min(availW / pageW, availH / pageH, MAX_ZOOM)));
+    const phone = isPhone();
+    if (phone && mode === "actual") {
+      // The document at its own size, scrolled to read.
+      host.style.setProperty("zoom", String(1 / scale));
+      return;
+    }
+    const zoom = Math.min(availW / pageW, availH / pageH, MAX_ZOOM);
+    host.style.setProperty("zoom", String(zoom));
+    if (phone) {
+      // A phone fits the page by its width, which leaves the canvas taller
+      // than the page: make it one page tall, with no grey band under it.
+      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const border = canvas.offsetHeight - canvas.clientHeight;
+      canvas.style.height = `${Math.ceil(pageH * zoom + pad + border)}px`;
+    }
   }
 }
 
@@ -193,6 +212,23 @@ export default function DocxPreview({
   const hostRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Phones only: the zoom button switches between these.
+  const [zoomMode, setZoomMode] = useState<ZoomMode>("fit");
+  const zoomRef = useRef<ZoomMode>("fit");
+
+  function toggleZoom() {
+    const canvas = canvasRef.current;
+    const host = hostRef.current;
+    if (!canvas || !host) return;
+    const next: ZoomMode = zoomRef.current === "fit" ? "actual" : "fit";
+    // Stay on the same part of the document.
+    const at = canvas.scrollTop / Math.max(1, canvas.scrollHeight);
+    zoomRef.current = next;
+    setZoomMode(next);
+    fitPage(canvas, host, next);
+    canvas.scrollTop = at * canvas.scrollHeight;
+    canvas.scrollLeft = 0;
+  }
 
   // Keep one page fitting the window as it is resized.
   useEffect(() => {
@@ -200,7 +236,9 @@ export default function DocxPreview({
     const onResize = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (canvasRef.current && hostRef.current) fitPage(canvasRef.current, hostRef.current);
+        if (canvasRef.current && hostRef.current) {
+          fitPage(canvasRef.current, hostRef.current, zoomRef.current);
+        }
       });
     };
     onResize();
@@ -285,7 +323,7 @@ export default function DocxPreview({
           }
         }
 
-        if (canvasRef.current) fitPage(canvasRef.current, host);
+        if (canvasRef.current) fitPage(canvasRef.current, host, zoomRef.current);
       } catch (e: any) {
         if (!cancelled) setError(String(e?.message || e));
       } finally {
@@ -301,6 +339,25 @@ export default function DocxPreview({
 
   return (
     <div ref={canvasRef} className="docx-canvas">
+      {/* Phones only (hidden by CSS elsewhere): whole page or actual size. */}
+      <div className="docx-zoom-row">
+        <button
+          type="button"
+          className="docx-zoom"
+          onClick={toggleZoom}
+          aria-pressed={zoomMode === "actual"}
+        >
+          {zoomMode === "fit" ? (
+            <>
+              <ZoomIn size={14} strokeWidth={2} /> Actual size
+            </>
+          ) : (
+            <>
+              <ZoomOut size={14} strokeWidth={2} /> Whole page
+            </>
+          )}
+        </button>
+      </div>
       {loading && (
         <div className="docx-overlay">
           <Spinner label="Rendering Word preview…" />

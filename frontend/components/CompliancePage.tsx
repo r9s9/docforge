@@ -89,7 +89,7 @@ export default function CompliancePage() {
             ))}
           </select>
         </label>
-        <button className="btn secondary" onClick={() => inputRef.current?.click()}>
+        <button className="btn secondary file-btn" onClick={() => inputRef.current?.click()}>
           {file ? (
             <>
               <FileText size={15} strokeWidth={1.9} /> {file.name}
@@ -173,7 +173,7 @@ function Report({
 
   return (
     <div className="section">
-      <div className="card" style={{ display: "flex", gap: 32, alignItems: "center" }}>
+      <div className="card cmp-score" style={{ display: "flex", gap: 32, alignItems: "center" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontFamily: "var(--font-serif)", fontSize: 56, fontWeight: 600, color }}>
             {Math.round(report.score)}
@@ -235,8 +235,11 @@ function Report({
       <div className="section" style={{ marginTop: 28 }}>
         <h2 className="section-h">Side-by-side comparison</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          The template with labels (left) and your document (right) as full A4 pages, with the
-          differences listed between them. All differing lines are highlighted in{" "}
+          The template with labels <span className="hide-phone">(left)</span>
+          <span className="show-phone">(first)</span> and your document{" "}
+          <span className="hide-phone">(right)</span>
+          <span className="show-phone">(last)</span> as full A4 pages, with the differences listed
+          between them. All differing lines are highlighted in{" "}
           <span className="cmp-hl-key">yellow</span>; click a difference to jump to it and mark that
           line in <span className="cmp-hl-sel">red</span>.
         </p>

@@ -387,7 +387,7 @@ export default function TemplateDetail({ id }: { id: string }) {
       )}
 
       {tab === "fields" && !editFields && latest && (
-        <table>
+        <table className="stack-phone">
           <thead>
             <tr>
               <th>Field</th>
@@ -402,11 +402,15 @@ export default function TemplateDetail({ id }: { id: string }) {
             {latest.fields.map((f) => (
               <tr key={f.field_name}>
                 <td className="mono">{f.field_name}</td>
-                <td>{f.label}</td>
-                <td className="muted" style={{ fontSize: 12, maxWidth: 280 }}>
+                <td data-label="Label">{f.label}</td>
+                <td
+                  data-label="Description"
+                  className="muted"
+                  style={{ fontSize: 12, maxWidth: 280 }}
+                >
                   {f.description || "None"}
                 </td>
-                <td>
+                <td data-label="Type" data-half>
                   {f.field_type}
                   {f.columns.length > 0 && (
                     <div className="muted" style={{ fontSize: 12 }}>
@@ -414,8 +418,10 @@ export default function TemplateDetail({ id }: { id: string }) {
                     </div>
                   )}
                 </td>
-                <td>{f.required ? "yes" : "no"}</td>
-                <td>
+                <td data-label="Required" data-half>
+                  {f.required ? "yes" : "no"}
+                </td>
+                <td data-label="Classification" data-half>
                   <ClassificationBadge value={f.classification} />
                 </td>
               </tr>
@@ -425,7 +431,7 @@ export default function TemplateDetail({ id }: { id: string }) {
       )}
 
       {tab === "rules" && latest && (
-        <table>
+        <table className="stack-phone">
           <thead>
             <tr>
               <th>Rule</th>
@@ -439,14 +445,16 @@ export default function TemplateDetail({ id }: { id: string }) {
             {latest.rules.map((r) => (
               <tr key={r.rule_id}>
                 <td className="mono">{r.rule_id}</td>
-                <td className="mono">{r.field_name}</td>
-                <td>{r.rule_type}</td>
-                <td>
+                <td data-label="Field" className="mono">{r.field_name}</td>
+                <td data-label="Type" data-half>
+                  {r.rule_type}
+                </td>
+                <td data-label="Severity" data-half>
                   <span className={`badge ${r.severity === "error" ? "fail" : "warning"}`}>
                     {r.severity}
                   </span>
                 </td>
-                <td className="muted">{r.message}</td>
+                <td data-label="Message" className="muted">{r.message}</td>
               </tr>
             ))}
           </tbody>
@@ -454,7 +462,7 @@ export default function TemplateDetail({ id }: { id: string }) {
       )}
 
       {tab === "sections" && (
-        <table>
+        <table className="stack-phone">
           <thead>
             <tr>
               <th>Section</th>
@@ -466,8 +474,8 @@ export default function TemplateDetail({ id }: { id: string }) {
             {sections.map((s) => (
               <tr key={s.section_key}>
                 <td>{s.title}</td>
-                <td className="muted">{s.purpose}</td>
-                <td className="mono">{(s.field_names || []).join(", ")}</td>
+                <td data-label="Purpose" className="muted">{s.purpose}</td>
+                <td data-label="Fields" className="mono">{(s.field_names || []).join(", ")}</td>
               </tr>
             ))}
           </tbody>
@@ -475,7 +483,7 @@ export default function TemplateDetail({ id }: { id: string }) {
       )}
 
       {tab === "versions" && (
-        <table>
+        <table className="stack-phone">
           <thead>
             <tr>
               <th>Version</th>
@@ -490,10 +498,16 @@ export default function TemplateDetail({ id }: { id: string }) {
             {detail.versions.map((v) => (
               <tr key={v.id}>
                 <td>v{v.version}</td>
-                <td>{v.n_fields}</td>
-                <td>{v.renderer}</td>
-                <td className="muted">{v.changelog}</td>
-                <td className="muted">{new Date(v.created_at).toLocaleString()}</td>
+                <td data-label="Fields" data-half>
+                  {v.n_fields}
+                </td>
+                <td data-label="Renderer" data-half>
+                  {v.renderer}
+                </td>
+                <td data-label="Changelog" className="muted">{v.changelog}</td>
+                <td data-label="Created" className="muted">
+                  {new Date(v.created_at).toLocaleString()}
+                </td>
                 <td>
                   <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
                     <button

@@ -109,7 +109,7 @@ function TableEditor({
     onChange(rows.map((r, idx) => (idx === i ? { ...r, [col]: val } : r)));
   return (
     <div>
-      <table>
+      <table className="scroll-x">
         <thead>
           <tr>
             {cols.map((c) => (
@@ -513,7 +513,10 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                 template&apos;s fields. AI improves the mapping when a provider is connected.
               </p>
               <div className="row">
-                <button className="btn secondary" onClick={() => docInputRef.current?.click()}>
+                <button
+                  className="btn secondary file-btn"
+                  onClick={() => docInputRef.current?.click()}
+                >
                   {docFile ? (
                     <>
                       <FileText size={15} strokeWidth={1.9} /> {docFile.name}
@@ -631,7 +634,9 @@ export default function GeneratePage({ initialId }: { initialId?: string }) {
                 </div>
               ) : (
                 <div className="banner info section">
-                  <strong>Review your document.</strong> The panel on the left is the real Word
+                  <strong>Review your document.</strong> The panel{" "}
+                  <span className="hide-phone">on the left</span>
+                  <span className="show-phone">below</span> is the real Word
                   document that will be generated. Click a field to jump to it in the preview, edit
                   anything, hit <strong>↻ Update preview</strong>, then <strong>Generate DOCX</strong>.
                 </div>
@@ -1022,7 +1027,7 @@ function ResultPanel({ result }: { result: GenerationResult }) {
       )}
 
       {v && v.issues.length > 0 && (
-        <table>
+        <table className="stack-phone">
           <thead>
             <tr>
               <th>Severity</th>
@@ -1039,9 +1044,9 @@ function ResultPanel({ result }: { result: GenerationResult }) {
                     {iss.severity}
                   </span>
                 </td>
-                <td className="mono">{iss.field_name}</td>
-                <td>{iss.message}</td>
-                <td className="muted">{iss.suggested_fix}</td>
+                <td data-label="Field" className="mono">{iss.field_name}</td>
+                <td data-label="Message">{iss.message}</td>
+                <td data-label="Suggested fix" className="muted">{iss.suggested_fix}</td>
               </tr>
             ))}
           </tbody>
