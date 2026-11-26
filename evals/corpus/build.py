@@ -19,6 +19,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from evals import jsonfmt
 from evals.corpus.doc_types import SPECS
 from evals.corpus.generator import EXAMPLES, HELD_OUT, build_document, content_hash, doc_id
 from evals.corpus.model import DocTypeSpec
@@ -128,26 +129,10 @@ def build_corpus(out_dir: Path, manifest_path: Path | None = None) -> dict[str, 
     return manifest
 
 
-def _format(value: Any, depth: int = 0) -> str:
-    """JSON with nested objects indented, but each object inside a list on one line.
-
-    Documents and cases then take one line each, which keeps the committed manifest's diffs
-    readable.
-    """
-    pad = " " * depth
-    if isinstance(value, dict) and value:
-        items = [f"{pad} {json.dumps(k)}: {_format(v, depth + 1)}" for k, v in value.items()]
-        return "{\n" + ",\n".join(items) + "\n" + pad + "}"
-    if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
-        lines = [f"{pad} {json.dumps(v, ensure_ascii=False)}" for v in value]
-        return "[\n" + ",\n".join(lines) + "\n" + pad + "]"
-    return json.dumps(value, ensure_ascii=False)
-
-
 def write_manifest(manifest: dict[str, Any], path: Path) -> None:
     """Write the manifest as stable, reviewable JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(_format(manifest) + "\n", encoding="utf-8")
+    path.write_text(jsonfmt.dumps(manifest) + "\n", encoding="utf-8")
 
 
 def load_manifest(path: Path) -> dict[str, Any]:

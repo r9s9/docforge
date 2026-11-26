@@ -98,7 +98,7 @@ def _report_summary(report, node_to_logical: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def _fix(db, template, case: dict[str, Any], data: bytes, before: dict[str, Any],
+def _fix(db, template, case: dict[str, Any], data: bytes, values_before: dict[str, str],
          base: bytes, node_to_logical: dict[str, str]) -> dict[str, Any]:
     fixed, applied = fix_document(db, template, filename=_filename(case["id"]), data=data)
     recheck = _report_summary(
@@ -112,7 +112,7 @@ def _fix(db, template, case: dict[str, Any], data: bytes, before: dict[str, Any]
     return {
         "applied": applied,
         "recheck_clean": not left,
-        "values_kept": recheck["field_values"] == before["field_values"],
+        "values_kept": recheck["field_values"] == values_before,
         "text_restored": [i[:3] for i in fixed_skeleton] == [i[:3] for i in base_skeleton],
         "style_restored": fixed_skeleton == base_skeleton,
         "recheck_score": recheck["score"],
@@ -156,11 +156,13 @@ def _run_case(db, frozen: dict[str, Any], case: dict[str, Any], manifest: dict[s
         started = time.perf_counter()
         report = check_document(db, frozen["template"], filename=_filename(case["id"]), data=data)
         record["check_ms"] = round((time.perf_counter() - started) * 1000, 1)
-        record.update(_report_summary(report, frozen["node_to_logical"]))
+        summary = _report_summary(report, frozen["node_to_logical"])
+        values = summary.pop("field_values")  # only needed to judge a fix; not stored
+        record.update(summary)
         if case["label"]["fixable"]:
             base_file = manifest["types"][case["pair"]]["documents"][case["base"]]["file"]
             record["fix"] = _fix(
-                db, frozen["template"], case, data, record,
+                db, frozen["template"], case, data, values,
                 (build_dir / base_file).read_bytes(), frozen["node_to_logical"],
             )
     except Exception as exc:  # a failing case is a result, not a crash

@@ -8,13 +8,13 @@ never by hand.
 
 from __future__ import annotations
 
-import json
 import platform
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from evals import jsonfmt
 from evals.paths import REPO_ROOT
 
 
@@ -77,7 +77,7 @@ def write_result(result: dict[str, Any], out_dir: Path) -> Path:
     meta = result["meta"]
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{meta['date']}_{meta['config']}_{meta['suite']}.json"
-    path.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(jsonfmt.dumps(result) + "\n", encoding="utf-8")
     return path
 
 
