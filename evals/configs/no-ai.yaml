@@ -1,0 +1,5 @@
+# The deterministic baseline: DocForge with AI switched off. Free, and runs in CI.
+name: no-ai
+description: DocForge's deterministic engine only; no model is called
+ai:
+  enabled: false
