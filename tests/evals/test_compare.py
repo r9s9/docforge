@@ -14,6 +14,8 @@ import io
 import json
 import sys
 
+import pytest
+
 from evals import compare
 from evals.cli import main
 from evals.metrics.comply import summarize
@@ -204,3 +206,60 @@ def test_output_that_cannot_show_an_arrow_gets_a_question_mark_instead_of_a_cras
     assert main(["compare", *paths]) == 0
     redirected.flush()
     assert b"Alarm changes, no-ai ? haiku" in redirected.buffer.getvalue()
+
+
+def _generated(config, outcomes, *, notes="n" * 64, faithful=None):
+    from evals.metrics.generate import summarize as summarize_generate
+
+    records = []
+    for case_id, outcome in outcomes.items():
+        free = {}
+        if faithful is not None:
+            free["text.services"] = {"value": "v", "points": ["p"], "grade": {
+                "status": "graded", "faithful": faithful, "complete": True}}
+        records.append({
+            "id": case_id, "style": "bullets", "ai": False, "error": None, "generate_ms": 50.0,
+            "fields": {"field.date": {"kind": "date", "expected": "x",
+                                      "value": None if outcome == "omitted" else "x",
+                                      "outcome": outcome, "ai_drafted": False,
+                                      "placeholder": False, "superseded": False,
+                                      "form_kept": None}},
+            "tables": {}, "free": free, "routing": {"source": "heuristic"},
+            "review": {"ran": False}, "layout": {"preserved": True},
+        })
+    return {"meta": {"config": config, "suite": "generate", "corpus_hash": CORPUS,
+                     "notes_hash": notes, "ai": {"enabled": False}},
+            "aggregates": summarize_generate(records), "cases": records}
+
+
+def test_generate_results_get_their_own_rows_and_field_outcome_changes():
+    no_ai = _generated("no-ai", {"a": "omitted", "b": "correct"}, faithful=True)
+    haiku = _generated("haiku", {"a": "correct", "b": "unsupported"}, faithful=False)
+    header, rows = markdown_rows([no_ai, haiku])
+    assert rows["short fields right"] == ["0.50 (1/2)", "0.50 (1/2)"]
+    assert rows["hallucinated"] == ["0.00 (0/1)", "0.50 (1/2)"]
+    assert rows["free text faithful"] == ["1.00 (2/2)", "0.00 (0/2)"]
+    assert rows["written by"] == ["heuristic 2", "heuristic 2"]
+    assert compare.outcome_changes(no_ai, haiku) == {
+        "correct → unsupported": ["b field.date"], "omitted → correct": ["a field.date"]}
+    text = compare.report([no_ai, haiku])
+    assert "Field outcome changes, no-ai → haiku:" in text
+
+
+def test_grades_a_disagreeing_grader_gave_are_not_reported():
+    no_ai = _generated("no-ai", {"a": "correct"}, faithful=True)
+    agreement = {"faithful": {"used": False}, "complete": {"used": True}}
+    _header, rows = markdown_rows([no_ai, no_ai])  # without an agreement file: the grades
+    assert rows["free text faithful"] == ["1.00 (1/1)", "1.00 (1/1)"]
+    lines = compare.table([no_ai, no_ai], markdown=True, agreement=agreement).splitlines()
+    faithful = next(line for line in lines if line.startswith("| free text faithful"))
+    assert "not graded (grader disagrees with the owner)" in faithful
+
+
+def test_results_of_different_suites_or_notes_are_flagged():
+    generated = _generated("no-ai", {"a": "correct"})
+    with pytest.raises(ValueError):
+        compare.table([no_ai(), generated])
+    other_notes = _generated("haiku", {"a": "correct"}, notes="m" * 64)
+    assert compare.corpus_note([generated, other_notes]).startswith(
+        "WARNING: these results were run on different notes cases")

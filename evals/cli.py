@@ -49,6 +49,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--grader", type=Path, default=None,
                      help="generate: the grader config (default evals/configs/grader.yaml)")
 
+    labels = sub.add_parser("labels", help="the owner's labels for the free-text grader")
+    labels_sub = labels.add_subparsers(dest="labels_command", required=True)
+    sheet = labels_sub.add_parser("sheet", help="pick the 30 items to label from generate results")
+    sheet.add_argument("results", nargs="*", type=Path,
+                       help="generate result files (default: the newest of each config)")
+    check = labels_sub.add_parser("check", help="how often the grader agrees with the labels")
+    check.add_argument("results", nargs="*", type=Path,
+                       help="generate result files (default: the newest of each config)")
+
     compare = sub.add_parser("compare", help="compare result files side by side")
     compare.add_argument("results", nargs="+", type=Path, help="two or more result files")
     compare.add_argument("--markdown", action="store_true", help="print a Markdown table")
@@ -357,6 +366,9 @@ def _run(args: argparse.Namespace) -> int:
         meta["corpus"] = corpus
         meta["stopped"] = outcome["stopped"]
         if args.suite == "generate":
+            from evals.corpus.notes import load_notes, notes_hash
+
+            meta["notes_hash"] = notes_hash(load_notes())
             meta["grader"] = {"status": "on" if grader else "off", "detail": grading,
                               "model": grader_config["model"] if grader else None,
                               "spend_usd": dict(grader.spent) if grader else None}
@@ -387,11 +399,59 @@ def _run(args: argparse.Namespace) -> int:
 
 def _compare(args: argparse.Namespace) -> int:
     from evals.compare import load, report
+    from evals.graders.labels import AGREEMENT_PATH
 
     if len(args.results) < 2:
         print("Give two or more result files to compare.", file=sys.stderr)
         return 2
-    print(report([load(path) for path in args.results], markdown=args.markdown))
+    results = [load(path) for path in args.results]
+    agreement = load(AGREEMENT_PATH) if AGREEMENT_PATH.exists() else None
+    try:
+        print(report(results, markdown=args.markdown, agreement=agreement))
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    return 0
+
+
+def _newest_generate_results() -> list[Path]:
+    from evals.paths import RESULTS_DIR
+
+    newest: dict[str, Path] = {}
+    for path in sorted(RESULTS_DIR.glob("*_generate.json")):
+        config = path.name.split("_", 1)[1].rsplit("_generate.json", 1)[0]
+        newest[config] = path  # sorted by date, so the last one wins
+    return [newest[config] for config in sorted(newest)]
+
+
+def _labels(args: argparse.Namespace) -> int:
+    from evals import jsonfmt
+    from evals.compare import load
+    from evals.graders import labels
+
+    paths = args.results or _newest_generate_results()
+    if not paths:
+        print("No generate results to take the items from.", file=sys.stderr)
+        return 2
+    results = [load(path) for path in paths]
+    if args.labels_command == "sheet":
+        data = labels.sheet(results)
+        path = labels.write_sheet(data)
+        print(f"{len(data['items'])} items from {', '.join(data['results'])} written to {path}")
+        return 0
+    if not labels.OWNER_PATH.exists():
+        print(f"No owner labels yet ({labels.OWNER_PATH}).", file=sys.stderr)
+        return 2
+    result = labels.agreement(labels.load_json(labels.SHEET_PATH),
+                              labels.load_json(labels.OWNER_PATH), results)
+    labels.AGREEMENT_PATH.write_text(jsonfmt.dumps(result) + "\n", encoding="utf-8",
+                                     newline="\n")
+    for question in labels.QUESTIONS:
+        agreed = result[question]["agreement"]
+        value = "n/a" if agreed["value"] is None else f"{agreed['value']:.2f}"
+        verdict = "used" if result[question]["used"] else "not used"
+        print(f"{question:9} the grader agrees with the owner on {value} "
+              f"({agreed['num']}/{agreed['den']}): {verdict} (gate {result['gate']:.2f})")
     return 0
 
 
@@ -416,4 +476,6 @@ def main(argv: list[str] | None = None) -> int:
         return _run(args)
     if args.command == "compare":
         return _compare(args)
+    if args.command == "labels":
+        return _labels(args)
     return 2

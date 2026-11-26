@@ -22,6 +22,8 @@ values and against its own text.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -147,6 +149,14 @@ def select_notes(cases: list[NotesCase], types: list[str] | None,
         pair_cases = [case for case in cases if case.pair == pair]
         chosen.extend(pair_cases[:limit] if limit else pair_cases)
     return chosen
+
+
+def notes_hash(cases: list[NotesCase]) -> str:
+    """sha256 of the notes and their expected values: results with the same hash are comparable."""
+    canonical = [{"id": c.id, "text": c.text, "expected": c.expected, "superseded": c.superseded}
+                 for c in sorted(cases, key=lambda c: c.id)]
+    return hashlib.sha256(json.dumps(canonical, sort_keys=True, ensure_ascii=False)
+                          .encode("utf-8")).hexdigest()
 
 
 def problems(case: NotesCase) -> list[str]:

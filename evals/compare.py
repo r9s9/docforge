@@ -1,9 +1,12 @@
-"""Compare comply results side by side, and list the cases whose outcome changed.
+"""Compare results of one suite side by side, and list what changed between them.
 
-``python -m evals compare A.json B.json [C.json ...]`` prints one column per result file (the
-M2 "done" table) and, for every file after the first, the cases whose alarm status differs from
-the first file. That's mostly what the AI judge changes: it can downgrade a difference to info,
-or raise one to error. ``--markdown`` prints the table as Markdown for the docs.
+``python -m evals compare A.json B.json [C.json ...]`` prints one column per result file and,
+for every file after the first, what changed from the first file:
+- comply: the cases whose alarm status differs, which is mostly what the AI judge changes (it
+  can downgrade a difference to info, or raise one to error)
+- generate: the fields whose outcome differs ("omitted → correct", "correct → unsupported")
+
+``--markdown`` prints the table as Markdown for the docs.
 
 Only result files are read. Every number comes from a run, and the one metric recomputed here
 from the case records (``material still alarming``) uses the metric code in
@@ -114,6 +117,77 @@ ROWS: list[tuple[str, Callable[[dict[str, Any]], str]]] = [
 ]
 
 
+def _gen(result: dict[str, Any], *keys: str) -> Any:
+    value: Any = result["aggregates"]
+    for key in keys:
+        value = (value or {}).get(key)
+    return value
+
+
+def _graded(result: dict[str, Any], question: str, agreement: dict[str, Any] | None) -> str:
+    if agreement is not None and not (agreement.get(question) or {}).get("used"):
+        return "not graded (grader disagrees with the owner)"
+    rated = _gen(result, "free_text", question)
+    return _rate(rated) if rated and rated["den"] else "not graded"
+
+
+def _sources(result: dict[str, Any]) -> str:
+    sources = _gen(result, "pipeline", "routing_source") or {}
+    return " · ".join(f"{name} {count}" for name, count in sources.items()) or "n/a"
+
+
+def _grading_cost(result: dict[str, Any]) -> str:
+    grader = result["meta"].get("grader") or {}
+    if grader.get("status") != "on":
+        return "none"
+    spent = grader.get("spend_usd") or {}
+    return _usd(spent.get("live", 0.0) + spent.get("replayed", 0.0))
+
+
+def _generate_rows(agreement: dict[str, Any] | None) -> list[tuple[str, Callable]]:
+    return [
+        ("short fields right", lambda r: _rate(_gen(r, "fields", "accuracy"))),
+        ("left empty though given", lambda r: _rate(_gen(r, "fields", "omission_rate"))),
+        ("hallucinated", lambda r: _rate(_gen(r, "fields", "hallucination_rate"))),
+        ("  of those, flagged as AI-drafted",
+         lambda r: _rate(_gen(r, "fields", "hallucinations_flagged"))),
+        ("from the notes, but wrong", lambda r: _rate(_gen(r, "fields", "grounded_wrong_rate"))),
+        ("empty where the notes are silent",
+         lambda r: _rate(_gen(r, "fields", "correctly_empty_rate"))),
+        ("a corrected value used", lambda r: str(_gen(r, "fields", "superseded_used"))),
+        ("dates and amounts in template form", lambda r: _rate(_gen(r, "fields", "form_kept"))),
+        ("table row count right", lambda r: _rate(_gen(r, "tables", "row_count_ok"))),
+        ("table cells right", lambda r: _rate(_gen(r, "tables", "cell_accuracy"))),
+        ("table cells unsupported", lambda r: _rate(_gen(r, "tables", "unsupported_cells"))),
+        ("free text written", lambda r: _rate(_gen(r, "free_text", "written"))),
+        ("free text faithful", lambda r: _graded(r, "faithful", agreement)),
+        ("free text complete", lambda r: _graded(r, "complete", agreement)),
+        ("layout kept", lambda r: _rate(_gen(r, "pipeline", "layout_preserved"))),
+        ("written by", _sources),
+        ("review led to a rewrite", lambda r: _rate(_gen(r, "pipeline", "rewrites"))),
+        ("writer fell back", lambda r: _rate(_ai(r)["fallback_rate"]) if _ai(r) else "n/a"),
+        ("stable across repeats",
+         lambda r: _rate((_ai(r)["stability"] or {}).get("outcome_agreement"))
+         if _ai(r) else "n/a"),
+        ("cost per document", lambda r: _cost(r, "per_document")),
+        ("total cost, repeats included", _total),
+        ("grading cost", _grading_cost),
+        ("generate latency p50 / p95",
+         lambda r: f"{_num(_gen(r, 'generate_ms_p50'))} / {_num(_gen(r, 'generate_ms_p95'))} ms"),
+        ("errors", lambda r: _rate(r["aggregates"]["error_rate"])),
+        ("run on", _machine),
+    ]
+
+
+def rows_for(results: list[dict[str, Any]],
+             agreement: dict[str, Any] | None = None) -> list[tuple[str, Callable]]:
+    """The table's rows for the results' suite."""
+    suites = {r["meta"].get("suite", "comply") for r in results}
+    if len(suites) > 1:
+        raise ValueError(f"results of different suites can't be compared: {sorted(suites)}")
+    return _generate_rows(agreement) if suites == {"generate"} else ROWS
+
+
 def _column_name(result: dict[str, Any]) -> str:
     meta = result["meta"]
     model = (meta.get("ai") or {}).get("model")
@@ -128,16 +202,22 @@ def corpus_note(results: list[dict[str, Any]]) -> str:
     rebuilt = [r["meta"]["config"] for r in results
                if not (r["meta"].get("corpus") or {}).get("files_match_manifest", True)]
     note = f"Same corpus ({next(iter(hashes))[:12]}) in every result."
+    notes = {r["meta"].get("notes_hash") for r in results}
+    if len(notes) > 1:
+        return ("WARNING: these results were run on different notes cases; the cases are not "
+                "the same.")
     if rebuilt:
         note += (f" {', '.join(rebuilt)} rebuilt the files locally with other library versions "
                  "(same ground truth and labels).")
     return note
 
 
-def table(results: list[dict[str, Any]], *, markdown: bool = False) -> str:
-    """The side-by-side table of the main comply metrics."""
+def table(results: list[dict[str, Any]], *, markdown: bool = False,
+          agreement: dict[str, Any] | None = None) -> str:
+    """The side-by-side table of the suite's main metrics."""
     names = [_column_name(r) for r in results]
-    rows = [(label, [render(r) for r in results]) for label, render in ROWS]
+    rows = [(label, [render(r) for r in results])
+            for label, render in rows_for(results, agreement)]
     if markdown:
         lines = ["| metric | " + " | ".join(names) + " |",
                  "|---|" + "---|" * len(names)]
@@ -178,13 +258,33 @@ def flips(base: dict[str, Any], other: dict[str, Any]) -> dict[str, list[str]]:
     return dict(sorted(changes.items()))
 
 
-def report(results: list[dict[str, Any]], *, markdown: bool = False, show: int = 8) -> str:
-    """The whole comparison: corpus note, table, and the flipped cases."""
-    lines = [corpus_note(results), "", table(results, markdown=markdown)]
+def outcome_changes(base: dict[str, Any], other: dict[str, Any]) -> dict[str, list[str]]:
+    """Generate: the fields whose outcome differs between two results, by change."""
+    before = {c["id"]: c for c in base["cases"] if not c.get("error")}
+    changes: dict[str, list[str]] = defaultdict(list)
+    for case in other["cases"]:
+        old = before.get(case["id"])
+        if old is None or case.get("error"):
+            continue
+        for logical, field in (case.get("fields") or {}).items():
+            previous = (old.get("fields") or {}).get(logical)
+            if previous and previous["outcome"] != field["outcome"]:
+                changes[f"{previous['outcome']} → {field['outcome']}"].append(
+                    f"{case['id']} {logical}")
+    return dict(sorted(changes.items()))
+
+
+def report(results: list[dict[str, Any]], *, markdown: bool = False, show: int = 8,
+           agreement: dict[str, Any] | None = None) -> str:
+    """The whole comparison: corpus note, table, and what changed."""
+    generate = results[0]["meta"].get("suite") == "generate"
+    lines = [corpus_note(results), "",
+             table(results, markdown=markdown, agreement=agreement if generate else None)]
     base = results[0]
     for other in results[1:]:
-        changes = flips(base, other)
-        lines += ["", f"Alarm changes, {_column_name(base)} → {_column_name(other)}:"]
+        changes = outcome_changes(base, other) if generate else flips(base, other)
+        what = "Field outcome changes" if generate else "Alarm changes"
+        lines += ["", f"{what}, {_column_name(base)} → {_column_name(other)}:"]
         if not changes:
             lines.append("  none")
         for kind, ids in changes.items():
