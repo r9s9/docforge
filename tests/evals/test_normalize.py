@@ -8,6 +8,7 @@ import pytest
 
 from evals.metrics.normalize import (
     appears_in,
+    appears_in_cell,
     find_amounts,
     find_dates,
     is_placeholder,
@@ -129,6 +130,21 @@ def test_a_longer_value_put_together_from_the_notes_is_in_the_notes():
     assert appears_in("text", joined, notes)
     assert not appears_in("text", "Kunde: Calvenna Health Partners Ltd pays monthly", notes)
     assert not appears_in("text", "Calvenna Partners", notes)  # short: must be in one piece
+
+
+def test_a_compound_with_or_without_its_hyphen_is_the_same_text():
+    assert same("text", "Software-Lizenz", "Softwarelizenz")
+    assert same("text", "Vor-Ort-Support", "Vor Ort Support")  # a hyphen still splits words
+    assert same("text", "on-site support", "on site support")
+    assert same_cell("text", "Software-Lizenz", "Softwarelizenz")
+    assert same_cell("text", "Software-Lizenzen", "Softwarelizenz")  # a longer cell holds it
+    assert not same("text", "Lindh Haag Bau GmbH", "Lindenhaag Bau GmbH")  # a space isn't one
+    assert not same("text", "Hamburg – Berlin", "HamburgBerlin")  # a dash with spaces isn't one
+    notes = "6 Softwarelizenzen à 220 €, dazu die Vor-Ort-Schulung"
+    assert appears_in_cell("text", "Software-Lizenz", notes)  # inside a longer word, as before
+    assert not appears_in("text", "Software-Lizenz", notes)  # a whole word must match
+    assert appears_in("text", "Vorortschulung", notes)  # closed up where the notes hyphenate
+    assert appears_in("text", "Vor-Ort-Schulung", notes)
 
 
 def test_a_role_in_brackets_is_not_part_of_a_name():

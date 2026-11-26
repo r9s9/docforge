@@ -8,7 +8,8 @@ mentions. They are pure functions and never import DocForge.
 
 Kinds of value:
 - ``text``: case, punctuation and spacing don't matter, and neither does a trailing legal form
-  ("Merrowind Retail Group" = "Merrowind Retail Group Ltd").
+  ("Merrowind Retail Group" = "Merrowind Retail Group Ltd") or a hyphen inside a compound
+  ("Software-Lizenz" = "Softwarelizenz").
 - ``date``: any common English or German form, with or without a year-first ISO form.
 - ``money``: any grouping and decimal convention, with or without the currency.
 - ``number``: a quantity.
@@ -97,6 +98,28 @@ def _without_legal_form(text: str) -> str:
     while len(words) > 1 and words[-1] in _LEGAL_FORMS:
         words.pop()
     return " ".join(words)
+
+
+# A hyphen between two letters or digits: ASCII, Unicode hyphen (NFKC turns the non-breaking
+# hyphen into it). A dash with spaces around it ("Hamburg – Berlin") is punctuation instead.
+_COMPOUND_HYPHEN = re.compile(r"(?<=\w)[-‐](?=\w)")
+
+
+def _joined(value: Any) -> str:
+    """``norm_text`` with hyphenated compounds closed up: ``Software-Lizenz`` → ``softwarelizenz``.
+
+    German writes the same compound with or without its hyphen, so a comparison tries both:
+    ``norm_text`` makes "on-site" equal "on site", this makes "Software-Lizenz" equal
+    "Softwarelizenz".
+    """
+    return norm_text(_COMPOUND_HYPHEN.sub("", _base(value)))
+
+
+def _same_text(actual: Any, expected: Any) -> bool:
+    for a, b in ((norm_text(actual), norm_text(expected)), (_joined(actual), _joined(expected))):
+        if a == b or _without_legal_form(a) == _without_legal_form(b):
+            return True
+    return False
 
 
 def is_empty(value: Any) -> bool:
@@ -222,8 +245,7 @@ def same(kind: str, actual: Any, expected: Any) -> bool:
         return norm_name(actual) == norm_name(expected)
     if kind == "names":
         return split_names(actual) == split_names(expected)
-    a, b = norm_text(actual), norm_text(expected)
-    return a == b or _without_legal_form(a) == _without_legal_form(b)
+    return _same_text(actual, expected)
 
 
 def same_cell(kind: str, actual: Any, expected: Any) -> bool:
@@ -236,8 +258,10 @@ def same_cell(kind: str, actual: Any, expected: Any) -> bool:
         return True
     if kind != "text" or is_empty(actual) or is_empty(expected):
         return False
-    a, b = norm_text(actual), norm_text(expected)
-    return len(min(a, b, key=len)) >= 3 and (a in b or b in a)
+    for a, b in ((norm_text(actual), norm_text(expected)), (_joined(actual), _joined(expected))):
+        if len(min(a, b, key=len)) >= 3 and (a in b or b in a):
+            return True
+    return False
 
 
 def appears_in(kind: str, value: Any, notes: str) -> bool:
@@ -264,6 +288,8 @@ def appears_in(kind: str, value: Any, notes: str) -> bool:
     haystack = f" {norm_text(notes)} "
     if f" {text} " in haystack or (kind == "text" and f" {_without_legal_form(text)} " in haystack):
         return True
+    if kind == "text" and f" {_joined(value)} " in f" {_joined(notes)} ":
+        return True
     # A longer value put together from several places in the notes (lines a router joined)
     # states nothing new. A short one, such as an ID, must appear in one piece.
     words = text.split()
@@ -277,5 +303,5 @@ def appears_in_cell(kind: str, value: Any, notes: str) -> bool:
     """
     if kind != "text":
         return appears_in(kind, value, notes)
-    text = norm_text(value)
-    return len(text) >= 3 and text in norm_text(notes)
+    text, joined = norm_text(value), _joined(value)
+    return len(text) >= 3 and (text in norm_text(notes) or joined in _joined(notes))
