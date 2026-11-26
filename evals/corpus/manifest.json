@@ -1535,7 +1535,7 @@
   {"id": "minutes_en/held_06/insert_benign", "pair": "minutes_en", "base": "held_06", "file": "minutes_en/cases/held_06__insert_benign.docx", "content_hash": "52d23a1c7ed089be5f93cf7129c667fb65260db5060ae64bb3745461fa98bf18", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.distribution", "text": "Note: The chair will schedule the next meeting."}}}
  ],
  "analyze": {
-  "analyze_hash": "5578da774113baf8db28351d27f8c5104194bc21f3a721a336ea32c95cf6770b",
+  "analyze_hash": "bcbd09c7d6607e2c050bb63b4825c70c0cbd235f03a8c29fe4ade0e8c40d5382",
   "types": {
    "dpia_en": {
     "doc_type": "dpia",
@@ -1709,6 +1709,162 @@
        "risks": "The legacy system's support contract ends in June, which leaves no room for delays."
       }
      }
+    }
+   }
+  },
+  "shared": {
+   "service_agreement_en": {
+    "field": "field.customer",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "service_agreement_en/shared_02.docx",
+    "content_hash": "c40defcd287f7f9a89b26cd8923e224776739ccdb86531b2c92b077d526afd53",
+    "truth_hash": "6f7a196f1c5c76b2800383b36ccb6cb631ea83e57c37090ac11539529cf7a420",
+    "values": {
+     "agreement_no": "SA-2026-0409",
+     "date": "24 January 2026",
+     "customer": "Pellbrook Marine Supplies Ltd",
+     "start_date": "8 February 2026",
+     "monthly_fee": "€8,800.00",
+     "services": "Operation and monitoring of the Customer's warehouse management platform, including incident handling during business hours and a monthly service report.",
+     "fees": [["Training", "per session", "€950.00"], ["Penetration test", "per test", "€7,800.00"], ["Change requests", "per hour", "€145.00"]]
+    }
+   },
+   "service_agreement_de": {
+    "field": "field.customer",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "service_agreement_de/shared_02.docx",
+    "content_hash": "12d1d09c6e69b009b584be6602c316d97d7d22b0c184e2d9f3b5a2cec07c2c84",
+    "truth_hash": "c61318a78da722952a9092c0ac17cc32b44015919809af896c492f7820cdf1cc",
+    "values": {
+     "agreement_no": "DV-2026-0409",
+     "date": "24.01.2026",
+     "customer": "Kesselwind Logistik GmbH",
+     "start_date": "08.02.2026",
+     "monthly_fee": "9.100,00 €",
+     "services": "Betrieb und Überwachung der Lagerverwaltungsplattform des Auftraggebers einschließlich Störungsbearbeitung während der Geschäftszeiten und eines monatlichen Serviceberichts.",
+     "fees": [["Datenmigration", "einmalig", "6.500,00 €"], ["Service Desk", "pro Monat", "2.800,00 €"], ["Vor-Ort-Support", "pro Tag", "1.200,00 €"]]
+    }
+   },
+   "nda_en": {
+    "field": "field.party_b",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "nda_en/shared_02.docx",
+    "content_hash": "b2c61ab08f7fbb206c67aa673b1009741da20cbdccb0cf8a2da388bc5173782b",
+    "truth_hash": "91ff1c2874713c66528a02f57ce247b668a994e2b5e600ad4ab6974cb9dee965",
+    "values": {
+     "effective_date": "15 February 2026",
+     "party_b": "Glenmarrow Facilities Ltd",
+     "purpose": "Review of a data migration concept for a regional retailer"
+    }
+   },
+   "nda_de": {
+    "field": "field.party_b",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "nda_de/shared_02.docx",
+    "content_hash": "953bd38968933464b82349f89f6a27e3e143a61a0512f307d1d289450fe77795",
+    "truth_hash": "866ad777a86156c2a806858ed39edd88912e14e2bc9d0c41fb63222920793c69",
+    "values": {
+     "effective_date": "16.02.2026",
+     "party_b": "Kesselwind Logistik GmbH",
+     "purpose": "Abstimmung eines gemeinsamen Forschungsprojekts zur vorausschauenden Wartung"
+    }
+   },
+   "invoice_en": {
+    "field": "field.customer",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "invoice_en/shared_02.docx",
+    "content_hash": "d66fc69ae5428121bf9c00e4994412032472cbb43b52ac3a63d811b7c60aec55",
+    "truth_hash": "b31a8cd966c03040d1a78aa208a939e675fff05bb7e7cee58e802efd3c2590d9",
+    "values": {
+     "invoice_no": "INV-2026-0143",
+     "invoice_date": "16 February 2026",
+     "due_date": "18 March 2026",
+     "customer": "Calvenna Health Partners Ltd",
+     "vat_id": "GB000000101",
+     "items": [["Training workshop", "1", "€900.00", "€900.00"], ["Software licence", "8", "€220.00", "€1,760.00"], ["Security review", "6", "€1,200.00", "€7,200.00"]],
+     "subtotal": "€9,860.00",
+     "vat": "€1,972.00",
+     "total": "€11,832.00"
+    }
+   },
+   "invoice_de": {
+    "field": "field.customer",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "invoice_de/shared_02.docx",
+    "content_hash": "1bdfd9395b21ce605db8be46a8cd2c9479037a63205c659ba8cba586a292cc9e",
+    "truth_hash": "1d04046ed16bbe82ac2989b99234408a79758d0747affb57c252a29d03ec072f",
+    "values": {
+     "invoice_no": "RE-2026-0145",
+     "invoice_date": "17.02.2026",
+     "due_date": "03.03.2026",
+     "customer": "Finkenstedt Medizintechnik GmbH",
+     "vat_id": "DE000000101",
+     "items": [["Beratungsleistungen", "10", "150,00 €", "1.500,00 €"], ["Datenexport", "2", "350,00 €", "700,00 €"], ["Sicherheitsprüfung", "4", "1.200,00 €", "4.800,00 €"]],
+     "subtotal": "7.000,00 €",
+     "vat": "1.330,00 €",
+     "total": "8.330,00 €"
+    }
+   },
+   "minutes_en": {
+    "field": "field.meeting",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "minutes_en/shared_02.docx",
+    "content_hash": "a8e31a519ced0391e32cceb842b1b7acb167cbe9b433a9416e4d813542f8326d",
+    "truth_hash": "bc97f0b715b860ad269d350c9c36fd6c4d04ab58ef34c8a9968d4a8c8267a3ee",
+    "values": {
+     "meeting": "Data quality working group",
+     "date": "16 March 2026",
+     "chair": "Sophie Okafor",
+     "minute_taker": "Hannah Achterberg",
+     "attendees": "Clara Haverkamp, Tobias Varga, Lena Lindqvist, Elif Whitcombe",
+     "agenda": "Changes in the payment provider's interface, the release calendar, and test coverage.",
+     "decisions": "Two servers keep their exception for one more cycle; all others are patched on schedule.",
+     "actions": [["Book the test environment for the load test", "Tobias Varga", "23 March 2026"], ["Draft the data processing agreement", "Clara Haverkamp", "30 March 2026"], ["Review open incidents with the vendor", "Lena Lindqvist", "6 April 2026"]]
+    }
+   },
+   "dpia_en": {
+    "field": "field.dpo",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "dpia_en/shared_02.docx",
+    "content_hash": "4a843584e2c48d7f2b3952d63374ee838a9e06934e0e10328117036be44a3d8d",
+    "truth_hash": "e27fbd7423c0f4f90a4cef95c0cb517dee1213a9eea2e2cbf0bfc03ce012ccbb",
+    "values": {
+     "reference": "DPIA-2026-020",
+     "version": "2.0",
+     "date": "20 February 2026",
+     "owner": "Jonas Kessling",
+     "activity": "Video surveillance of the warehouse entrance",
+     "purpose": "Cameras at the warehouse entrance record who enters outside opening hours, to prevent theft and to investigate incidents.",
+     "data_categories": "Video images of employees, drivers and visitors",
+     "legal_basis": "Article 6(1)(e) GDPR – task in the public interest",
+     "risks": [["Weak passwords on the vendor portal", "Medium", "High", "Single sign-on with multi-factor authentication"], ["Transfer to a processor outside the EEA", "Medium", "High", "Standard contractual clauses and a transfer assessment"], ["Data kept longer than needed", "Medium", "High", "Automatic deletion when the retention period ends"]],
+     "dpo": "Elif Whitcombe"
+    }
+   },
+   "status_report_en": {
+    "field": "field.prepared_by",
+    "copied_from": "ex_01",
+    "base": "ex_02",
+    "file": "status_report_en/shared_02.docx",
+    "content_hash": "9dca6832918e21f4e6194ba6dca193ff356e27fa26a8a90fbe3d779c196ce3eb",
+    "truth_hash": "a35b5283d1f17f9ef9fc1df1c1517b9d7ed965966c261c0f6343ff5e63a0ea15",
+    "values": {
+     "report_date": "30 March 2026",
+     "project": "Sensor analytics pilot",
+     "manager": "Noah Petrovic",
+     "status": "On track",
+     "prepared_by": "Mira Ostwald",
+     "summary": "User feedback from the pilot was positive. The rollout to the remaining sites will start once the last open defect is fixed.",
+     "tasks": [["Review the access rights", "Samuel Rinaldi", "5 April 2026", "Not started"], ["Run the cut-over rehearsal", "Ines Tamura", "12 April 2026", "Not started"], ["Finish the interface tests", "Hannah Achterberg", "19 April 2026", "Not started"]],
+     "risks": "Two open defects block the sign-off; the vendor has promised fixes for the next release."
     }
    }
   }

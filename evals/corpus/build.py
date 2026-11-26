@@ -11,8 +11,9 @@ document itself. The full ground truth isn't stored: ``truth_for`` rebuilds it f
 generator, and the hashes in the manifest prove it is the same one.
 
 The manifest's ``analyze`` section (M4) holds what only the analyze suite uses: the examples of
-the analyze-only types. It has its own ``analyze_hash``, and ``corpus_hash`` leaves it out, so
-the corpus that comply and generate run on keeps the hash it had.
+the analyze-only types, and one shared-value document per type (``shared_02``: the second
+example with one value copied from the first). It has its own ``analyze_hash``, and
+``corpus_hash`` leaves it out, so the corpus that comply and generate run on keeps its hash.
 """
 
 from __future__ import annotations
@@ -24,13 +25,14 @@ from pathlib import Path
 from typing import Any
 
 from evals import jsonfmt
-from evals.corpus.doc_types import ALL_SPECS, ANALYZE_SPECS, SPECS
+from evals.corpus.doc_types import ALL_SPECS, ANALYZE_SPECS, SHARED_FIELDS, SPECS
 from evals.corpus.generator import EXAMPLES, HELD_OUT, build_document, content_hash, doc_id
 from evals.corpus.model import DocTypeSpec
 from evals.corpus.mutators import applicable, clean_label, mutate
 
 MANIFEST_VERSION = 1
 BASES_PER_MUTATOR = 2
+SHARED_DOC = "shared_02"  # the second example, with one value copied from the first
 _MARKER = ".evals-build"
 
 
@@ -91,8 +93,23 @@ def _document(pair: str, name: str, data: bytes, truth: list[dict[str, Any]],
     }
 
 
+def shared_overrides(pair: str) -> dict[str, Any]:
+    """The value the shared-value document of ``pair`` copies from the first example."""
+    spec = ALL_SPECS[pair]
+    key = next(block.key for block in spec.blocks if block.id == SHARED_FIELDS[pair])
+    return {key: spec.values(0)[key]}
+
+
+def build_shared(pair: str) -> tuple[bytes, list[dict[str, Any]]]:
+    """The shared-value document of ``pair``: ``ex_02`` with one value taken from ``ex_01``."""
+    return build_document(ALL_SPECS[pair], 1, shared_overrides(pair))
+
+
 def _build_analyze(out_dir: Path) -> dict[str, Any]:
-    """The analyze-only types' examples: written to ``out_dir``, described for the manifest."""
+    """The analyze-only material, written to ``out_dir`` and described for the manifest.
+
+    ``out_dir/<pair>/`` already holds the shared types' documents when this runs.
+    """
     types: dict[str, Any] = {}
     for pair, spec in ANALYZE_SPECS.items():
         (out_dir / pair).mkdir(parents=True)
@@ -108,7 +125,14 @@ def _build_analyze(out_dir: Path) -> dict[str, Any]:
             "examples": [doc_id(i) for i in range(EXAMPLES)],
             "documents": documents,
         }
-    section: dict[str, Any] = {"types": types}
+    shared: dict[str, Any] = {}
+    for pair in ALL_SPECS:
+        data, truth = build_shared(pair)
+        (out_dir / pair / f"{SHARED_DOC}.docx").write_bytes(data)
+        values = {**ALL_SPECS[pair].values(1), **shared_overrides(pair)}
+        shared[pair] = {"field": SHARED_FIELDS[pair], "copied_from": "ex_01", "base": "ex_02",
+                        **_document(pair, SHARED_DOC, data, truth, values)}
+    section: dict[str, Any] = {"types": types, "shared": shared}
     return {"analyze_hash": analyze_hash(section), **section}
 
 
@@ -185,6 +209,8 @@ def truth_for(pair: str, name: str) -> list[dict[str, Any]]:
     """The ground truth of document ``name`` of ``pair``, rebuilt from the generator."""
     from evals.corpus.generator import doc_index
 
+    if name == SHARED_DOC:
+        return build_shared(pair)[1]
     return build_document(ALL_SPECS[pair], doc_index(name))[1]
 
 
@@ -209,11 +235,8 @@ def same_cases(a: dict[str, Any], b: dict[str, Any]) -> bool:
     alone; its cases are still the same ones.
     """
     def documents(m: dict[str, Any]) -> dict[str, Any]:
-        return {
-            (pair, name): (doc["truth_hash"], doc["values"])
-            for pair, info in all_types(m).items()
-            for name, doc in info["documents"].items()
-        }
+        return {(pair, name): (doc["truth_hash"], doc["values"])
+                for pair, name, doc in all_documents(m)}
 
     def cases(m: dict[str, Any]) -> list[Any]:
         return [(case["id"], case["base"], case["label"]) for case in m["cases"]]
@@ -226,12 +249,19 @@ def all_types(manifest: dict[str, Any]) -> dict[str, Any]:
     return {**manifest["types"], **(manifest.get("analyze") or {}).get("types", {})}
 
 
+def all_documents(manifest: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
+    """(pair, name, entry) for every clean document, shared-value documents included."""
+    documents = [(pair, name, doc) for pair, info in all_types(manifest).items()
+                 for name, doc in info["documents"].items()]
+    shared = (manifest.get("analyze") or {}).get("shared", {})
+    return documents + [(pair, SHARED_DOC, doc) for pair, doc in shared.items()]
+
+
 def stale_files(manifest: dict[str, Any], build_dir: Path) -> list[str]:
     """Files the manifest names that are missing from ``build_dir`` or differ from it."""
     expected: dict[str, str] = {}
-    for info in all_types(manifest).values():
-        for document in info["documents"].values():
-            expected[document["file"]] = document["content_hash"]
+    for _pair, _name, document in all_documents(manifest):
+        expected[document["file"]] = document["content_hash"]
     for case in manifest["cases"]:
         expected[case["file"]] = case["content_hash"]
     problems = []
@@ -249,7 +279,8 @@ def summary(manifest: dict[str, Any]) -> str:
     documents = sum(len(info["documents"]) for info in manifest["types"].values())
     mutators = len({case["label"]["mutator"] for case in cases} - {"none"})
     analyze = manifest.get("analyze") or {"types": {}}
-    extra = sum(len(info["documents"]) for info in analyze["types"].values())
+    extra = sum(len(info["documents"]) for info in analyze["types"].values()) + len(
+        analyze.get("shared", {}))
     return (
         f"{len(manifest['types'])} types, {documents} documents, {len(cases)} comply cases "
         f"({clean} clean controls = {clean / len(cases):.0%}, {mutators} mutators). "

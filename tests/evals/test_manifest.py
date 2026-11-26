@@ -145,3 +145,29 @@ def test_every_committed_result_ran_on_this_corpus():
     hashes = {path.name: json.loads(path.read_text(encoding="utf-8"))["meta"]["corpus_hash"]
               for path in RESULTS_DIR.glob("*.json")}
     assert hashes and set(hashes.values()) == {manifest["corpus_hash"]}, hashes
+
+
+@pytest.mark.parametrize("pair", sorted(SPECS) + ["dpia_en", "status_report_en"])
+def test_a_shared_value_document_copies_one_value_from_the_first_example(fresh, pair):
+    import json
+
+    from evals.corpus.build import SHARED_DOC
+    from evals.corpus.doc_types import ALL_SPECS, SHARED_FIELDS
+    from evals.corpus.ground_truth import resolve
+
+    out, manifest = fresh
+    entry = manifest["analyze"]["shared"][pair]
+    assert (entry["field"], entry["copied_from"], entry["base"]) == (
+        SHARED_FIELDS[pair], "ex_01", "ex_02")
+    first, second = (ALL_SPECS[pair].values(i) for i in (0, 1))
+    changed = {key for key in second if entry["values"][key] != second[key]}
+    assert len(changed) == 1  # one value differs from ex_02's ...
+    key = changed.pop()
+    assert entry["values"][key] == first[key]  # ... and it is ex_01's
+    assert not [k for k, v in entry["values"].items()  # and it appears nowhere else
+                if k != key and first[key] in json.dumps(v, ensure_ascii=False)]
+    truth = truth_for(pair, SHARED_DOC)
+    assert truth_hash(truth) == entry["truth_hash"]
+    by_id = {element["id"]: element for element in truth}
+    assert by_id[entry["field"]]["value"] == first[key]
+    resolve((out / "build" / entry["file"]).read_bytes(), truth)  # every locator holds
