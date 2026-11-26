@@ -44,6 +44,10 @@ def build_parser() -> argparse.ArgumentParser:
                      help="run a sample of judged cases this many times in total (stability)")
     run.add_argument("--sample", type=int, default=10, help="how many cases --repeat re-runs")
     run.add_argument("--cache-dir", type=Path, default=None, help="response cache directory")
+
+    compare = sub.add_parser("compare", help="compare result files side by side")
+    compare.add_argument("results", nargs="+", type=Path, help="two or more result files")
+    compare.add_argument("--markdown", action="store_true", help="print a Markdown table")
     return parser
 
 
@@ -268,11 +272,35 @@ def _run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _compare(args: argparse.Namespace) -> int:
+    from evals.compare import load, report
+
+    if len(args.results) < 2:
+        print("Give two or more result files to compare.", file=sys.stderr)
+        return 2
+    print(report([load(path) for path in args.results], markdown=args.markdown))
+    return 0
+
+
+def _tolerant_output() -> None:
+    """Show characters the output can't encode as ``?`` instead of failing.
+
+    On Windows, output that is piped or redirected uses the ANSI code page (cp1252, say), which
+    has no ``→``. Printing the table must not crash a run whose result file is already written.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one command and return its exit code."""
+    _tolerant_output()
     args = build_parser().parse_args(argv)
     if args.command == "corpus":
         return _corpus_build(args)
     if args.command == "run":
         return _run(args)
+    if args.command == "compare":
+        return _compare(args)
     return 2
