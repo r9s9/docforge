@@ -190,6 +190,22 @@ def detect_model(base_url: str, client=None) -> dict[str, Any]:
     return {key: model[key] for key in keys if model.get(key) is not None}
 
 
+def _sends_temperature(provider: str, model: str) -> bool | None:
+    """Whether DocForge puts the temperature setting into this model's requests (None: unknown).
+
+    The OpenAI-compatible path sends it in every request. On the Anthropic path DocForge sends
+    it only to models that accept sampling parameters; Haiku 5.5 doesn't, so it runs at the
+    API's default sampling whatever the config says.
+    """
+    if provider != "anthropic":
+        return True
+    try:
+        from docforge.ai.anthropic_transport import profile_for
+    except ImportError:
+        return None
+    return bool(profile_for(model).sampling)
+
+
 def apply_config(config: dict[str, Any], *, model: str | None = None) -> dict[str, Any]:
     """Set a config's AI settings on DocForge; return a description of them without secrets."""
     from docforge.config import get_settings
@@ -239,6 +255,7 @@ def apply_config(config: dict[str, Any], *, model: str | None = None) -> dict[st
         "effort": {"workhorse": settings.ai_effort_workhorse,
                    "reasoning": settings.ai_effort_reasoning},
         "temperature": settings.ai_temperature,
+        "temperature_sent": _sends_temperature(settings.ai_provider, settings.ai_model),
         "no_think": bool(ai.get("no_think")),
         **({"served": served} if served else {}),
     }

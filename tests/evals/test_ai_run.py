@@ -37,10 +37,12 @@ sys.exit(code)
 """
 
 
-def _cli(tmp_path, *args: str) -> tuple[int, str, int]:
+def _cli(tmp_path, *args: str, key: str | None = None) -> tuple[int, str, int]:
     env = {k: v for k, v in os.environ.items()
            if not k.startswith("DOCFORGE_") and k != "ANTHROPIC_API_KEY"}
     env.update(PYTHONPATH=str(REPO_ROOT), PYTHONDONTWRITEBYTECODE="1")
+    if key is not None:
+        env["ANTHROPIC_API_KEY"] = key
     command = [sys.executable, "-c", DRIVER, "run", "--suite", "comply",
                "--cache-dir", str(tmp_path / "cache"), "--out", str(tmp_path / "results"), *args]
     done = subprocess.run(command, cwd=REPO_ROOT, env=env, capture_output=True, text=True,
@@ -57,6 +59,7 @@ def test_dry_run_checks_the_setup_and_calls_no_model(tmp_path):
     code, output, posts = _cli(tmp_path, *LOCAL, "--limit", "8", "--dry-run")
     assert code == 0, output
     assert "fake-qwen" in output and "$0 (a local model has no price)" in output
+    assert "spending cap              none needed" in output
     assert posts == 0
     assert not (tmp_path / "results").exists()
 
@@ -91,3 +94,16 @@ def test_local_run_records_the_judge_then_replays_from_the_cache(tmp_path):
 def test_haiku_without_a_key_stops_before_anything_runs(tmp_path):
     code, output, posts = _cli(tmp_path, "--config", "evals/configs/haiku.yaml", "--dry-run")
     assert code == 2 and "ANTHROPIC_API_KEY" in output and posts == 0
+
+
+def test_haiku_dry_run_shows_the_cap_the_pilot_and_that_no_temperature_is_sent(tmp_path):
+    key = "sk-ant-test-not-a-real-key-0451"
+    code, output, posts = _cli(tmp_path, "--config", "evals/configs/haiku.yaml", "--dry-run",
+                               key=key)
+    assert code == 0, output
+    assert "claude-haiku-5-5 on api.anthropic.com" in output
+    assert "temperature               not sent" in output
+    assert "cases the judge will see  82 (from the no-AI result)" in output
+    assert "spending cap              $1.00" in output
+    assert "first 3 judged cases are a pilot" in output
+    assert key not in output and posts == 0

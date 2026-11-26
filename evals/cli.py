@@ -134,6 +134,9 @@ def _dry_run_text(config: dict, ai: dict, selected: list[dict], plan: dict | Non
         detail = ", ".join(f"{k} {v}" for k, v in served.items() if k != "id")
         lines.append(f"  model                     {ai['model']} on {ai['host']}"
                      + (f" ({detail})" if detail else ""))
+        if ai.get("temperature_sent") is False:
+            lines.append("  temperature               not sent: this model takes no sampling "
+                         "parameters, so repeated runs can differ")
         context = served.get("loaded_context_length") or served.get("max_context_length")
         if context and int(context) < 16000:
             lines.append(f"  WARNING                   context {context} tokens; load the model "
@@ -145,11 +148,13 @@ def _dry_run_text(config: dict, ai: dict, selected: list[dict], plan: dict | Non
         judged = plan["judged_expected"]
         lines.append("  cases the judge will see  "
                      + (f"{judged} (from the no-AI result)" if judged is not None else "unknown"))
+        local = ai.get("host", "").startswith(("127.0.0.1", "localhost"))
         lines.append(f"  already in the cache      {plan['cached']}")
-        lines.append(f"  spending cap              {_money(plan['cap_usd'])}")
+        lines.append("  spending cap              "
+                     + ("none needed" if local else _money(plan["cap_usd"])))
         if plan["estimate_usd"] is not None:
             lines.append(f"  estimated cost            {_money(plan['estimate_usd'])}")
-        elif ai.get("host", "").startswith(("127.0.0.1", "localhost")):
+        elif local:
             lines.append("  estimated cost            $0 (a local model has no price)")
         else:
             lines.append("  estimated cost            unknown: no earlier run of this config. The "

@@ -146,6 +146,8 @@ def test_haiku_config_switches_ai_on_with_the_key_from_the_environment(tmp_path)
     assert seen["key_is_the_env_value"] is True
     assert seen["description"]["host"] == "api.anthropic.com"
     assert seen["description"]["effort"] == {"workhorse": "low", "reasoning": "medium"}
+    # DocForge sends no temperature to Haiku 5.5, so the result must not claim temperature 0.
+    assert seen["description"]["temperature_sent"] is False
     assert seen["no_think"] is False and seen["overrides_file"] is False
 
 
@@ -162,6 +164,7 @@ def test_local_config_points_at_lm_studio_with_thinking_off(tmp_path):
     assert seen["ai_active"] is True
     assert seen["no_think"] is True and seen["overrides_file"] is True
     assert seen["description"]["no_think"] is True
+    assert seen["description"]["temperature_sent"] is True
 
 
 def _server(routes: dict):
