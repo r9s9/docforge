@@ -19,13 +19,18 @@ from evals.paths import REPO_ROOT
 
 
 def git_state(repo: Path = REPO_ROOT) -> dict[str, Any]:
-    """The commit a run was made from, and whether the working tree had changes."""
+    """The commit a run was made from, and whether the working tree had changes.
+
+    Result files don't count as changes: a second run before the first one's result is committed
+    still ran the committed code.
+    """
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
         ).stdout.strip()
         status = subprocess.run(
-            ["git", "status", "--porcelain"], cwd=repo, capture_output=True, text=True, check=True
+            ["git", "status", "--porcelain", "--", ".", ":(exclude)evals/results"],
+            cwd=repo, capture_output=True, text=True, check=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError):
         return {"git_sha": None, "dirty": None}
