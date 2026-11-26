@@ -1,9 +1,12 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 is built; its results are in
-> [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the no-AI run confirmed.
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 and M2 are built. M1's
+> results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the no-AI run
+> confirmed. M2's two AI runs happen on the owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
 > brief's Sonnet and Gemini configs are out of scope.
+> **Decisions for M2:** Haiku 5.5 runs on the owner's PC with a €1 cap, set as `max_usd: 1.00`
+> in `haiku.yaml`. The local model is Qwen 3.6-27b in LM Studio, with thinking off.
 > **Code checked:** DocForge v0.21.0, commit `4880faa` (master).
 > **Brief:** [`docs/projects/eval-suite.md`](../docs/projects/eval-suite.md).
 
@@ -101,6 +104,10 @@ Default severities set by `compliance/checker.py` (the judge may change them lat
 | 12 | — | `Settings` reads `.env` from the working directory. `db/session.py` builds its engine at import time. The analysis progress heartbeat writes through that module-level engine. | The eval process sets its environment before it imports `docforge` (§2.2). `backend/tests/audit/conftest.py` solves the same problem by re-pointing the engines. |
 | 13 | Configs are YAML. | PyYAML is not a direct dependency. It is only installed through `uvicorn[standard]`. | `evals/requirements.txt` adds `pyyaml>=6`. `backend/pyproject.toml` stays untouched. |
 | 14 | Generate "fills it from notes". | With AI on, generation runs a writer pass, then a read-back review (`ai_verify_enabled`) that can buy one rewrite. The writer is skipped above 60 fields (`MAX_WRITER_FIELDS`) and falls back to route + compose. | Generate cost and latency include the review and the rewrite. The result file records which passes ran. |
+| 15 | — | The Anthropic SDK (1.17.0) sends its requests through `httpx2`, a package separate from the `httpx` that DocForge's OpenAI-compatible path calls. | The response cache wraps both transports (§6.2). |
+| 16 | `haiku.yaml` asks for `temperature: 0.0`. | DocForge sends no temperature to current Claude models. Its model profiles in `ai/anthropic_transport.py` mark them as taking no sampling parameters, because the API rejects them. The OpenAI-compatible path sends the temperature in every request. | The Haiku run uses the API's default sampling, so its verdicts can vary from run to run. Results record `temperature_sent`, and the repeats measure the variation (§5.4). |
+| 17 | The judge labels each difference. | The judge only runs on a report that has differences (`compliance/judge.py`), and it sees the first 40. In this corpus, 156 of the 238 cases have no differences, and no case has more than 3. | The judge sees 82 cases and about 114 differences per run. A case without differences gets semantic score 100 (§5.1). The 40-item cap never applies to this corpus. |
+| 18 | — | The judge's client uses DocForge's generation config, with a 300 s timeout (`ai_generation_timeout_seconds`). On Claude, DocForge asks for at least 16,000 output tokens per call (`MIN_MAX_TOKENS`); on the OpenAI-compatible path, 6,000. | A slow local model gets 300 s per judge call before the call counts as failed. The worst-case Haiku cost assumes 16,000 output tokens per call (§6.6). |
 
 ### 1.3 Pre-existing state of master (not changed, by rule)
 
@@ -497,9 +504,10 @@ template node the element came from.
 | Benign alarm rate | Benign deviations reported with severity error or warning ÷ benign deviations. In AI modes this uses the severity after the judge. |
 | False alarm rate (clean) | Clean controls with at least one error or warning difference ÷ clean controls, plus the mean number of such differences per clean control |
 | Spurious differences | Differences not attributed to the injected deviation, per mutated case |
-| Judge confusion matrix | Over the differences the judge saw, predicted material vs. ground truth. An attributed difference takes its deviation's label; a spurious one is benign. Reports precision and recall on "material". Differences past the 40-item cap are counted as "not judged". |
-| Score separation | AUC: the chance that a random clean control scores higher than a random document with a material deviation (ties count half). Computed on `score` in every mode and on the semantic score in AI modes. Comes with a grade table: pass / warning / fail × clean / material / benign. |
-| Fix success | On material cases whose deviation is a changed or missing FIXED paragraph: run `fix_document`, then check the result again. It succeeds when three things hold. (1) The re-check shows no `changed_fixed` or `missing_fixed` on the target. (2) Every field value in the alignment matches the pre-fix check. (3) The fixed document's text equals the clean original's. Part (3) is needed because a re-check uses the same 0.9 threshold as the check, so it can't see what the check missed. Restored paragraph styles are reported separately. |
+| Judge confusion matrix | Over the differences in cases where the judge ran, its material verdict vs. ground truth. An attributed difference takes its deviation's label; any other difference (spurious, or on a clean control) is benign. Reports precision, recall and accuracy on "material". Differences without a verdict (past the 40-item cap, or missing from the answer) are counted as "not judged". |
+| Material still alarming | Found material deviations that still have an error or warning on their target after the judge ÷ found material deviations. In the no-AI run it counts found deviations that alarm. Together with the benign alarm rate, it shows what the judge changes. |
+| Score separation | AUC: the chance that a random clean control scores higher than a random document with a material deviation (ties count half). Computed on `score` in every mode and on the semantic score in AI modes. A case without differences has semantic score 100: the judge isn't called and has nothing to object to. A case where the judge failed has no semantic score and is left out. Comes with a grade table: pass / warning / fail × clean / material / benign. |
+| Fix success | On material cases whose deviation is a changed or missing FIXED paragraph: run `fix_document`, then check the result again. It succeeds when three things hold. (1) The re-check shows no `changed_fixed` or `missing_fixed` on the target. (2) Every field value in the alignment matches the pre-fix check. (3) The fixed document's text equals the clean original's. Part (3) is needed because a re-check uses the same 0.9 threshold as the check, so it can't see what the check missed. Restored paragraph styles are reported separately. The fixer uses no AI, so it runs in the no-AI run only, and AI runs show "n/a". |
 
 ### 5.2 Generate
 
@@ -553,10 +561,10 @@ come out as `AUTO_FIELD` is reported on its own.
 | Cost per document (USD) | The service's own `token_usage.cost_usd`, priced from DocForge's table in `ai/pricing.py`. Per analysis, per generated document, per compliance check. |
 | Live vs. replayed spend | Live: calls that went to the network in this run. Replayed: the recorded cost of cached responses. Both come from the observer (§6.4). |
 | Latency p50 / p95 per step | Wall-clock time per service call. A step served from the cache reports the latency recorded when it ran live (§6.2). |
-| Pipeline fallback rate | Results the deterministic engine produced even though AI was configured. **Analyze:** `source == "heuristic_fallback"`. **Generate:** `source == "heuristic"`, with `"llm"` (the writer failed or was skipped) reported separately. **Comply:** differences present but no `semantic` dimension. |
+| Pipeline fallback rate | Results the deterministic engine produced even though AI was configured. **Analyze:** `source == "heuristic_fallback"`. **Generate:** `source == "heuristic"`, with `"llm"` (the writer failed or was skipped) reported separately. **Comply:** differences present but no `semantic` dimension, ÷ cases where the judge was asked. |
 | AI call failure rate | From the observer: AI calls that raised `LLMError` ÷ AI calls, per call kind (understanding, classify, critique, describe, writer, route, compose, review, judge). This catches the silent ones. |
 | Error rate | Cases where a service raised, or where the ground truth failed to resolve |
-| Stability | `--repeat 3` on a fixed sample (10 cases per suite). Each repeat gets its own cache key. Reports how often a case's outcome changes between repeats and the spread of the main metrics. |
+| Stability | `--repeat 3 --sample 10`: 10 judged cases, picked by a hash of their IDs, are checked twice more, each repeat under its own cache key. Comply reports verdict agreement (differences whose material verdict is the same in every run ÷ differences judged in every run) and the mean spread (max − min) of the semantic score. |
 
 ## 6. AI modes
 
@@ -565,31 +573,27 @@ come out as `AUTO_FIELD` is reported on its own.
 ```yaml
 # evals/configs/haiku.yaml
 name: haiku
-description: The shipped default, Claude Haiku 5.5 on both tiers
+description: Claude Haiku 5.5, DocForge's shipped default
 ai:
   enabled: true
   provider: anthropic
   base_url: https://api.anthropic.com
   model: claude-haiku-5-5
-  reasoning_model: ""           # empty = the same model on both tiers, as shipped
+  reasoning_model: ""        # empty = the same model on both tiers, as shipped
   effort_workhorse: low
   effort_reasoning: medium
-  temperature: 0.0
+  temperature: 0.0           # never sent to Haiku 5.5 (§1.2 #16)
   api_key_env: ANTHROPIC_API_KEY
-pipeline:
-  writer_enabled: true
-  verify_enabled: true
-grader:                         # M3: Haiku 5.5 is the only cloud model in scope (§6.5)
-  provider: anthropic
-  model: claude-haiku-5-5
-  api_key_env: ANTHROPIC_API_KEY
+max_usd: 1.00                # the owner's €1 cap; --max-usd can lower it, never raise it
 ```
+
+M3 adds a `pipeline:` block (writer and review on) and a `grader:` block (Haiku 5.5, §6.5).
 
 | Config | Purpose |
 |---|---|
 | `no-ai.yaml` | `enabled: false`. The deterministic baseline: free, and it runs in CI. |
 | `haiku.yaml` | The shipped default, and the only cloud model in scope. It matches `config.py`: Haiku 5.5, efforts low and medium. |
-| `local.yaml` | LM Studio's OpenAI-compatible server (`provider: openai`, default base URL `http://localhost:1234/v1`), running whatever model the owner loads, named in the config. See the notes below the table. Runs on the owner's machine. |
+| `local.yaml` | LM Studio's OpenAI-compatible server (`provider: openai`, base URL `http://127.0.0.1:1234/v1`). `model: auto` takes the one chat model LM Studio has loaded, from its `/api/v0/models` list (falling back to `/v1/models`, minus embedding models). `run --model <id>` overrides it, and the result records the exact ID. See the notes below the table. Runs on the owner's PC. |
 
 Notes on `local.yaml`:
 - DocForge only switches AI on with a non-empty key, so the config sets
@@ -598,6 +602,8 @@ Notes on `local.yaml`:
   `app_settings.json`. When the config asks for it, the harness writes it into the sandbox's copy
   of that file.
 - DocForge sends local servers one call at a time (`ai/parallel.py`), so local runs are slower.
+- The owner's model is Qwen 3.6-27b with thinking off (`no_think: true`). It needs a context of
+  at least 16k tokens; the dry run warns below that.
 
 Model names live only in these files. By the owner's decision, the brief's `sonnet.yaml` and its
 optional `gemini.yaml` are out of scope, so every comparison is no AI vs. Haiku 5.5 vs. the local
@@ -605,24 +611,30 @@ model.
 
 ### 6.2 Response cache (`evals/cache.py`)
 
-- **Where it sits.** At the HTTP transport. The eval process wraps
-  `httpx.HTTPTransport.handle_request` in memory, and both of DocForge's AI paths go through it:
-  - the Anthropic SDK used by `ai/anthropic_transport.py` is built on `httpx`
-  - the OpenAI-compatible path in `ai/client.py` calls `httpx` directly
+- **Where it sits.** At the HTTP transport. The eval process wraps `handle_request` in memory on
+  two transports, one per AI path:
+  - `httpx2.HTTPTransport`: the Anthropic SDK (1.17.0) used by `ai/anthropic_transport.py` is
+    built on `httpx2`, a separate package (§1.2 #15)
+  - `httpx.HTTPTransport`: the OpenAI-compatible path in `ai/client.py`, which LM Studio uses
 
   On a replayed response, DocForge's own request building, parsing, retries and fallbacks run
-  unchanged, and `record_usage` sees the original token counts. A contract test (M2) replays
-  recorded responses through the real `LLMClient` for both providers. It checks the parsed result
-  and the recorded usage, which confirms that the Anthropic SDK really uses this transport.
+  unchanged, and `record_usage` sees the original token counts. Two contract tests replay
+  recorded responses through the real `LLMClient` and `judge_compliance`: a streamed (SSE) answer
+  through the real Anthropic SDK, and a JSON completion through the OpenAI-compatible path. They
+  check the parsed verdicts, the recorded usage and what the observer captured. Without any
+  network access, they show that both paths really go through the wrapped transports.
 - **Key.** sha256 over:
   - config name, case ID and repeat index
   - HTTP method and URL path
   - the request body as canonical JSON (sorted keys), with 32-hex IDs replaced by a placeholder
 
   DocForge's IDs are `uuid4().hex`. Today's prompts contain none, so the masking is insurance.
-- **Entry.** Status, headers, the gzipped body, live latency, model and date. One file per key
-  under `evals/cache/<config>/`. Entries are written atomically (temp file, then rename), because
-  analysis makes parallel calls.
+- **Entry.** Status, three response headers (content type, `retry-after`, `x-should-retry`), the
+  gzipped body, live latency, model and date. One file per key under `evals/cache/<config>/`.
+  Entries are written atomically (temp file, then rename), because analysis makes parallel calls.
+- **Only successes are stored.** A 2xx answer is stored, even when DocForge then fails to parse
+  it, so a model's malformed answer replays as the same failure. An HTTP error or a timeout is
+  not stored, so a rerun tries that call again. Reruns are for interrupted runs only (README).
 - **Streaming.** On a live call, the wrapper reads the whole response before returning it, so
   streamed answers are cached whole. DocForge's progress callbacks then fire in one burst, which
   is harmless in a batch run.
@@ -636,18 +648,28 @@ model.
 
 ### 6.3 Budget guard
 
-1. **Before the run.**
-   - Estimate = (cases not already complete in the cache) × cost per case.
-   - Cost per case comes from the latest result for the same config and suite. Without one, it
-     comes from a 3-case pilot run, which counts against the cap.
-   - `--dry-run` prints the estimate and stops.
-2. **The cap.** If the estimate is above `--max-usd` (default 3.00), the run doesn't start. For
-   anything above $3, the owner decides first (brief §9).
+1. **The cap.** `--max-usd` (default 3.00), and a config's `max_usd`: the stricter of the two
+   wins, so a command can lower a config's cap but never raise it. `haiku.yaml` sets $1.00, the
+   owner's €1 cap. For anything above $3, the owner decides first (brief §9).
+2. **Before the run.**
+   - Judged cases: the cases whose deterministic check has differences, read from the latest
+     no-AI result. Only those reach the judge, and they're the same in every mode.
+   - Estimate = (judged cases not already complete in the cache + the `--repeat` calls) × cost per
+     judged case. Repeat calls are counted as uncached, so the estimate is an upper bound.
+   - Cost per judged case comes from the latest result for the same config and suite. Without
+     one, the first 3 judged cases are a pilot. After them, the run stops if their mean cost
+     times all judged calls would pass the cap.
+   - `--dry-run` checks the setup (key present, model reachable and loaded, corpus), prints the
+     plan and the estimate, and calls no model.
+   - If the estimate is above the cap, the run doesn't start.
 3. **During the run.**
    - Live spend is updated after every case.
-   - The run stops as soon as live spend passes `--max-usd`.
-   - It then writes a partial result marked `"stopped": "budget"`, and says so.
+   - The run stops after the case whose live spend reaches the cap.
+   - It then writes a partial result marked `"stopped": "budget"` (or `"budget_projection"` after
+     the pilot), and says so.
 4. **At the end.** Live spend and replayed cost are printed and stored.
+5. **Local models.** DocForge's price table has no price for them, so they cost $0, shown as
+   `$0 (hardware)`, and aren't capped.
 
 The estimate exists to avoid starting runs that clearly can't fit. Step 3 is the real limit.
 
@@ -682,6 +704,39 @@ and results are never changed, and no source file is edited.
   - The owner hand-labels 30 items. Agreement with those labels is reported.
   - Below 85%, the grader is not used, and a sample goes to manual review instead (brief §6.4).
 
+### 6.6 Where the AI runs happen (M2)
+
+**Both AI runs happen on the owner's PC, with the commands in the README.**
+- **No Anthropic key in the cloud container.** The cloud environment's network secrets are never
+  added to requests to `api.anthropic.com`. A key would have to sit in an environment variable of
+  the owner's default environment, readable by commands in every cloud session. The owner chose
+  to run Haiku at home instead, with a €1 cap.
+- **No LM Studio in the cloud container.** Remote Control offers no folder on the owner's PC that
+  a cloud session can use, so the container can't reach LM Studio either.
+- **Everything else is built and tested in the container.** The tests run without network access:
+  fake model servers, recorded responses, and an end-to-end run of the CLI against a fake LM
+  Studio.
+
+**The key.** The README has the owner type the key into `Read-Host -AsSecureString`, so it
+appears on no screen and in no history file, and lives only in that PowerShell window. The
+harness reads it from `ANTHROPIC_API_KEY`, and it never reaches a result, the cache or a log.
+
+**The workload, measured offline.** The full comply run, against a fake model server, shows the
+judge's work:
+- 82 judge calls (one per judged case), plus 20 with `--repeat 3 --sample 10`
+- prompts of about 1,900 characters, plus a 900-character JSON schema: about a thousand tokens
+- at most 3 differences per call
+
+At DocForge's Haiku 5.5 prices ($0.10 / $0.50 per million input / output tokens for prompts up
+to 100K tokens), which match Anthropic's list price, a few hundred output tokens per call cost a
+few cents for the run. Even if all 102 calls used the full 16,000 output tokens DocForge allows
+(§1.2 #18), the run would cost about $0.83, under the $1.00 cap. Costs in results are
+DocForge's own estimates from `ai/pricing.py`, not the Anthropic invoice.
+
+**Same code, clean tree.** A result records the git SHA and whether the code had uncommitted
+changes. Result files don't count as changes, so the second run of the evening is still "clean"
+before the first one's result is committed.
+
 ## 7. Results, report, compare
 
 **Result files.** `evals/results/<date>_<config>_<suite>.json`, committed:
@@ -703,9 +758,16 @@ and results are never changed, and no source file is edited.
   never appear.
 - **`report`.** Rebuilds `RESULTS.md` from the newest result per (config, suite). Every number in
   the table links back to the file it came from. Nobody edits `RESULTS.md` by hand.
-- **`compare A B`.** Prints each aggregate metric's change, and the cases whose outcome flipped
-  (found → missed, correct → hallucinated, and so on). If the two runs used different corpora, it
-  says so before anything else.
+- **`compare A B [C ...]`** (built in M2). First it says whether every result used the same
+  corpus, and which ones rebuilt the files locally with other library versions. Then it prints
+  one column per result for the main comply metrics (`--markdown` for docs): a metric a mode
+  doesn't measure shows "n/a", and a local model's cost shows "$0 (hardware)". Last, for each
+  result after the first, it lists the cases whose alarm status changed, as clean / material /
+  benign × alarm added / removed. That is what the judge changed. Generate and analyze flips
+  (correct → hallucinated, and so on) come with those suites.
+- **AI runs also record** the model, host and efforts, `temperature_sent`, the budget plan, live
+  and replayed spend, the cache hit rate, `stopped`, and per case the judge's verdicts, its calls
+  and their outcomes, and the tokens used.
 
 ## 8. CI
 
@@ -747,9 +809,8 @@ Confirmed blind spots are the M6 candidates.
 
 ## 10. Open questions
 
-1. **Local model.** LM Studio is decided. Still open: which model, on what hardware? Needed for
-   `local.yaml` in M2. It runs on the owner's machine, because the cloud container has no
-   LM Studio.
+1. **Local model.** Decided in M2: Qwen 3.6-27b in LM Studio on the owner's PC, thinking off
+   (§6.1, §6.6). The result records the exact model ID that LM Studio served.
 2. **Grader labels.** The grader is Haiku 5.5 (§6.5). When will the owner's 30 hand labels come?
    (M3)
 3. **Money.** Does an amount like `1.234,56 €` count as `number` or `text` in field type accuracy?
