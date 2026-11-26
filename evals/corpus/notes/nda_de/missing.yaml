@@ -1,0 +1,9 @@
+style: missing
+source: held_04
+text: |
+  NDA mit Kesselwind Logistik GmbH ab 20.04.2026. Worum es inhaltlich geht, klären wir
+  nächste Woche.
+expected:
+  field.effective_date: "20.04.2026"
+  field.party_b: "Kesselwind Logistik GmbH"
+  field.purpose: null

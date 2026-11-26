@@ -1,0 +1,32 @@
+style: email
+source: held_02
+text: |
+  Betreff: Vertrag Auerbrunn Maschinenbau
+
+  Hallo Lukas,
+
+  bitte setz den Dienstleistungsvertrag für die Auerbrunn Maschinenbau AG auf.
+  Vertragsnummer DV-2026-0447, Vertragsdatum 12.03.2026, Beginn am 01.04.2026.
+
+  Wir übernehmen die Administration ihres Identitäts- und Zugriffsmanagements, also auch das
+  Anlegen und Sperren von Benutzerkonten. Die monatliche Vergütung beträgt 12.700,00 €.
+
+  In die Preisliste kommen Vor-Ort-Support (1.200,00 € pro Tag) und Schulungen
+  (950,00 € pro Termin).
+
+  Viele Grüße
+  Clara
+expected:
+  field.agreement_no: "DV-2026-0447"
+  field.date: "12.03.2026"
+  field.customer: "Auerbrunn Maschinenbau AG"
+  field.start_date: "01.04.2026"
+  field.monthly_fee: "12.700,00 €"
+  text.services:
+    points:
+      - "Administration des Identitäts- und Zugriffsmanagements des Auftraggebers"
+      - "Anlegen und Sperren von Benutzerkonten"
+  table.fees:
+    rows:
+      - ["Vor-Ort-Support", "pro Tag", "1.200,00 €"]
+      - ["Schulung", "pro Termin", "950,00 €"]

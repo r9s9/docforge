@@ -1,0 +1,12 @@
+style: missing
+source: held_04
+text: |
+  NDA with Glenmarrow Facilities Ltd – we want to evaluate a reseller partnership for the
+  DACH region. Start date still open, legal will confirm.
+expected:
+  field.effective_date: null
+  field.party_b: "Glenmarrow Facilities Ltd"
+  field.purpose:
+    points:
+      - "evaluation of a reseller partnership"
+      - "for the DACH region"

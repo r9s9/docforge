@@ -1,0 +1,30 @@
+style: email
+source: held_02
+text: |
+  Hi Daniel,
+
+  can you raise the invoice for Pellbrook Marine Supplies Ltd (VAT ID GB000000106)? Number
+  INV-2026-0160, dated 1 April 2026, payable by 1 May 2026.
+
+  They had 9 months of cloud hosting at €480.00 (€4,320.00), 3 security reviews at €1,200.00
+  (€3,600.00), 7 training workshops at €900.00 (€6,300.00) and 11 software licences at
+  €220.00 (€2,420.00).
+
+  That makes €16,640.00 net, €3,328.00 VAT, €19,968.00 in total.
+
+  Thanks!
+expected:
+  field.invoice_no: "INV-2026-0160"
+  field.invoice_date: "1 April 2026"
+  field.due_date: "1 May 2026"
+  field.customer: "Pellbrook Marine Supplies Ltd"
+  field.vat_id: "GB000000106"
+  table.items:
+    rows:
+      - ["Cloud hosting", "9", "€480.00", "€4,320.00"]
+      - ["Security review", "3", "€1,200.00", "€3,600.00"]
+      - ["Training workshop", "7", "€900.00", "€6,300.00"]
+      - ["Software licence", "11", "€220.00", "€2,420.00"]
+  field.subtotal: "€16,640.00"
+  field.vat: "€3,328.00"
+  field.total: "€19,968.00"

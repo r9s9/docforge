@@ -1,0 +1,35 @@
+style: bullets
+source: held_01
+text: |
+  Minutes – key points
+  - Meeting: Project steering committee – warehouse platform
+  - Date: 22 April 2026
+  - Chair: Farid Morandi
+  - Minute Taker: Daniel Ferreira
+  - Attendees: Tobias Varga, Jonas Kessling, Noah Petrovic, Hannah Achterberg, Elif Whitcombe
+  - Agenda: findings of the latest data quality report, and who owns which correction
+  - Decisions: onboarding of user accounts gets automated first; the remaining follow-ups go to
+    the backlog
+  - Actions:
+    - Update the risk register – Hannah Achterberg – 29 April 2026
+    - Book the test environment for the load test – Tobias Varga – 6 May 2026
+    - Clarify the licence count with procurement – Hannah Achterberg – 13 May 2026
+expected:
+  field.meeting: "Project steering committee – warehouse platform"
+  field.date: "22 April 2026"
+  field.chair: "Farid Morandi"
+  field.minute_taker: "Daniel Ferreira"
+  field.attendees: "Tobias Varga, Jonas Kessling, Noah Petrovic, Hannah Achterberg, Elif Whitcombe"
+  text.agenda:
+    points:
+      - "findings of the latest data quality report"
+      - "who owns which correction"
+  text.decisions:
+    points:
+      - "onboarding of user accounts is automated first"
+      - "the remaining follow-ups go to the backlog"
+  table.actions:
+    rows:
+      - ["Update the risk register", "Hannah Achterberg", "29 April 2026"]
+      - ["Book the test environment for the load test", "Tobias Varga", "6 May 2026"]
+      - ["Clarify the licence count with procurement", "Hannah Achterberg", "13 May 2026"]

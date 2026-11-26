@@ -1,0 +1,17 @@
+style: email
+source: held_02
+text: |
+  Hallo Ines,
+
+  für die Gespräche mit der Auerbrunn Maschinenbau AG brauchen wir eine
+  Vertraulichkeitsvereinbarung. Es geht um die Abgrenzung eines Managed-Security-Service.
+  Bitte ab dem 01.04.2026.
+
+  Danke
+  Lukas
+expected:
+  field.effective_date: "01.04.2026"
+  field.party_b: "Auerbrunn Maschinenbau AG"
+  field.purpose:
+    points:
+      - "Abgrenzung eines Managed-Security-Service"

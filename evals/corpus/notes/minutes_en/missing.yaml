@@ -1,0 +1,26 @@
+style: missing
+source: held_04
+text: |
+  Data quality working group, 14 May 2026
+  Chair: Tobias Varga
+  Present: Samuel Rinaldi, Noah Petrovic, Daniel Ferreira, Anika Brandauer, Hannah Achterberg
+  We looked at the usage figures for the quarter, the renewal of the service contract, and new
+  requirements. No decisions were taken.
+  To do: send the updated project plan to all attendees (Samuel Rinaldi); update the risk
+  register (Noah Petrovic). No due dates agreed yet.
+expected:
+  field.meeting: "Data quality working group"
+  field.date: "14 May 2026"
+  field.chair: "Tobias Varga"
+  field.minute_taker: null
+  field.attendees: "Samuel Rinaldi, Noah Petrovic, Daniel Ferreira, Anika Brandauer, Hannah Achterberg"
+  text.agenda:
+    points:
+      - "usage figures for the quarter"
+      - "the renewal of the service contract"
+      - "new requirements"
+  text.decisions: null
+  table.actions:
+    rows:
+      - ["Send the updated project plan to all attendees", "Samuel Rinaldi", null]
+      - ["Update the risk register", "Noah Petrovic", null]

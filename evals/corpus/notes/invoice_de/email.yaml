@@ -1,0 +1,30 @@
+style: email
+source: held_02
+text: |
+  Hallo Elif,
+
+  bitte stell der Lindenhaag Bau GmbH (USt-IdNr. DE000000106) eine Rechnung: Nummer
+  RE-2026-0160, Datum 28.03.2026, zahlbar bis 11.04.2026.
+
+  Abzurechnen sind 3 Softwarelizenzen zu je 220,00 € (660,00 €), 6 Schulungsworkshops zu je
+  900,00 € (5.400,00 €), 2 Sicherheitsprüfungen zu je 1.200,00 € (2.400,00 €) und 11 Stunden
+  Beratungsleistungen zu je 150,00 € (1.650,00 €).
+
+  Netto 10.110,00 €, USt. 1.920,90 €, gesamt 12.030,90 €.
+
+  Danke dir!
+expected:
+  field.invoice_no: "RE-2026-0160"
+  field.invoice_date: "28.03.2026"
+  field.due_date: "11.04.2026"
+  field.customer: "Lindenhaag Bau GmbH"
+  field.vat_id: "DE000000106"
+  table.items:
+    rows:
+      - ["Softwarelizenz", "3", "220,00 €", "660,00 €"]
+      - ["Schulungsworkshop", "6", "900,00 €", "5.400,00 €"]
+      - ["Sicherheitsprüfung", "2", "1.200,00 €", "2.400,00 €"]
+      - ["Beratungsleistungen", "11", "150,00 €", "1.650,00 €"]
+  field.subtotal: "10.110,00 €"
+  field.vat: "1.920,90 €"
+  field.total: "12.030,90 €"

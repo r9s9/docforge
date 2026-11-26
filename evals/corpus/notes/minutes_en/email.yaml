@@ -1,0 +1,43 @@
+style: email
+source: held_02
+text: |
+  Hi all,
+
+  here's a quick summary of today's retrospective on the identity management rollout
+  (26 April 2026). Anika Brandauer chaired, Samuel Rinaldi took the minutes, and Lukas Novak,
+  Mira Ostwald and Ines Tamura joined.
+
+  We went through the patch status per server group, the exceptions the business has asked
+  for, and the next patch window. We agreed that hotfix releases ship every two weeks until
+  the backlog is below twenty items.
+
+  Actions:
+  - Tobias Varga: send the updated project plan to all attendees, by 3 May 2026
+  - Lukas Novak: clarify the licence count with procurement, by 10 May 2026
+  - Lukas Novak: review open incidents with the vendor, by 17 May 2026
+  - Lukas Novak: book the test environment for the load test, by 24 May 2026
+
+  Best,
+  Samuel
+expected:
+  field.meeting:
+    value: "Retrospective – identity management rollout"
+    accept: ["Retrospective on the identity management rollout"]
+  field.date: "26 April 2026"
+  field.chair: "Anika Brandauer"
+  field.minute_taker: "Samuel Rinaldi"
+  field.attendees: "Lukas Novak, Mira Ostwald, Ines Tamura"
+  text.agenda:
+    points:
+      - "patch status per server group"
+      - "exceptions requested by the business"
+      - "the next patch window"
+  text.decisions:
+    points:
+      - "hotfix releases every two weeks until the backlog is below twenty items"
+  table.actions:
+    rows:
+      - ["Send the updated project plan to all attendees", "Tobias Varga", "3 May 2026"]
+      - ["Clarify the licence count with procurement", "Lukas Novak", "10 May 2026"]
+      - ["Review open incidents with the vendor", "Lukas Novak", "17 May 2026"]
+      - ["Book the test environment for the load test", "Lukas Novak", "24 May 2026"]

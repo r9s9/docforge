@@ -1,0 +1,30 @@
+style: bullets
+source: held_01
+text: |
+  Invoice details
+  - Invoice Number: INV-2026-0157
+  - Invoice Date: 23 March 2026
+  - Due Date: 22 April 2026
+  - Customer: Merrowind Retail Group Ltd
+  - Customer VAT ID: GB000000105
+  - Line items:
+    - Training workshop, qty 3, €900.00 each, €2,700.00
+    - Security review, qty 6, €1,200.00 each, €7,200.00
+    - Onsite support, qty 9, €400.00 each, €3,600.00
+  - Subtotal: €13,500.00
+  - VAT (20%): €2,700.00
+  - Total Due: €16,200.00
+expected:
+  field.invoice_no: "INV-2026-0157"
+  field.invoice_date: "23 March 2026"
+  field.due_date: "22 April 2026"
+  field.customer: "Merrowind Retail Group Ltd"
+  field.vat_id: "GB000000105"
+  table.items:
+    rows:
+      - ["Training workshop", "3", "€900.00", "€2,700.00"]
+      - ["Security review", "6", "€1,200.00", "€7,200.00"]
+      - ["Onsite support", "9", "€400.00", "€3,600.00"]
+  field.subtotal: "€13,500.00"
+  field.vat: "€2,700.00"
+  field.total: "€16,200.00"

@@ -1,0 +1,13 @@
+style: mixed
+source: held_03
+text: |
+  NDA bitte vorbereiten – Partner ist Ostrevik Engineering Ltd.
+  Zweck: Gespräche über ein gemeinsames Forschungsprojekt zu predictive maintenance.
+  Gültig ab 8. April 2026.
+expected:
+  field.effective_date: "8 April 2026"
+  field.party_b: "Ostrevik Engineering Ltd"
+  field.purpose:
+    points:
+      - "discussion of a shared research project"
+      - "on predictive maintenance"

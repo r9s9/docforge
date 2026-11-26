@@ -1,0 +1,26 @@
+style: correction
+source: held_05
+text: |
+  Vertrag Hallerquell Getränke GmbH, Nr. DV-2026-0463 vom 08.04.2026
+  Leistung: Betrieb und Überwachung ihrer Lagerverwaltungsplattform, Störungsbearbeitung
+  während der Geschäftszeiten, monatlicher Servicebericht.
+  Beginn 01.04.2026 – Korrektur: Beginn ist der 01.05.2026, nicht April.
+  Monatliche Vergütung 14.900,00 €.
+  Preise: Penetrationstest 7.800,00 € pro Test; zusätzlicher Speicher 120,00 € pro TB und Monat.
+expected:
+  field.agreement_no: "DV-2026-0463"
+  field.date: "08.04.2026"
+  field.customer: "Hallerquell Getränke GmbH"
+  field.start_date: "01.05.2026"
+  field.monthly_fee: "14.900,00 €"
+  text.services:
+    points:
+      - "Betrieb und Überwachung der Lagerverwaltungsplattform des Auftraggebers"
+      - "Störungsbearbeitung während der Geschäftszeiten"
+      - "monatlicher Servicebericht"
+  table.fees:
+    rows:
+      - ["Penetrationstest", "pro Test", "7.800,00 €"]
+      - ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"]
+superseded:
+  field.start_date: "01.04.2026"

@@ -1,0 +1,21 @@
+style: missing
+source: held_04
+text: |
+  Invoice for Calvenna Health Partners Ltd, 17 April 2026, due 17 May 2026.
+  12 days onsite support at €400.00 = €4,800.00
+  4 hours consulting services at €150.00 = €600.00
+  Subtotal €5,400.00, VAT €1,080.00, total €6,480.00.
+  (Invoice number and their VAT ID: ask accounting.)
+expected:
+  field.invoice_no: null
+  field.invoice_date: "17 April 2026"
+  field.due_date: "17 May 2026"
+  field.customer: "Calvenna Health Partners Ltd"
+  field.vat_id: null
+  table.items:
+    rows:
+      - ["Onsite support", "12", "€400.00", "€4,800.00"]
+      - ["Consulting services", "4", "€150.00", "€600.00"]
+  field.subtotal: "€5,400.00"
+  field.vat: "€1,080.00"
+  field.total: "€6,480.00"

@@ -1,0 +1,34 @@
+style: email
+source: held_02
+text: |
+  Subject: Contract for Thistlecombe Energy
+
+  Hi Jonas,
+
+  we closed the deal with Thistlecombe Energy Ltd today (13 March 2026), so please draw up
+  the service agreement. Use agreement number SA-2026-0448.
+
+  What they're getting: we host their document archive in our EU data centre and back it up
+  every night, and we run a restore test every six months. The service starts on 2 April 2026
+  and the monthly fee is €12,600.00.
+
+  Two extras go in the fee table: a penetration test at €7,800.00 per test, and extra storage
+  at €120.00 per TB per month.
+
+  Thanks,
+  Mira
+expected:
+  field.agreement_no: "SA-2026-0448"
+  field.date: "13 March 2026"
+  field.customer: "Thistlecombe Energy Ltd"
+  field.start_date: "2 April 2026"
+  field.monthly_fee: "€12,600.00"
+  text.services:
+    points:
+      - "hosting of the customer's document archive in an EU data centre"
+      - "nightly backup"
+      - "a restore test every six months"
+  table.fees:
+    rows:
+      - ["Penetration test", "per test", "€7,800.00"]
+      - ["Extra storage", "per TB per month", "€120.00"]

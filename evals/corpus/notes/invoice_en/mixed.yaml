@@ -1,0 +1,28 @@
+style: mixed
+source: held_03
+text: |
+  Rechnung an Varnholt Publishing Ltd, USt-ID GB000000107
+  Rechnungsnr. INV-2026-0163, Datum 8. April 2026, fällig am 8. Mai 2026
+  Positionen:
+  - Security review: 6 x 1.200,00 € = 7.200,00 €
+  - Data export: 1 x 350,00 € = 350,00 €
+  - Software licence: 7 x 220,00 € = 1.540,00 €
+  - Cloud hosting (monthly): 7 x 480,00 € = 3.360,00 €
+  - Implementation: 8 x 160,00 € = 1.280,00 €
+  Netto 13.730,00 €, MwSt. 2.746,00 €, Gesamt 16.476,00 €
+expected:
+  field.invoice_no: "INV-2026-0163"
+  field.invoice_date: "8 April 2026"
+  field.due_date: "8 May 2026"
+  field.customer: "Varnholt Publishing Ltd"
+  field.vat_id: "GB000000107"
+  table.items:
+    rows:
+      - ["Security review", "6", "€1,200.00", "€7,200.00"]
+      - ["Data export", "1", "€350.00", "€350.00"]
+      - ["Software licence", "7", "€220.00", "€1,540.00"]
+      - ["Cloud hosting (monthly)", "7", "€480.00", "€3,360.00"]
+      - ["Implementation", "8", "€160.00", "€1,280.00"]
+  field.subtotal: "€13,730.00"
+  field.vat: "€2,746.00"
+  field.total: "€16,476.00"

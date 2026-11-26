@@ -1,0 +1,31 @@
+style: bullets
+source: held_01
+text: |
+  New service agreement – details for the contract
+  - Agreement No: SA-2026-0438
+  - Date: 2 March 2026
+  - Customer: Quorvane Logistics Ltd
+  - Start Date: 21 March 2026
+  - Monthly Fee: €11,950.00
+  - Services: administration of their identity and access management service, incl. onboarding and offboarding of user accounts
+  - Fees:
+    - Training – per session – €950.00
+    - Change requests – per hour – €145.00
+    - Extra storage – per TB per month – €120.00
+    - Platform licence – per month – €4,500.00
+expected:
+  field.agreement_no: "SA-2026-0438"
+  field.date: "2 March 2026"
+  field.customer: "Quorvane Logistics Ltd"
+  field.start_date: "21 March 2026"
+  field.monthly_fee: "€11,950.00"
+  text.services:
+    points:
+      - "administration of the customer's identity and access management service"
+      - "onboarding and offboarding of user accounts"
+  table.fees:
+    rows:
+      - ["Training", "per session", "€950.00"]
+      - ["Change requests", "per hour", "€145.00"]
+      - ["Extra storage", "per TB per month", "€120.00"]
+      - ["Platform licence", "per month", "€4,500.00"]

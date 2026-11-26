@@ -1,0 +1,28 @@
+style: mixed
+source: held_03
+text: |
+  Invoice for Zeisigtal Handelsgesellschaft mbH (VAT ID DE000000107), number RE-2026-0163,
+  dated April 11, 2026, due April 25, 2026.
+  Items:
+  - security audit (Sicherheitsprüfung): 2 x EUR 1,200.00 = EUR 2,400.00
+  - software licence: 6 x EUR 220.00 = EUR 1,320.00
+  - implementation: 2 x EUR 160.00 = EUR 320.00
+  - on-site support: 11 x EUR 400.00 = EUR 4,400.00
+  - cloud hosting (monthly): 1 x EUR 480.00 = EUR 480.00
+  Net EUR 8,920.00, VAT EUR 1,694.80, total EUR 10,614.80
+expected:
+  field.invoice_no: "RE-2026-0163"
+  field.invoice_date: "11.04.2026"
+  field.due_date: "25.04.2026"
+  field.customer: "Zeisigtal Handelsgesellschaft mbH"
+  field.vat_id: "DE000000107"
+  table.items:
+    rows:
+      - [["Sicherheitsprüfung", "security audit"], "2", "1.200,00 €", "2.400,00 €"]
+      - [["software licence", "Softwarelizenz"], "6", "220,00 €", "1.320,00 €"]
+      - [["implementation", "Implementierung"], "2", "160,00 €", "320,00 €"]
+      - [["on-site support", "Vor-Ort-Support"], "11", "400,00 €", "4.400,00 €"]
+      - [["cloud hosting (monthly)", "Cloud-Hosting (monatlich)"], "1", "480,00 €", "480,00 €"]
+  field.subtotal: "8.920,00 €"
+  field.vat: "1.694,80 €"
+  field.total: "10.614,80 €"

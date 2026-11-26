@@ -1,0 +1,15 @@
+style: correction
+source: held_05
+text: |
+  NDA for Varnholt Publishing Ltd, effective 21 April 2026. Purpose: review of a data
+  migration concept for a regional retailer.
+  Update from Anika: the effective date moves to 28 April 2026 – please use the new date.
+expected:
+  field.effective_date: "28 April 2026"
+  field.party_b: "Varnholt Publishing Ltd"
+  field.purpose:
+    points:
+      - "review of a data migration concept"
+      - "for a regional retailer"
+superseded:
+  field.effective_date: "21 April 2026"

@@ -1,0 +1,30 @@
+style: mixed
+source: held_03
+text: |
+  Kurze Info zum neuen Vertrag / quick summary:
+  Kunde: Calvenna Health Partners Ltd
+  Vertragsnummer SA-2026-0449, Datum 16. März 2026
+  Start: 6. April 2026
+  Monatliche Vergütung: 13.550,00 €
+  Leistung: quarterly security patching of their application servers – nach jedem Zyklus
+  gibt es ein Change-Log und einen kurzen Testbericht.
+  Preise / fees:
+  * Platform licence, per month, 4.500,00 €
+  * Service desk, per month, 2.800,00 €
+  * On-site support, per day, 1.200,00 €
+expected:
+  field.agreement_no: "SA-2026-0449"
+  field.date: "16 March 2026"
+  field.customer: "Calvenna Health Partners Ltd"
+  field.start_date: "6 April 2026"
+  field.monthly_fee: "€13,550.00"
+  text.services:
+    points:
+      - "quarterly security patching of the customer's application servers"
+      - "a change log after each cycle"
+      - "a short test report after each cycle"
+  table.fees:
+    rows:
+      - ["Platform licence", "per month", "€4,500.00"]
+      - ["Service desk", "per month", "€2,800.00"]
+      - ["On-site support", "per day", "€1,200.00"]

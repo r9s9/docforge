@@ -1,0 +1,18 @@
+style: email
+source: held_02
+text: |
+  Hi,
+
+  before we share the pilot plan with Thistlecombe Energy Ltd we need an NDA in place. They
+  want to prepare a pilot for automated invoice processing with us. Please date it
+  2 April 2026.
+
+  Cheers,
+  Noah
+expected:
+  field.effective_date: "2 April 2026"
+  field.party_b: "Thistlecombe Energy Ltd"
+  field.purpose:
+    points:
+      - "preparation of a pilot"
+      - "automated invoice processing"

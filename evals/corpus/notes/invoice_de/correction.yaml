@@ -1,0 +1,27 @@
+style: correction
+source: held_05
+text: |
+  Rechnung RE-2026-0169 an Auerbrunn Maschinenbau AG, USt-IdNr. DE000000109, vom 29.04.2026,
+  fällig 13.05.2026.
+  6 x Beratungsleistungen à 150,00 € = 900,00 €; 3 x Implementierung à 160,00 € = 480,00 €;
+  5 x Datenexport à 350,00 € = 1.750,00 €.
+  Netto 3.130,00 €, USt. 549,70 €, gesamt 3.679,70 €.
+  Korrektur: Die Umsatzsteuer beträgt 594,70 € und der Gesamtbetrag 3.724,70 € – oben war ein
+  Zahlendreher.
+expected:
+  field.invoice_no: "RE-2026-0169"
+  field.invoice_date: "29.04.2026"
+  field.due_date: "13.05.2026"
+  field.customer: "Auerbrunn Maschinenbau AG"
+  field.vat_id: "DE000000109"
+  table.items:
+    rows:
+      - ["Beratungsleistungen", "6", "150,00 €", "900,00 €"]
+      - ["Implementierung", "3", "160,00 €", "480,00 €"]
+      - ["Datenexport", "5", "350,00 €", "1.750,00 €"]
+  field.subtotal: "3.130,00 €"
+  field.vat: "594,70 €"
+  field.total: "3.724,70 €"
+superseded:
+  field.vat: "549,70 €"
+  field.total: "3.679,70 €"

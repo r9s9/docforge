@@ -1,0 +1,37 @@
+style: mixed
+source: held_03
+text: |
+  Protokoll Security patch review, 10. Mai 2026
+  Leitung: Elif Whitcombe, Protokoll: Farid Morandi
+  Teilnehmer: Mira Ostwald, Clara Haverkamp, Hannah Achterberg, Samuel Rinaldi
+  Agenda: review of last month's incidents, the support backlog, and the planned app release
+  Beschluss: Jede Produktkategorie bekommt einen benannten Data Owner; Korrekturen werden
+  wöchentlich geprüft.
+  Aufgaben:
+  - Clarify the licence count with procurement – Hannah Achterberg – 17. Mai 2026
+  - Prepare the user training material – Hannah Achterberg – 24. Mai 2026
+  - Collect feedback from the pilot users – Hannah Achterberg – 31. Mai 2026
+  - Draft the data processing agreement – Samuel Rinaldi – 7. Juni 2026
+  - Book the test environment for the load test – Mira Ostwald – 14. Juni 2026
+expected:
+  field.meeting: "Security patch review"
+  field.date: "10 May 2026"
+  field.chair: "Elif Whitcombe"
+  field.minute_taker: "Farid Morandi"
+  field.attendees: "Mira Ostwald, Clara Haverkamp, Hannah Achterberg, Samuel Rinaldi"
+  text.agenda:
+    points:
+      - "review of last month's incidents"
+      - "the support backlog"
+      - "the planned app release"
+  text.decisions:
+    points:
+      - "each product category gets a named data owner"
+      - "corrections are reviewed weekly"
+  table.actions:
+    rows:
+      - ["Clarify the licence count with procurement", "Hannah Achterberg", "17 May 2026"]
+      - ["Prepare the user training material", "Hannah Achterberg", "24 May 2026"]
+      - ["Collect feedback from the pilot users", "Hannah Achterberg", "31 May 2026"]
+      - ["Draft the data processing agreement", "Samuel Rinaldi", "7 June 2026"]
+      - ["Book the test environment for the load test", "Mira Ostwald", "14 June 2026"]

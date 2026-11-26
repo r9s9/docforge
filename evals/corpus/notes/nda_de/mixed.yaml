@@ -1,0 +1,12 @@
+style: mixed
+source: held_03
+text: |
+  Please prepare the German NDA with Finkenstedt Medizintechnik GmbH, effective April 9, 2026.
+  Purpose: we're looking at a joint bid for a telematics project.
+expected:
+  field.effective_date: "09.04.2026"
+  field.party_b: "Finkenstedt Medizintechnik GmbH"
+  field.purpose:
+    points:
+      - "a joint bid"
+      - "for a telematics project"

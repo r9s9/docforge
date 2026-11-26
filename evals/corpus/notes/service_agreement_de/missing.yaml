@@ -1,0 +1,23 @@
+style: missing
+source: held_04
+text: |
+  Gesprächsnotiz Kesselwind Logistik GmbH
+  - Vertragsdatum 31.03.2026, Vertrag ab 22.04.2026
+  - Leistung: Second-Level-Support für ihre Außendienst-App: Fehleranalyse, Hotfix-Releases,
+    einmal im Quartal Durchsicht der offenen Punkte
+  - monatlich 14.000,00 €
+  - Vertragsnummer kommt noch von der Rechtsabteilung
+  - Preisliste für Zusatzleistungen: noch offen
+expected:
+  field.agreement_no: null
+  field.date: "31.03.2026"
+  field.customer: "Kesselwind Logistik GmbH"
+  field.start_date: "22.04.2026"
+  field.monthly_fee: "14.000,00 €"
+  text.services:
+    points:
+      - "Second-Level-Support für die Außendienst-App des Auftraggebers"
+      - "Fehleranalyse"
+      - "Hotfix-Releases"
+      - "vierteljährliche Durchsicht offener Punkte"
+  table.fees: null

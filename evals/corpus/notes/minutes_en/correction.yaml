@@ -1,0 +1,36 @@
+style: correction
+source: held_05
+text: |
+  Minutes: Quarterly business review – sensor analytics, 21 May 2026
+  Chair: Daniel Ferreira; minutes: Hannah Achterberg
+  Attendees: Lena Lindqvist, Anika Brandauer, Samuel Rinaldi
+  Agenda: changes in the payment provider's interface, the release calendar, and test coverage
+  Decision: two servers keep their exception for one more cycle; all others are patched on
+  schedule.
+  Actions:
+  - Send the updated project plan to all attendees – Samuel Rinaldi – 29 May 2026
+  - Collect feedback from the pilot users – Lena Lindqvist – 5 June 2026
+  - Schedule the go-live rehearsal – Ines Tamura – 12 June 2026
+  Correction: the meeting was on 22 May 2026, not the 21st – I mixed up the days.
+expected:
+  field.meeting: "Quarterly business review – sensor analytics"
+  field.date: "22 May 2026"
+  field.chair: "Daniel Ferreira"
+  field.minute_taker: "Hannah Achterberg"
+  field.attendees: "Lena Lindqvist, Anika Brandauer, Samuel Rinaldi"
+  text.agenda:
+    points:
+      - "changes in the payment provider's interface"
+      - "the release calendar"
+      - "test coverage"
+  text.decisions:
+    points:
+      - "two servers keep their exception for one more cycle"
+      - "all others are patched on schedule"
+  table.actions:
+    rows:
+      - ["Send the updated project plan to all attendees", "Samuel Rinaldi", "29 May 2026"]
+      - ["Collect feedback from the pilot users", "Lena Lindqvist", "5 June 2026"]
+      - ["Schedule the go-live rehearsal", "Ines Tamura", "12 June 2026"]
+superseded:
+  field.date: "21 May 2026"

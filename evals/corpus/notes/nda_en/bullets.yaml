@@ -1,0 +1,13 @@
+style: bullets
+source: held_01
+text: |
+  NDA needed:
+  - Effective Date: 22 March 2026
+  - Party B: Merrowind Retail Group Ltd
+  - Purpose: scoping of a managed security service
+expected:
+  field.effective_date: "22 March 2026"
+  field.party_b: "Merrowind Retail Group Ltd"
+  field.purpose:
+    points:
+      - "scoping of a managed security service"

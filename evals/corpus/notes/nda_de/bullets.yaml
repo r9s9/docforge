@@ -1,0 +1,14 @@
+style: bullets
+source: held_01
+text: |
+  NDA
+  - Datum des Inkrafttretens: 21.03.2026
+  - Partei B: Hallerquell Getränke GmbH
+  - Zweck: Prüfung eines Migrationskonzepts für einen regionalen Händler
+expected:
+  field.effective_date: "21.03.2026"
+  field.party_b: "Hallerquell Getränke GmbH"
+  field.purpose:
+    points:
+      - "Prüfung eines Migrationskonzepts"
+      - "für einen regionalen Händler"

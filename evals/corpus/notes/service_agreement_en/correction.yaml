@@ -1,0 +1,27 @@
+style: correction
+source: held_05
+text: |
+  Glenmarrow Facilities – service agreement
+  Agreement no. SA-2026-0464, dated 7 April 2026.
+  Customer: Glenmarrow Facilities Ltd. We operate and monitor their warehouse management
+  platform, handle incidents during business hours and send a monthly service report.
+  Start date 30 April 2026.
+  Monthly fee €14,500.00 – correction: the final offer was €15,000.00 per month, please use that.
+  Fees: on-site support €1,200.00 per day, change requests €145.00 per hour.
+expected:
+  field.agreement_no: "SA-2026-0464"
+  field.date: "7 April 2026"
+  field.customer: "Glenmarrow Facilities Ltd"
+  field.start_date: "30 April 2026"
+  field.monthly_fee: "€15,000.00"
+  text.services:
+    points:
+      - "operation and monitoring of the customer's warehouse management platform"
+      - "incident handling during business hours"
+      - "a monthly service report"
+  table.fees:
+    rows:
+      - ["On-site support", "per day", "€1,200.00"]
+      - ["Change requests", "per hour", "€145.00"]
+superseded:
+  field.monthly_fee: "€14,500.00"

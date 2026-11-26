@@ -1,0 +1,21 @@
+style: missing
+source: held_04
+text: |
+  Rechnung an Finkenstedt Medizintechnik GmbH, Datum 18.04.2026, fällig 02.05.2026.
+  - 9 Stunden Implementierung à 160,00 € = 1.440,00 €
+  - 7 Sicherheitsprüfungen à 1.200,00 € = 8.400,00 €
+  Netto 9.840,00 €, USt. 1.869,60 €, gesamt 11.709,60 €.
+  Rechnungsnummer und USt-IdNr. fehlen noch – bitte bei der Buchhaltung nachfragen.
+expected:
+  field.invoice_no: null
+  field.invoice_date: "18.04.2026"
+  field.due_date: "02.05.2026"
+  field.customer: "Finkenstedt Medizintechnik GmbH"
+  field.vat_id: null
+  table.items:
+    rows:
+      - ["Implementierung", "9", "160,00 €", "1.440,00 €"]
+      - ["Sicherheitsprüfung", "7", "1.200,00 €", "8.400,00 €"]
+  field.subtotal: "9.840,00 €"
+  field.vat: "1.869,60 €"
+  field.total: "11.709,60 €"

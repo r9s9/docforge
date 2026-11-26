@@ -1,0 +1,32 @@
+style: bullets
+source: held_01
+text: |
+  Neuer Dienstleistungsvertrag
+  - Vertragsnummer: DV-2026-0439
+  - Datum: 28.02.2026
+  - Auftraggeber: Lindenhaag Bau GmbH
+  - Vertragsbeginn: 19.03.2026
+  - Monatliche Vergütung: 12.150,00 €
+  - Leistungen: Wartung der Anbindung des Onlineshops an Zahlungs- und Versanddienstleister,
+    inkl. Anpassungen bei Schnittstellenänderungen
+  - Preise:
+    - Penetrationstest – pro Test – 7.800,00 €
+    - Plattformlizenz – pro Monat – 4.500,00 €
+    - Zusätzlicher Speicher – pro TB und Monat – 120,00 €
+    - Schulung – pro Termin – 950,00 €
+expected:
+  field.agreement_no: "DV-2026-0439"
+  field.date: "28.02.2026"
+  field.customer: "Lindenhaag Bau GmbH"
+  field.start_date: "19.03.2026"
+  field.monthly_fee: "12.150,00 €"
+  text.services:
+    points:
+      - "Wartung der Anbindung des Onlineshops an Zahlungs- und Versanddienstleister"
+      - "Anpassungen bei Schnittstellenänderungen"
+  table.fees:
+    rows:
+      - ["Penetrationstest", "pro Test", "7.800,00 €"]
+      - ["Plattformlizenz", "pro Monat", "4.500,00 €"]
+      - ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"]
+      - ["Schulung", "pro Termin", "950,00 €"]

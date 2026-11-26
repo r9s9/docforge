@@ -1,0 +1,28 @@
+style: missing
+source: held_04
+text: |
+  Notes from the call with Pellbrook Marine Supplies Ltd
+  - agreement dated 26 March 2026
+  - they want us to maintain the integration of their online shop with the payment and
+    shipping providers, incl. updates whenever those interfaces change
+  - monthly fee agreed: €14,250.00
+  - start date not fixed yet, they'll confirm next week
+  - agreement number: to be assigned by legal
+  - fee table: data migration (one-off) €6,500.00; penetration test €7,800.00 per test;
+    extra storage €120.00 per TB per month; change requests €145.00 per hour
+expected:
+  field.agreement_no: null
+  field.date: "26 March 2026"
+  field.customer: "Pellbrook Marine Supplies Ltd"
+  field.start_date: null
+  field.monthly_fee: "€14,250.00"
+  text.services:
+    points:
+      - "maintenance of the customer's online shop integration with its payment and shipping providers"
+      - "updates for interface changes"
+  table.fees:
+    rows:
+      - ["Data migration", "one-off", "€6,500.00"]
+      - ["Penetration test", "per test", "€7,800.00"]
+      - ["Extra storage", "per TB per month", "€120.00"]
+      - ["Change requests", "per hour", "€145.00"]

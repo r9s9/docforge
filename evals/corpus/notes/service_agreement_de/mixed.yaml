@@ -1,0 +1,27 @@
+style: mixed
+source: held_03
+text: |
+  Quick summary for the German contract (please write it in German):
+  Customer: Moorwiese Energie GmbH
+  Agreement no. DV-2026-0450, dated March 18, 2026, starting April 8, 2026
+  Monthly fee: EUR 13,350.00
+  Scope: we monitor their sensor data pipeline, with alerting outside business hours, plus a
+  root-cause report for every outage.
+  Price list: change requests EUR 145.00 per hour; penetration test EUR 7,800.00 per test;
+  on-site support EUR 1,200.00 per day
+expected:
+  field.agreement_no: "DV-2026-0450"
+  field.date: "18.03.2026"
+  field.customer: "Moorwiese Energie GmbH"
+  field.start_date: "08.04.2026"
+  field.monthly_fee: "13.350,00 €"
+  text.services:
+    points:
+      - "monitoring of the customer's sensor data pipeline"
+      - "alerting outside business hours"
+      - "a root-cause report for every outage"
+  table.fees:
+    rows:
+      - [["change requests", "Änderungsaufträge"], ["per hour", "pro Stunde"], "145,00 €"]
+      - [["penetration test", "Penetrationstest"], ["per test", "pro Test"], "7.800,00 €"]
+      - [["on-site support", "Vor-Ort-Support"], ["per day", "pro Tag"], "1.200,00 €"]

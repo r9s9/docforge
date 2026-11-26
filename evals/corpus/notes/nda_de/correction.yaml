@@ -1,0 +1,15 @@
+style: correction
+source: held_05
+text: |
+  NDA Zeisigtal Handelsgesellschaft mbH, gültig ab 22.04.2026.
+  Zweck: Abstimmung eines gemeinsamen Forschungsprojekts zur vorausschauenden Wartung.
+  Korrektur: Datum ist der 29.04.2026, der 22.04. war ein Tippfehler.
+expected:
+  field.effective_date: "29.04.2026"
+  field.party_b: "Zeisigtal Handelsgesellschaft mbH"
+  field.purpose:
+    points:
+      - "Abstimmung eines gemeinsamen Forschungsprojekts"
+      - "zur vorausschauenden Wartung"
+superseded:
+  field.effective_date: "22.04.2026"
