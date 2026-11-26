@@ -1,0 +1,27 @@
+{
+ "faithful": {
+  "agreement": {
+   "value": 0.9,
+   "num": 27,
+   "den": 30
+  },
+  "used": true,
+  "disagreements": [
+   {"item": "d602a4eda3", "owner": true, "grader": false},
+   {"item": "0ebe8665b7", "owner": true, "grader": false},
+   {"item": "f44ebdd586", "owner": true, "grader": false}
+  ]
+ },
+ "complete": {
+  "agreement": {
+   "value": 0.9642857142857143,
+   "num": 27,
+   "den": 28
+  },
+  "used": true,
+  "disagreements": [
+   {"item": "4443d19e96", "owner": true, "grader": false}
+  ]
+ },
+ "gate": 0.85
+}
