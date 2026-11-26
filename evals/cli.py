@@ -117,12 +117,19 @@ def _plan_budget(config: dict, args: argparse.Namespace, selected: list[dict], c
     per_case = budget.cost_per_judged_case(
         budget.latest_result(RESULTS_DIR, config["name"], "comply")
     )
+    # --repeat judges a sample again: at most `sample` cases, `repeat - 1` more times each.
+    repeat_calls = (max(args.repeat, 1) - 1) * max(min(args.sample, len(judged)), 0) \
+        if judged is not None else 0
+    estimate = budget.estimate(judged, cached, per_case)
+    if estimate is not None:
+        estimate += repeat_calls * per_case  # counted as uncached: an upper bound
     return {
         "cap_usd": budget.effective_cap(config, args.max_usd),
         "judged_expected": len(judged) if judged is not None else None,
+        "repeat_calls": repeat_calls,
         "cached": len(cached),
         "cost_per_judged_case": per_case,
-        "estimate_usd": budget.estimate(judged, cached, per_case),
+        "estimate_usd": estimate,
     }
 
 
@@ -148,6 +155,8 @@ def _dry_run_text(config: dict, ai: dict, selected: list[dict], plan: dict | Non
         judged = plan["judged_expected"]
         lines.append("  cases the judge will see  "
                      + (f"{judged} (from the no-AI result)" if judged is not None else "unknown"))
+        if plan.get("repeat_calls"):
+            lines.append(f"  repeat judge calls        {plan['repeat_calls']} (stability)")
         local = ai.get("host", "").startswith(("127.0.0.1", "localhost"))
         lines.append(f"  already in the cache      {plan['cached']}")
         lines.append("  spending cap              "
@@ -229,7 +238,7 @@ def _run(args: argparse.Namespace) -> int:
             cache.install()
             observer = CallObserver(cache)
             observer.install()
-            judged_total = plan["judged_expected"] or len(selected)
+            judged_total = (plan["judged_expected"] or len(selected)) + plan["repeat_calls"]
 
             def should_stop(rows: list[dict]) -> str | None:
                 done = sum(1 for r in rows
