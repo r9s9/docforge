@@ -3,13 +3,14 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M3 built (2026-11-26). Two suites run in three modes each (AI off, Claude
+**Status:** M3 done (2026-11-26). Two suites run in three modes each (AI off, Claude
 Haiku 5.5, and a local model in LM Studio):
 - **comply** checks returned documents against their template. Its three-way comparison is in
   the changelog's M2 entry.
 - **generate** fills each template from 35 rough-notes texts and measures what DocForge wrote,
   hallucinations first. Its three runs happen on the owner's PC
-  ([guide below](#run-the-generate-suite-on-your-pc-m3)).
+  ([guide below](#run-the-generate-suite-on-your-pc-m3)); the comparison and five written-up
+  failures are in the changelog's M3 entry.
 
 Analyze arrives in M4.
 
@@ -60,9 +61,12 @@ python -m evals run --suite comply --config evals/configs/no-ai.yaml
   table come the changes from the first file to each of the others: the cases whose alarm
   status changed (comply), or the fields whose outcome changed (generate). Add `--markdown` for
   a table to paste into docs.
-- **`labels sheet`** picks the 30 free-text items the owner labels to check the grader;
-  **`labels check`** reports how often the grader agrees with those labels (85% or more, or its
-  grades aren't used).
+- **`labels sheet`** picks the 30 free-text items the owner labels to check the grader
+  (`--languages en` keeps only English documents with English notes); **`labels check`** reports
+  how often the grader agrees with those labels (85% or more, or its grades aren't used).
+- **`rescore FILE ...`** recomputes a generate result's outcomes from the values it recorded,
+  after a comparison rule is fixed. Nothing is generated or graded again, and the result notes
+  when it was rescored.
 
 The tests run from the repo root:
 

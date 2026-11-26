@@ -1,7 +1,7 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 and M2 are done; M3 is
-> built. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1, M2 and M3 are
+> done. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
 > confirmed. The AI runs, and every generate run (it needs the grader's key), happen on the
 > owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
@@ -111,6 +111,8 @@ Default severities set by `compliance/checker.py` (the judge may change them lat
 | 18 | — | The judge's client uses DocForge's generation config, with a 300 s timeout (`ai_generation_timeout_seconds`). On Claude, DocForge asks for at least 16,000 output tokens per call (`MIN_MAX_TOKENS`); on the OpenAI-compatible path, 6,000. | A slow local model gets 300 s per judge call before the call counts as failed. The worst-case Haiku cost assumes 16,000 output tokens per call (§6.6). |
 | 19 | — | Both OpenAI-compatible call paths (`complete_json`, `_agentic_openai`) start with two system messages: the instructions, then `[developer instructions]`. Qwen 3.6's chat template in LM Studio raises "System message must be at the beginning" on the second, so every call fails before the model runs. The judge swallows the `LLMError`. | Out of the box, the local judge fails on every case, silently. The owner's local run used a one-line template change in LM Studio, which renders the second system message as a ChatML system turn instead of raising. DocForge is unchanged. The result can't see the template, so the CHANGELOG records it. |
 | 20 | Without AI, unstructured notes are routed by heuristics. | `route_unstructured_heuristic` copies `Label: value` lines, then joins every other line, minus the ones it placed and all-caps titles, into the remaining text fields, by keyword overlap or as a last resort into the first one. It never fills tables. | Leftover prose lands in a short field such as an agreement number, as lines that were not next to each other in the notes. A value of four or more words whose words all occur in the notes therefore counts as from the notes (grounded but wrong), not as a hallucination (§3.5). |
+| 21 | — | The writer prompt asks for dates "as ISO (YYYY-MM-DD) unless the description says otherwise" and for normalised numbers (`_WRITER_DEVELOPER`), so values come back as `2026-03-02` and `11950.0`. The assembler renders a value as it is (`_coerce_scalar`: `str()`), with no formatting by field type or language. | AI-written dates and amounts don't keep the template's form (M3: Haiku 17/93 and Qwen 16/93 kept; failure 2). "Form kept" is reported apart from correctness. |
+| 22 | — | A section the writer skips is switched off (`_section_toggles`). The template builder wraps each section with fields in `{%p if _show_<section> %}`, from its first field to the next section with fields, so sections without fields after it fall inside the same block. | Skipping one section can remove every later section, legal clauses and signatures included (M3, failure 1). The layout check catches it. |
 
 ### 1.3 Pre-existing state of master (not changed, by rule)
 
@@ -252,6 +254,10 @@ python -m evals run --suite comply --config configs/no-ai.yaml
 python -m evals run --suite all --config configs/haiku.yaml --max-usd 3
 python -m evals report                                        # rebuild RESULTS.md from results/
 python -m evals compare results/A.json results/B.json        # what got better or worse
+python -m evals run --suite generate --config configs/haiku.yaml   # fill templates from notes (M3)
+python -m evals labels sheet --languages en                   # the 30 items the owner labels
+python -m evals labels check                                  # the grader's agreement with them
+python -m evals rescore results/A.json                        # outcomes again, from recorded values
 ```
 
 Extra flags for `run`:
@@ -755,6 +761,16 @@ and results are never changed, and no source file is edited.
     time, and where there are enough, half from items the grader answered "no" on. The owner
     answers blind on a labelling page (no mode, no verdict). `labels check` writes the agreement;
     a question below 85% is reported as "not graded".
+- **As found in M3** (`graders/labels/`):
+  - The owner doesn't read German, so the sheet holds English items only
+    (`labels sheet --languages en`): English documents with English notes, no `mixed` style.
+    The grader's agreement on German values is not measured.
+  - Faithful 27/30 and complete 27/28, both above the gate, so both are used. In every
+    disagreement the grader said no and the owner yes.
+  - The eval counts a text as unfaithful when the grader lists any unsupported claim, whatever
+    its own yes/no. Once in M3 (`haiku`, `service_agreement_de/email`), the listed claim was one
+    the grader itself called supported. Since `ec841d8`, each grade also keeps the grader's own
+    yes/no as `verdict`, so a case like this shows both.
 
 ### 6.6 Where the AI runs happen (M2)
 
@@ -834,6 +850,12 @@ is still clean.
   also record `notes_hash`, so a comparison across different notes says so, and `grader` (on or
   off, and what it spent). Per case they hold every field's value and outcome, the tables'
   rows, the free text with its grade, the layout check, and which engine wrote the document.
+- **`rescore FILE ...`** (M3). A generate result records every value DocForge wrote, so when a
+  comparison rule is fixed, `rescore` recomputes the outcomes and aggregates from those values
+  with the current metric code, without generating again. The values, grades, layout checks,
+  timings and costs stay as recorded. It refuses a result whose `notes_hash` differs from the
+  notes at hand, and it appends a `rescored` entry to `meta`: date, commit, `dirty_code`, and how
+  many field outcomes changed.
 - **AI runs also record** the model, host and efforts, `temperature_sent`, the budget plan, live
   and replayed spend, the cache hit rate, `stopped`, and per case the judge's verdicts, its calls
   and their outcomes, and the tokens used.
@@ -870,7 +892,7 @@ rejected by a run.
 | H4 | Removing a column is often not reported as `table_shape`. It is either silent (the remaining header is ≥ 0.8 similar) or `missing_table` (the tables aren't paired). | the header-row signature, and pairing by position in "replace" blocks | M1 | Confirmed, silent form: reported 2/10, only in the German fee table |
 | H5 | Reordering two sections raises `changed_fixed` or `missing_fixed` on a document that is fine | `SequenceMatcher` alignment keeps document order | M1 | Confirmed: 8/8 alarms |
 | H6 | An inserted material clause leaves the score unchanged and never reaches the judge | `extra` rows are outside `differences` | M1, M2 | Confirmed for no AI: 6/8 visible only as extra content; 2/8 misaligned onto the original clause. Confirmed in M2: the 6 never reach the judge; both judges call the 2 misaligned ones material. |
-| H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 | — |
+| H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 | Confirmed in M3: no AI made no hallucinations and left 101/166 given values empty. The AI modes left none empty and rarely invented: short fields Haiku 0/166, Qwen 2/166; table cells 3 each, Qwen's all rewordings. |
 | H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 | — |
 | H9 | German amounts written `12.500,00 €` are typed as text, not number | `CURRENCY_RE` expects the symbol before the number or an ISO code after it | M4 | — (added in M1) |
 
@@ -880,8 +902,8 @@ Confirmed blind spots are the M6 candidates.
 
 1. **Local model.** Decided in M2: Qwen 3.6-27b in LM Studio on the owner's PC, thinking off
    (§6.1, §6.6). The result records the exact model ID that LM Studio served.
-2. **Grader labels.** The grader is Haiku 5.5 (§6.5). When will the owner's 30 hand labels come?
-   (M3)
+2. **Grader labels.** Answered in M3: the owner labelled 30 English items on 2026-11-26, and
+   the grader passed the gate on both questions (§6.5).
 3. **Money.** Does an amount like `1.234,56 €` count as `number` or `text` in field type accuracy?
    The proposal is `number`.
 4. **Date format.** Is a date-format change material "by rule" for any document type? The

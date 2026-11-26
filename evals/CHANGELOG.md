@@ -2,6 +2,149 @@
 
 One entry per milestone: what was built, what was learned, what comes next.
 
+## M3: Generate suite (2026-11-26)
+
+**Built**
+- **35 notes cases** (`corpus/notes/`), one per style for each of the 7 type/language pairs:
+  bullet points, an email, German and English mixed, missing information, and notes that correct
+  one of their own values. Written by hand from held-out documents' values; a test checks every
+  expected value against its source document and the notes.
+- **Scoring** (`metrics/generate.py`, `metrics/normalize.py`): every short field is correct,
+  correctly empty, omitted, from the notes but wrong, or unsupported (a hallucination), flagged
+  or silent; plus tables, date and amount forms, layout, and free text.
+- **The generate runner** on DocForge's real `generate_document`, `run --suite generate`, and
+  `compare` for generate results.
+- **The rubric grader** (Claude Haiku 5.5) for free text, and the agreement check behind it.
+- **`rescore`**: recomputes outcomes from the values a run recorded, for when a comparison rule
+  is fixed.
+- **Results.** All three runs ran on the owner's PC (Windows, Python 3.13.17) at commit
+  `d4d5f35`, DocForge 0.21.0, with the same notes (`078da46a`). The only uncommitted file was
+  the Claude app's launch settings (`dirty_code: false`). No errors, no early stops.
+
+  | Result | Time | Spent |
+  |---|---|---|
+  | `results/2026-11-26_no-ai_generate.json` | 22 s | grading $0.0012 |
+  | `results/2026-11-26_haiku_generate.json` | 754 s | $0.1054 + grading $0.0064 |
+  | `results/2026-11-26_local_generate.json` | 5,622 s | grading $0.0055 |
+
+  After checking the outcomes, two comparison rules were fixed and the files rescored at
+  `ec841d8`: a role in brackets ("Anika Brandauer (chair)") is not part of a name, and a quantity
+  may carry a unit ("11 Stunden"). This changed two of Haiku's field outcomes and recomputed the
+  table scores; the values, grades, layout checks, timings and costs are as recorded.
+- **The grader passed its check.** The owner labelled 30 values blind on a labelling page
+  (`graders/labels/`). The owner doesn't read German, so the 30 come only from English documents
+  with English notes. The grader agrees with the owner on faithfulness for 27/30 and on
+  completeness for 27/28, above the 85% gate, so its verdicts are used. In all four
+  disagreements the grader said no where the owner said yes: three Haiku texts it called
+  unfaithful, and the no-AI decision that stops mid-sentence (failure 5), which it called
+  incomplete. Its agreement on German values is not measured.
+
+**The M3 table** (`python -m evals compare`; every number comes from the three result files)
+
+| metric | no AI | Haiku 5.5 | Qwen 3.6-27b (local) |
+|---|---|---|---|
+| short fields right | 0.24 (40/166) | 0.99 (165/166) | 0.98 (163/166) |
+| left empty though the notes give it | 0.61 (101/166) | 0.00 (0/166) | 0.00 (0/166) |
+| **short fields hallucinated** | **0.00 (0/69)** | **0.00 (0/166)** | **0.01 (2/166)** |
+| of those, flagged as AI-drafted | — | — | 0/2 |
+| from the notes, but wrong | 0.42 (29/69) | 0.01 (1/166) | 0.01 (1/166) |
+| empty where the notes are silent | 0.56 (5/9) | 1.00 (9/9) | 1.00 (9/9) |
+| a corrected value used | 0 | 0 | 0 |
+| dates and amounts in the template's form | 0.91 (20/22) | 0.18 (17/93) | 0.17 (16/93) |
+| table row count right | 0.00 (0/24) | 0.92 (22/24) | 1.00 (24/24) |
+| table cells right | 0.00 (0/263) | 1.00 (263/263) | 0.99 (260/263) |
+| **table cells unsupported** | — | **0.01 (3/272)** | **0.01 (3/263)** |
+| free text written | 0.30 (9/30) | 0.97 (29/30) | 0.97 (29/30) |
+| free text faithful (grader) | 1.00 (9/9) | 0.86 (25/29) | 1.00 (29/29) |
+| free text complete (grader) | 0.78 (7/9) | 1.00 (28/28) | 1.00 (28/28) |
+| layout kept | 1.00 (35/35) | 1.00 (35/35) | 0.97 (34/35) |
+| review led to a rewrite | — | 0.09 (3/35) | 0.09 (3/35) |
+| stable across repeats | — | 0.98 (46/47) | 1.00 (47/47) |
+| cost per document | $0 | $0.0019 | $0 (hardware) |
+| generate time p50 / p95 | 53 / 69 ms | 11.1 / 21.0 s | 94.5 / 170.0 s |
+
+The hallucination rates count the values each mode wrote: without AI, 69 short fields had one.
+
+Short fields right, by notes style:
+
+| style | no AI | Haiku 5.5 | Qwen 3.6-27b |
+|---|---|---|---|
+| bullet points | 35/35 | 35/35 | 34/35 |
+| email | 0/35 | 34/35 | 33/35 |
+| mixed languages | 1/35 | 35/35 | 35/35 |
+| missing information | 2/26 | 26/26 | 26/26 |
+| correction | 2/35 | 35/35 | 35/35 |
+
+**Learned** (this corpus; Haiku and Qwen as configured in M2)
+- **Without AI, DocForge invents nothing but reads only bullet notes (H7 confirmed).** It filled
+  every field of the bullet-point notes and almost nothing else: 101 of 166 given values were
+  left empty, no table was filled, and there were no hallucinations. The 29 wrong values are
+  note lines put in the wrong field.
+- **With AI, the values are almost all right.** Both writers got 98–99% of the short fields
+  right, read the email, mixed-language and correcting notes as well as the bullet ones, left
+  every missing field empty instead of guessing, and never used a value the notes later
+  corrected. The AI writer wrote all 35 documents in both modes; it never fell back.
+- **Haiku is fast and cheap**: no hallucinated short field, $0.0019 a document, 11 s at the
+  median. Qwen on the owner's PC took 94 s at the median.
+- **On Haiku's free text, the grader is stricter than the owner.** The grader called four of
+  Haiku's texts unfaithful, for details the notes don't state: extras "available on request", a
+  reference to "section 2", and "DACH (Germany, Austria and Switzerland)". The owner labelled the
+  three English ones and judged all three faithful. The fourth, German, counts as unfaithful only
+  by the eval's rule that any listed claim makes a text unfaithful: the grader listed the
+  abbreviation "IAM" and noted that it is not an unsupported fact.
+- **The two modes' unsupported table cells are not alike.** Haiku's 3 are the descriptions of
+  rows the notes don't support (failure 4). Qwen's 3 are rewordings of values in the notes:
+  "Software-Lizenz" for "Softwarelizenz", "TB/Monat" for "pro TB und Monat", and
+  "Änderungsanfragen" for the English notes' "change requests", where the eval accepts
+  "Änderungsaufträge". The first is a gap in the eval's comparison: the hyphen splits the word.
+
+**Five failures, written up**
+1. **A skipped section deletes every clause after it** (Qwen, `service_agreement_de/missing`).
+   The notes say the price list for extras is still open ("noch offen"), so Qwen left the fee
+   table empty and listed the fees section as skipped. DocForge then removed everything from the
+   fees heading to the end: term, liability, confidentiality, data protection, governing law and
+   the signature block: 14 blocks, by the layout check. The cause is in the template: each section
+   with fields is wrapped in an on/off switch, and the sections without fields after it fall
+   inside the same switch. Rendering the template with only that section switched off
+   reproduces it: 13 of its 21 paragraphs disappear. DocForge's validation checks only field
+   values, and its read-back review raised one finding that it didn't count as correctable, so
+   no rewrite followed. DocForge's code makes hiding a section an explicit decision because a
+   vanished section is "the scarier failure — the document looks complete and silently isn't".
+   Haiku filled the table instead (failure 4), so its contract kept every clause.
+2. **AI-written dates and amounts lose the template's form** (Haiku 76 and Qwen 77 of 93).
+   DocForge's writer prompt asks for ISO dates and normalised numbers, and its assembler prints
+   values as they are. Haiku's English agreement (`service_agreement_en/bullets`) says
+   "Date: 2026-03-02" and "Monthly Fee: 11950.0" where the template's documents write
+   "2 March 2026" and "€11,950.00", and its German invoice (`invoice_de/email`) says
+   "Rechnungsdatum: 2026-03-28" for "28.03.2026". The values are right; a reader would still have
+   to fix every date and amount. Without AI, the form was kept 20/22.
+3. **A misspelled company, not flagged** (Qwen, `service_agreement_de/bullets` and
+   `invoice_de/email`). "Lindenhaag Bau GmbH" became "Lindh Haag Bau GmbH" and
+   "Lindhaga Bau GmbH": the only hallucinated short fields in either AI mode (2 of 332), both in
+   the customer field, and neither marked as drafted, so the app wouldn't show them for review.
+4. **Haiku puts the monthly fee into the price list** (`service_agreement_en/email`,
+   `service_agreement_de/correction`, `service_agreement_de/missing`). In these agreements the fee
+   table lists the extras, such as a penetration test, and the monthly fee has a field of its
+   own. Haiku filled the field and also added the monthly fee as the table's first row, under a
+   description it wrote ("Archive hosting, nightly backup and six-monthly restore testing"), so
+   the table has three rows where the notes give two. Where the notes say the price list is still
+   open, it put the monthly fee in as the only row. These are Haiku's 3 unsupported table cells
+   and its 2 wrong row counts.
+5. **Without AI, an email lands in the agreement-number field** (`service_agreement_en/email`).
+   The heuristic copies "Label: value" lines and joins the other lines into the remaining text
+   fields, as a last resort into the first one, so the agreement number reads "Subject: Contract
+   for Thistlecombe Energy Hi Jonas, we closed the deal with Thistlecombe Energy Ltd today …". A
+   value that runs onto a second line is cut at the line break: the decision ends "…the
+   remaining follow-ups go to", without "the backlog" (`minutes_en/bullets`).
+
+Also seen: both AI writers listed the chair and the minute taker among the attendees, though the
+template has a field for each ("from the notes, but wrong", once per mode).
+
+**Next**
+- **M4**, in plan mode: the analyze suite, with quality by number of examples (1, 2, 3, 5).
+- A small eval fix to make first: compare a word with and without its hyphen as equal
+  ("Software-Lizenz", "Softwarelizenz"), then rescore the generate results.
+
 ## M2: AI modes for the comply suite (2026-11-26)
 
 **Built**
