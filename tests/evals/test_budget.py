@@ -103,3 +103,14 @@ def test_the_plan_counts_the_repeat_calls_in_the_estimate(tmp_path, monkeypatch)
 
     args.repeat = 1
     assert cli._plan_budget({"name": "haiku"}, args, selected, Cache())["repeat_calls"] == 0
+
+
+def test_a_local_model_shows_no_price_even_with_an_earlier_result():
+    from evals import cli
+
+    plan = {"judged_expected": 82, "repeat_calls": 20, "cached": 0, "cap_usd": 3.0,
+            "cost_per_judged_case": 0.0, "estimate_usd": 0.0}
+    ai = {"enabled": True, "model": "qwen", "host": "127.0.0.1:1234"}
+    text = cli._dry_run_text({"name": "local"}, ai, [{"id": "a", "pair": "nda_en"}], plan)
+    assert "estimated cost            $0 (a local model has no price)" in text
+    assert "$0.0000" not in text

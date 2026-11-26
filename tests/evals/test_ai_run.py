@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -30,6 +31,11 @@ def fake(transport, request):
                      "finish_reason": "stop"}],
         "usage": {"prompt_tokens": 400, "completion_tokens": 20}})
 httpx.HTTPTransport.handle_request = fake
+import os
+from pathlib import Path
+import evals.paths
+if os.environ.get("EVALS_TEST_RESULTS"):  # earlier results the budget plan may read
+    evals.paths.RESULTS_DIR = Path(os.environ["EVALS_TEST_RESULTS"])
 from evals.cli import main
 code = main(sys.argv[1:])
 print("FAKE_POSTS", len(posts))
@@ -43,6 +49,12 @@ def _cli(tmp_path, *args: str, key: str | None = None) -> tuple[int, str, int]:
     env.update(PYTHONPATH=str(REPO_ROOT), PYTHONDONTWRITEBYTECODE="1")
     if key is not None:
         env["ANTHROPIC_API_KEY"] = key
+    # Only the no-AI baseline: the plan must not depend on which AI results are committed.
+    earlier = tmp_path / "earlier-results"
+    earlier.mkdir(exist_ok=True)
+    baseline = REPO_ROOT / "evals" / "results" / "2026-11-26_no-ai_comply.json"
+    shutil.copyfile(baseline, earlier / baseline.name)
+    env["EVALS_TEST_RESULTS"] = str(earlier)
     command = [sys.executable, "-c", DRIVER, "run", "--suite", "comply",
                "--cache-dir", str(tmp_path / "cache"), "--out", str(tmp_path / "results"), *args]
     done = subprocess.run(command, cwd=REPO_ROOT, env=env, capture_output=True, text=True,

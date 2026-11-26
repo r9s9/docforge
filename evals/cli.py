@@ -161,10 +161,10 @@ def _dry_run_text(config: dict, ai: dict, selected: list[dict], plan: dict | Non
         lines.append(f"  already in the cache      {plan['cached']}")
         lines.append("  spending cap              "
                      + ("none needed" if local else _money(plan["cap_usd"])))
-        if plan["estimate_usd"] is not None:
-            lines.append(f"  estimated cost            {_money(plan['estimate_usd'])}")
-        elif local:
+        if local:
             lines.append("  estimated cost            $0 (a local model has no price)")
+        elif plan["estimate_usd"] is not None:
+            lines.append(f"  estimated cost            {_money(plan['estimate_usd'])}")
         else:
             lines.append("  estimated cost            unknown: no earlier run of this config. The "
                          "first 3 judged cases are a pilot; the run stops if they project past "
