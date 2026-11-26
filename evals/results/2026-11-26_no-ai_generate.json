@@ -55,7 +55,10 @@
    "cached": 0,
    "cost_per_judged_case": null,
    "estimate_usd": null
-  }
+  },
+  "rescored": [
+   {"date": "2026-11-26", "git_sha": "ec841d894062b2ac09b2ce6ed71e47a0ec5dc814", "dirty_code": false, "outcomes_changed": 0}
+  ]
  },
  "templates": {
   "service_agreement_en": {
