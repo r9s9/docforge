@@ -34,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--limit", type=int, default=None, help="at most N cases per type")
     run.add_argument("--out", type=Path, default=None, help="results directory")
     run.add_argument("--keep-sandbox", action="store_true", help="keep the temp directory")
+    run.add_argument("--model", default=None, help="override the config's model id")
     return parser
 
 
@@ -49,34 +50,58 @@ def _corpus_build(args: argparse.Namespace) -> int:
     return 0
 
 
-def _ensure_corpus() -> dict:
-    """The committed manifest, with a build directory that matches it (rebuilt if needed)."""
-    from evals.corpus.build import build_corpus, load_manifest, stale_files
+def _ensure_corpus() -> tuple[dict, dict]:
+    """The committed manifest plus a matching build directory (rebuilt if needed).
+
+    Also returns what the run should record about the corpus. If this machine builds files
+    whose bytes differ from the manifest's (another python-docx or lxml version) but every
+    ground truth and label is the same, the run goes ahead and records both hashes; any other
+    difference stops it.
+    """
+    from evals.corpus.build import build_corpus, load_manifest, same_cases, stale_files
     from evals.paths import BUILD_DIR, MANIFEST_PATH
 
     manifest = load_manifest(MANIFEST_PATH)
+    corpus = {"corpus_hash": manifest["corpus_hash"], "files_match_manifest": True}
     if stale_files(manifest, BUILD_DIR):
         print("Building the corpus first…", file=sys.stderr)
         fresh = build_corpus(BUILD_DIR)
         if fresh["corpus_hash"] != manifest["corpus_hash"]:
-            raise SystemExit(
-                "The corpus code no longer matches evals/corpus/manifest.json. Run "
-                "`python -m evals corpus build` and commit the manifest before running a suite."
+            if not same_cases(fresh, manifest):
+                raise SystemExit(
+                    "The corpus code no longer matches evals/corpus/manifest.json. Run "
+                    "`python -m evals corpus build` and commit the manifest before running a "
+                    "suite."
+                )
+            print(
+                "Note: this machine builds the corpus files with different bytes (library "
+                "versions), but every document's ground truth and every label match the "
+                "manifest. The run goes ahead and records both hashes.",
+                file=sys.stderr,
             )
-    return manifest
+            corpus = {
+                "corpus_hash": manifest["corpus_hash"],
+                "local_corpus_hash": fresh["corpus_hash"],
+                "files_match_manifest": False,
+            }
+            manifest = {**manifest, "types": fresh["types"], "cases": fresh["cases"]}
+    return manifest, corpus
 
 
 def _run(args: argparse.Namespace) -> int:
     import time
 
-    from evals.harness import apply_config, load_config, prepare
+    from evals.harness import ai_enabled, apply_config, load_config, prepare
     from evals.paths import BUILD_DIR, RESULTS_DIR
 
     if args.suite != "comply":
         print(f"The {args.suite} suite arrives in M3/M4; only comply runs in M1.", file=sys.stderr)
         return 2
     config = load_config(args.config)
-    manifest = _ensure_corpus()
+    if ai_enabled(config):  # removed once the budget guard exists (M2, commit 3)
+        print("AI runs are not enabled yet: the budget guard arrives later in M2.", file=sys.stderr)
+        return 2
+    manifest, corpus = _ensure_corpus()
     if args.types:
         unknown = sorted(set(args.types) - set(manifest["types"]))
         if unknown:
@@ -88,7 +113,7 @@ def _run(args: argparse.Namespace) -> int:
     git = git_state()  # before anything is written
     sandbox = prepare(keep=args.keep_sandbox)
     try:
-        ai = apply_config(config)
+        ai = apply_config(config, model=args.model)
         from evals.metrics.comply import summarize
         from evals.report import comply_table, result_document, write_result
         from evals.runners import comply
@@ -100,6 +125,7 @@ def _run(args: argparse.Namespace) -> int:
             aggregates=summarize(records), templates=templates,
             seconds=time.perf_counter() - started, git=git,
         )
+        result["meta"]["corpus"] = corpus
         path = write_result(result, args.out or RESULTS_DIR)
     finally:
         sandbox.close()

@@ -1,0 +1,17 @@
+# The shipped default: Claude Haiku 5.5 on both tiers, as in backend/docforge/config.py.
+# The key comes from the ANTHROPIC_API_KEY environment variable of the shell you run in; it is
+# never printed or saved.
+name: haiku
+description: Claude Haiku 5.5, DocForge's shipped default
+ai:
+  enabled: true
+  provider: anthropic
+  base_url: https://api.anthropic.com
+  model: claude-haiku-5-5
+  reasoning_model: ""        # empty = the same model on both tiers, as shipped
+  effort_workhorse: low
+  effort_reasoning: medium
+  temperature: 0.0
+  api_key_env: ANTHROPIC_API_KEY
+# The owner's cap for this config: $1.00, under €1. `--max-usd` can lower it, never raise it.
+max_usd: 1.00

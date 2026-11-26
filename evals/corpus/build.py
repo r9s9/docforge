@@ -132,7 +132,7 @@ def build_corpus(out_dir: Path, manifest_path: Path | None = None) -> dict[str, 
 def write_manifest(manifest: dict[str, Any], path: Path) -> None:
     """Write the manifest as stable, reviewable JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(jsonfmt.dumps(manifest) + "\n", encoding="utf-8")
+    path.write_text(jsonfmt.dumps(manifest) + "\n", encoding="utf-8", newline="\n")
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
@@ -145,6 +145,26 @@ def truth_for(pair: str, name: str) -> list[dict[str, Any]]:
     from evals.corpus.generator import doc_index
 
     return build_document(SPECS[pair], doc_index(name))[1]
+
+
+def same_cases(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """Whether two manifests describe the same documents and cases, ignoring file bytes.
+
+    True when every document's ground-truth hash and values, and every case's ID and label,
+    match. A corpus built with another python-docx or lxml version can differ in packaging
+    alone; its cases are still the same ones.
+    """
+    def documents(m: dict[str, Any]) -> dict[str, Any]:
+        return {
+            (pair, name): (doc["truth_hash"], doc["values"])
+            for pair, info in m["types"].items()
+            for name, doc in info["documents"].items()
+        }
+
+    def cases(m: dict[str, Any]) -> list[Any]:
+        return [(case["id"], case["base"], case["label"]) for case in m["cases"]]
+
+    return documents(a) == documents(b) and cases(a) == cases(b)
 
 
 def stale_files(manifest: dict[str, Any], build_dir: Path) -> list[str]:

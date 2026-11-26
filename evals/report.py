@@ -32,6 +32,19 @@ def git_state(repo: Path = REPO_ROOT) -> dict[str, Any]:
     return {"git_sha": sha, "dirty": bool(status.strip())}
 
 
+def library_versions() -> dict[str, str | None]:
+    """Versions of the libraries that shape the corpus files and the model calls."""
+    from importlib import metadata
+
+    versions: dict[str, str | None] = {}
+    for name in ("python-docx", "lxml", "anthropic", "httpx", "httpx2"):
+        try:
+            versions[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            versions[name] = None
+    return versions
+
+
 def result_document(
     *,
     suite: str,
@@ -52,7 +65,7 @@ def result_document(
             "suite": suite,
             "config": config["name"],
             "ai": ai,
-            "models": {},
+            "models": {"model": ai.get("model")} if ai.get("enabled") else {},
             "date": datetime.now(UTC).date().isoformat(),
             "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
             **git,
@@ -65,6 +78,8 @@ def result_document(
             "stopped": None,
             "seconds": round(seconds, 1),
             "python": platform.python_version(),
+            "platform": platform.system(),
+            "libraries": library_versions(),
         },
         "templates": templates,
         "aggregates": aggregates,
@@ -77,7 +92,7 @@ def write_result(result: dict[str, Any], out_dir: Path) -> Path:
     meta = result["meta"]
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{meta['date']}_{meta['config']}_{meta['suite']}.json"
-    path.write_text(jsonfmt.dumps(result) + "\n", encoding="utf-8")
+    path.write_text(jsonfmt.dumps(result) + "\n", encoding="utf-8", newline="\n")
     return path
 
 

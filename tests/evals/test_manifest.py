@@ -86,3 +86,23 @@ def test_a_directory_not_made_by_the_build_is_never_overwritten(tmp_path):
     with pytest.raises(BuildError, match="not made by"):
         build_corpus(tmp_path)
     assert (tmp_path / "keep.txt").read_text() == "not ours"
+
+
+def test_same_cases_ignores_file_bytes_but_not_labels_or_truth(fresh):
+    from evals.corpus.build import same_cases
+
+    _out, manifest = fresh
+    rebuilt = copy.deepcopy(manifest)
+    for info in rebuilt["types"].values():
+        for document in info["documents"].values():
+            document["content_hash"] = "0" * 64  # another library version, same content
+    assert same_cases(rebuilt, manifest)
+
+    relabelled = copy.deepcopy(manifest)
+    relabelled["cases"][0]["label"]["material"] = not relabelled["cases"][0]["label"]["material"]
+    assert not same_cases(relabelled, manifest)
+
+    retruthed = copy.deepcopy(manifest)
+    first = next(iter(retruthed["types"].values()))["documents"]["ex_01"]
+    first["truth_hash"] = "f" * 64
+    assert not same_cases(retruthed, manifest)

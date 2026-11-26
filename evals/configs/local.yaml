@@ -1,0 +1,13 @@
+# A local model in LM Studio on the owner's PC: the "data stays in-house" option.
+# Load the model in LM Studio with a context length of at least 16k tokens, and start its server.
+name: local
+description: Qwen 3.6-27b in LM Studio (OpenAI-compatible server), thinking off
+ai:
+  enabled: true
+  provider: openai                # DocForge's OpenAI-compatible path
+  base_url: http://127.0.0.1:1234/v1
+  model: auto                     # the one model LM Studio has loaded; `run --model <id>` overrides
+  reasoning_model: ""
+  temperature: 0.0
+  api_key_placeholder: local      # DocForge needs a non-empty key to switch AI on; not a secret
+  no_think: true                  # DocForge's setting for Qwen3 models in LM Studio
