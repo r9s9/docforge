@@ -1,8 +1,9 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 and M2 are done. Their
-> results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
-> confirmed. M2's two AI runs ran on the owner's PC (§6.6).
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 and M2 are done; M3 is
+> built. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> confirmed. The AI runs, and every generate run (it needs the grader's key), happen on the
+> owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
 > brief's Sonnet and Gemini configs are out of scope.
 > **Decisions for M2:** Haiku 5.5 runs on the owner's PC with a €1 cap, set as `max_usd: 1.00`
@@ -109,6 +110,7 @@ Default severities set by `compliance/checker.py` (the judge may change them lat
 | 17 | The judge labels each difference. | The judge only runs on a report that has differences (`compliance/judge.py`), and it sees the first 40. In this corpus, 156 of the 238 cases have no differences, and no case has more than 3. | The judge sees 82 cases and about 114 differences per run. A case without differences gets semantic score 100 (§5.1). The 40-item cap never applies to this corpus. |
 | 18 | — | The judge's client uses DocForge's generation config, with a 300 s timeout (`ai_generation_timeout_seconds`). On Claude, DocForge asks for at least 16,000 output tokens per call (`MIN_MAX_TOKENS`); on the OpenAI-compatible path, 6,000. | A slow local model gets 300 s per judge call before the call counts as failed. The worst-case Haiku cost assumes 16,000 output tokens per call (§6.6). |
 | 19 | — | Both OpenAI-compatible call paths (`complete_json`, `_agentic_openai`) start with two system messages: the instructions, then `[developer instructions]`. Qwen 3.6's chat template in LM Studio raises "System message must be at the beginning" on the second, so every call fails before the model runs. The judge swallows the `LLMError`. | Out of the box, the local judge fails on every case, silently. The owner's local run used a one-line template change in LM Studio, which renders the second system message as a ChatML system turn instead of raising. DocForge is unchanged. The result can't see the template, so the CHANGELOG records it. |
+| 20 | Without AI, unstructured notes are routed by heuristics. | `route_unstructured_heuristic` copies `Label: value` lines, then joins every other line, minus the ones it placed and all-caps titles, into the remaining text fields, by keyword overlap or as a last resort into the first one. It never fills tables. | Leftover prose lands in a short field such as an agreement number, as lines that were not next to each other in the notes. A value of four or more words whose words all occur in the notes therefore counts as from the notes (grounded but wrong), not as a hallucination (§3.5). |
 
 ### 1.3 Pre-existing state of master (not changed, by rule)
 
@@ -337,12 +339,20 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
   - `null` means the notes don't contain the value.
   - An `accept` list allows more than one right answer, for example after a correction in the
     notes.
-- **Normalisation.** Values are compared after normalising whitespace and Unicode quotes, and per
-  field type:
-  - dates: `23.11.2026` = `2026-11-23` = `23 November 2026`
-  - money: `1.234,56 €` = `EUR 1,234.56`
-
-  The normalisers are metric code, with unit tests.
+- **Normalisation** (`evals/metrics/normalize.py`, with unit tests). Values are compared per kind:
+  - text: case, punctuation and spacing don't matter, nor does a trailing legal form
+    (`Merrowind Retail Group` = `Merrowind Retail Group Ltd`)
+  - dates: `23.11.2026` = `2026-11-23` = `23 November 2026` = `November 23, 2026` =
+    `23. November 2026`, German month names included
+  - money: `1.234,56 €` = `€1,234.56` = `EUR 1234.56`
+  - people: with or without a title; a list of people (attendees) as a set
+  - table cells: a text cell may also contain, or be contained in, the expected one
+    (`Training` for `Training workshop`)
+- **Placeholders** such as `TBD`, `to be confirmed`, `offen` or `[Start Date]` count as empty:
+  they state nothing, so they are never a hallucination.
+- **"In the notes"**: one piece of the normalised notes, or a date or amount equal to one parsed
+  from them. A value of four or more words also counts when all its words are in the notes
+  (§1.2 #20).
 - **Form.** Whether the value kept the template's written form (a German date in a German
   document) is a separate metric (§5.2).
 
@@ -457,14 +467,24 @@ detail:
 
 ### 4.4 Notes for generate (M3)
 
-- At least 3 per type, in varied styles:
-  - bullet points
-  - an email
-  - German and English mixed
-  - missing information
-  - a contradiction with an explicit correction, so the right answer is defined
-- Format: `notes/<type>/<case>.yaml` with `text:` and `expected:`, keyed by logical field ID
-  (§3.5). Written by hand and committed.
+- **35 cases**, one per style for each of the 7 type/language pairs, in
+  `evals/corpus/notes/<pair>/<style>.yaml`:
+  - `bullets`: label-and-value lines, the heuristic's best case
+  - `email`: values inside prose
+  - `mixed`: German notes for an English template, or English notes for a German one
+  - `missing`: one to three fields the notes don't give (an ID, a date, a free-text section, a
+    whole table)
+  - `correction`: a value the notes later correct ("correction: ..."), listed as `superseded`
+- **Values** come from a held-out document of the pair (`source:`), so every person and company
+  is an invented one (§4.6). The notes are written by hand.
+- **Expected values**, by logical field ID: a value or `null`, optionally with `accept`ed
+  forms; free text as the `points` a complete value covers; tables as rows whose cells may be
+  `null` or a list of right answers (an English or German label).
+- **Checked by a test**: every expected value equals the source document's and is in the
+  notes; a `null` field's source value is not in the notes; a superseded value is in the notes
+  and isn't a right answer.
+- **Kinds**: a field's type from the spec, except attendees (a list of people) and the NDA's
+  purpose, which a writer may rightly rephrase, so the grader judges it as free text.
 
 ### 4.5 Hand-made set
 
@@ -537,7 +557,24 @@ and amounts also count when they equal one parsed from the notes.
 | Free-text fields | Rubric grader (§6.5): faithful (no unsupported claims) and complete (covers the expected points) |
 
 Each case also records which engine wrote it (`writer`, `llm` or `heuristic`), whether the review
-ran, and whether it led to a rewrite.
+ran, and whether it led to a rewrite (a second writer call).
+
+**As built in M3:**
+- **Flagged or silent.** A hallucination the writer marked `ai_drafted` is flagged: the app shows
+  it for review. The hallucination rate is over the short fields; table cells and free text
+  have their own numbers.
+- **Tables.** Written rows are matched to expected rows best-first (the first column counts
+  double), so a reordered table still scores its cells. A written cell that matches no expected
+  cell and is in no form in the notes is unsupported. A table written where the notes have none
+  is "invented".
+- **Layout.** Every fixed block of the representative must come back in order with the same text
+  and style, every labelled field with its label and style, and every table with its header row.
+  Extra paragraphs are allowed anywhere, because multi-line prose renders as several.
+- **Free text.** Written or not; then the grader's faithful and complete (§6.5), counted only
+  where its agreement with the owner passes the gate.
+- **Stability.** With `--repeat`, how often each short field's outcome, and its value, stays the
+  same across runs.
+- **Fallback.** With AI on, documents not written by the `writer`.
 
 ### 5.3 Analyze
 
@@ -588,7 +625,9 @@ ai:
 max_usd: 1.00                # the owner's €1 cap; --max-usd can lower it, never raise it
 ```
 
-M3 adds a `pipeline:` block (writer and review on) and a `grader:` block (Haiku 5.5, §6.5).
+The writer and the review are on by default in DocForge, as shipped, so the configs don't set
+them. The grader has its own file, `evals/configs/grader.yaml` (§6.5), used by every generate run
+whatever the mode.
 
 | Config | Purpose |
 |---|---|
@@ -696,8 +735,8 @@ and results are never changed, and no source file is edited.
 - **When it's used.** Only for free-text fields, where exact match can't work: summaries and
   descriptions. It scores two things against the notes and the expected points: faithful (no
   unsupported claims) and complete.
-- **Which model.** Claude Haiku 5.5, the only cloud model in scope, set by the config's
-  `grader:` block.
+- **Which model.** Claude Haiku 5.5, the only cloud model in scope, set in
+  `evals/configs/grader.yaml`.
   - For local runs, it is a different model from the one under test, as the brief asks.
   - For Haiku runs, it grades its own model's output, which the brief warns against. The
     agreement gate below therefore decides whether its grades are used at all.
@@ -705,6 +744,17 @@ and results are never changed, and no source file is edited.
 - **Agreement gate.**
   - The owner hand-labels 30 items. Agreement with those labels is reported.
   - Below 85%, the grader is not used, and a sample goes to manual review instead (brief §6.4).
+- **As built in M3** (`evals/graders/rubric.py`):
+  - One call per written free-text value, through the Anthropic SDK DocForge installs (never
+    through DocForge), with `messages.parse` and a two-question schema: faithful (unsupported
+    claims listed) and complete (missing points listed; not asked when the notes give nothing
+    for the field). Effort medium, no temperature (§1.2 #16).
+  - Its requests go through the response cache, and the cache counters are read before grading,
+    so DocForge's latency excludes it. Its cost is kept apart and capped at $1.00 per run.
+  - The gate is per question. `labels sheet` picks the 30 items: 10 per mode, the same ones every
+    time, and where there are enough, half from items the grader answered "no" on. The owner
+    answers blind on a labelling page (no mode, no verdict). `labels check` writes the agreement;
+    a question below 85% is reported as "not graded".
 
 ### 6.6 Where the AI runs happen (M2)
 
@@ -734,6 +784,11 @@ to 100K tokens), which match Anthropic's list price, a few hundred output tokens
 few cents for the run. Even if all 102 calls used the full 16,000 output tokens DocForge allows
 (§1.2 #18), the run would cost about $0.83, under the $1.00 cap. Costs in results are
 DocForge's own estimates from `ai/pricing.py`, not the Anthropic invoice.
+
+**M3.** The generate suite runs on the owner's PC in all three modes, the no-AI one included,
+because grading the free text needs the key. Its runs are measured on the same machine, so their
+latencies compare. In the cloud container, the no-AI generate run checks the code without
+grading, and its result is not committed.
 
 **Same code, clean tree.** A result records the git SHA and what in the working tree differed
 from it:
@@ -774,6 +829,11 @@ is still clean.
   result after the first, it lists the cases whose alarm status changed, as clean / material /
   benign × alarm added / removed. That is what the judge changed. Generate and analyze flips
   (correct → hallucinated, and so on) come with those suites.
+- **Generate** (M3): `compare` prints the generate metrics instead (§5.2), and after the table the
+  fields whose outcome changed ("omitted → correct", "correct → unsupported"). Generate results
+  also record `notes_hash`, so a comparison across different notes says so, and `grader` (on or
+  off, and what it spent). Per case they hold every field's value and outcome, the tables'
+  rows, the free text with its grade, the layout check, and which engine wrote the document.
 - **AI runs also record** the model, host and efforts, `temperature_sent`, the budget plan, live
   and replayed spend, the cache hit rate, `stopped`, and per case the judge's verdicts, its calls
   and their outcomes, and the tokens used.

@@ -3,10 +3,15 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M2 done (2026-11-26). The **comply** suite runs in three modes: AI off, Claude
-Haiku 5.5, and a local model in LM Studio. The two AI runs happen on the owner's PC
-([guide below](#run-the-ai-modes-on-your-pc-windows-powershell)). The three-way comparison is in
-the changelog's M2 entry. Generate and analyze arrive in M3 and M4.
+**Status:** M3 built (2026-11-26). Two suites run in three modes each (AI off, Claude
+Haiku 5.5, and a local model in LM Studio):
+- **comply** checks returned documents against their template. Its three-way comparison is in
+  the changelog's M2 entry.
+- **generate** fills each template from 35 rough-notes texts and measures what DocForge wrote,
+  hallucinations first. Its three runs happen on the owner's PC
+  ([guide below](#run-the-generate-suite-on-your-pc-m3)).
+
+Analyze arrives in M4.
 
 - Design: [DESIGN.md](DESIGN.md)
 - What each milestone built and learned: [CHANGELOG.md](CHANGELOG.md)
@@ -45,9 +50,19 @@ python -m evals run --suite comply --config evals/configs/no-ai.yaml
   - `--keep-sandbox`: keep DocForge's temp database and data dir for debugging.
   - AI modes only: `--dry-run`, `--repeat`, `--sample`, `--max-usd`, `--model`, `--no-cache`
     (see the guide below and `python -m evals run --help`).
-- **`compare A.json B.json [C.json ...]`** prints the results side by side, and the cases whose
-  alarm status changed from the first file to each of the others. Add `--markdown` for a table
-  to paste into docs.
+- **`run --suite generate`** fills each type's template from the notes cases in
+  `evals/corpus/notes/` and writes `evals/results/<date>_<config>_generate.json`. With AI off it
+  takes about 10 s.
+  - With `ANTHROPIC_API_KEY` set, Claude Haiku 5.5 grades the free-text fields
+    (`evals/configs/grader.yaml`, at most $1.00 per run). `--no-grade` skips the grading.
+  - `--types` and `--limit` work as for comply; `--limit 1` takes the first notes style only.
+- **`compare A.json B.json [C.json ...]`** prints results of one suite side by side. After the
+  table come the changes from the first file to each of the others: the cases whose alarm
+  status changed (comply), or the fields whose outcome changed (generate). Add `--markdown` for
+  a table to paste into docs.
+- **`labels sheet`** picks the 30 free-text items the owner labels to check the grader;
+  **`labels check`** reports how often the grader agrees with those labels (85% or more, or its
+  grades aren't used).
 
 The tests run from the repo root:
 
@@ -270,6 +285,124 @@ python -m evals compare evals/results/2026-11-26_no-ai_comply.json evals/results
 `source .venv/bin/activate`, set the key with `read -rs ANTHROPIC_API_KEY && export
 ANTHROPIC_API_KEY`, and use `/tmp/docforge-evals-test` for the test output.
 
+## Run the generate suite on your PC (M3)
+
+Same window and setup as the M2 guide above (steps 1 to 6). This time the key is needed for all
+three runs: Claude Haiku 5.5 grades the free-text fields of each mode's documents, the no-AI
+ones included.
+
+### 1. Update and set the key
+
+```powershell
+git pull origin evals
+```
+
+```powershell
+$key = Read-Host "Anthropic API key" -AsSecureString
+```
+
+```powershell
+$env:ANTHROPIC_API_KEY = [System.Net.NetworkCredential]::new("", $key).Password; Remove-Variable key
+```
+
+### 2. The no-AI run (about a minute)
+
+```powershell
+python -m evals run --suite generate --config evals/configs/no-ai.yaml --dry-run
+```
+
+It should say `free-text grader  claude-haiku-5-5`, `notes cases  35 (7 types)` and
+`cases that call a model  25`: those are the cases with free text to grade (invoices have none).
+
+```powershell
+python -m evals run --suite generate --config evals/configs/no-ai.yaml
+```
+
+### 3. The Haiku run (10 to 15 minutes)
+
+```powershell
+python -m evals run --suite generate --config evals/configs/haiku.yaml --repeat 3 --sample 10 --dry-run
+```
+
+It should say `cases that call a model  35`, `repeat runs  20` and `spending cap  $1.00`. Then a
+one-case test, whose result goes to a temp folder. Its progress line should say `writer`:
+
+```powershell
+python -m evals run --suite generate --config evals/configs/haiku.yaml --types nda_en --limit 1 --out "$env:TEMP\docforge-evals-test"
+```
+
+If it says `llm` or `heuristic` instead, the writer failed; stop and send the output. Otherwise:
+
+```powershell
+python -m evals run --suite generate --config evals/configs/haiku.yaml --repeat 3 --sample 10
+```
+
+Expected cost: about $0.25 with grading, and it stops at $1.00 in any case.
+
+### 4. The local run (about 2 hours)
+
+LM Studio as in M2: Qwen 3.6-27b with the template change, at least 16384 context, server on,
+and the PC kept awake.
+
+```powershell
+python -m evals run --suite generate --config evals/configs/local.yaml --repeat 3 --sample 10 --dry-run
+```
+
+```powershell
+python -m evals run --suite generate --config evals/configs/local.yaml --types nda_en --limit 1 --out "$env:TEMP\docforge-evals-test"
+```
+
+Again, the progress line should say `writer`. Then:
+
+```powershell
+python -m evals run --suite generate --config evals/configs/local.yaml --repeat 3 --sample 10
+```
+
+The writer and the review run for every case, one call at a time. If the run is interrupted,
+run the same command again; answered calls replay from the cache.
+
+### 5. Commit and push the three results
+
+```powershell
+git status
+```
+
+Only three new files in `evals/results/` should be listed (`*_generate.json`).
+
+```powershell
+git add evals/results
+```
+
+```powershell
+git commit -m "Add the no-AI, Haiku and local generate results"
+```
+
+```powershell
+git push origin evals
+```
+
+Remove the key when you're done (`Remove-Item Env:ANTHROPIC_API_KEY`), or close the window.
+
+## Read the generate table
+
+Each notes case is one rough-notes text: bullet points, an email, German and English mixed, notes
+with missing information, or notes that correct one of their own values. DocForge fills the
+type's template from it, and every field is scored against the values the notes give.
+
+| Line | Meaning |
+|---|---|
+| short fields right | Fields the notes give, filled with that value in any form (`08.04.2026` = `April 8, 2026`) |
+| left empty though given | Fields the notes give, left empty or filled with a placeholder such as "TBD" |
+| hallucinated | Values in no form in the notes, out of the values written. The headline number. A placeholder doesn't count: it states nothing. |
+| flagged as AI-drafted | Of the hallucinations, those DocForge marked as drafted, so the app shows them for review |
+| from the notes, but wrong | Values from the notes in the wrong field, or a value the notes later correct |
+| empty where the notes are silent | Fields the notes don't give, rightly left empty |
+| dates/amounts in template form | Right dates and amounts written as the template writes them (a German date in a German document) |
+| tables | Rows matched in any order: the right row count, cells right, and cells in no form in the notes |
+| free text | Values written for the services, purpose, agenda and decisions; the grader's verdicts on faithful (nothing added) and complete (every expected point) |
+| layout kept | Every fixed block, field label and table header of the template is still there, in order |
+| written by | The engine that wrote each document: `writer` (AI, one pass), `llm` (AI route and compose, when the writer failed) or `heuristic` (no AI) |
+
 ## Read the comply table
 
 Each case is one held-out document that carries one injected deviation, or none (a clean
@@ -321,6 +454,9 @@ AI runs also record:
 - per case: the judge's verdicts, its calls with their outcomes, and the tokens used
 
 They never record the key.
+
+Generate results also record a hash of the notes cases (`notes_hash`), so `compare` can tell
+whether two runs used the same notes, and what the grader did and spent (`grader`).
 
 ## Rules for this folder
 
