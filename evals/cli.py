@@ -37,12 +37,23 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _corpus_build(args: argparse.Namespace) -> int:
+    import time
+
+    from evals.corpus.build import build_corpus, summary
+    from evals.paths import BUILD_DIR, MANIFEST_PATH
+
+    started = time.perf_counter()
+    manifest = build_corpus(args.out or BUILD_DIR, args.manifest or MANIFEST_PATH)
+    print(f"{summary(manifest)} Built in {time.perf_counter() - started:.1f} s.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one command and return its exit code."""
     args = build_parser().parse_args(argv)
     if args.command == "corpus":
-        print("`corpus build` is not available yet (M1 in progress).", file=sys.stderr)
-        return 2
+        return _corpus_build(args)
     if args.command == "run":
         print("`run` is not available yet (M1 in progress).", file=sys.stderr)
         return 2

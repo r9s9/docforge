@@ -1,0 +1,1537 @@
+{
+ "version": 1,
+ "corpus_hash": "d2f7d14ee960fd92374380432df56971527a98dfb991ea42575dd890ac128b97",
+ "types": {
+  "service_agreement_en": {
+   "doc_type": "service_agreement",
+   "lang": "en",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "service_agreement_en/ex_01.docx",
+     "content_hash": "42edd33c07c58a6d0dd49fa581fa619c4dc019514fad983d72a3e2eea17fc19b",
+     "truth_hash": "204feac3c0b683ce1e968e052e35e2623be65831debf85d45613ee30ab3320b3",
+     "values": {
+      "agreement_no": "SA-2026-0402",
+      "date": "16 January 2026",
+      "customer": "Pellbrook Marine Supplies Ltd",
+      "start_date": "30 January 2026",
+      "monthly_fee": "€8,400.00",
+      "services": "Maintenance of the Customer's online shop integration with its payment and shipping providers, including updates for interface changes.",
+      "fees": [["Service desk", "per month", "€2,800.00"], ["Platform licence", "per month", "€4,500.00"]]
+     }
+    },
+    "ex_02": {
+     "file": "service_agreement_en/ex_02.docx",
+     "content_hash": "0dbd6f338e54bfe8120c98b5873a0cd39b399051e0592287090ba1b6b0c59f3a",
+     "truth_hash": "06700983111ec8c8c0781ef1b931fc0886cbbacb90aac2610646783d8166caea",
+     "values": {
+      "agreement_no": "SA-2026-0409",
+      "date": "24 January 2026",
+      "customer": "Glenmarrow Facilities Ltd",
+      "start_date": "8 February 2026",
+      "monthly_fee": "€8,800.00",
+      "services": "Operation and monitoring of the Customer's warehouse management platform, including incident handling during business hours and a monthly service report.",
+      "fees": [["Training", "per session", "€950.00"], ["Penetration test", "per test", "€7,800.00"], ["Change requests", "per hour", "€145.00"]]
+     }
+    },
+    "ex_03": {
+     "file": "service_agreement_en/ex_03.docx",
+     "content_hash": "2f82cf26dc87b2fa632698f839be130c7a773d4bb5982282f4228ccc9c31bce9",
+     "truth_hash": "988b4fd5b827bf6b1121d61569d2977fcf4486208fd1fe6787ac0e0e5eb82f3e",
+     "values": {
+      "agreement_no": "SA-2026-0415",
+      "date": "30 January 2026",
+      "customer": "Merrowind Retail Group Ltd",
+      "start_date": "15 February 2026",
+      "monthly_fee": "€9,700.00",
+      "services": "Monitoring of the Customer's sensor data pipeline, with alerting outside business hours and a root-cause report for every outage.",
+      "fees": [["Change requests", "per hour", "€145.00"], ["Training", "per session", "€950.00"], ["Data migration", "one-off", "€6,500.00"], ["Platform licence", "per month", "€4,500.00"]]
+     }
+    },
+    "ex_04": {
+     "file": "service_agreement_en/ex_04.docx",
+     "content_hash": "2844199da1823007ab818ede43e461ee5c05b0003ccd8d8e588f57d80f6ff349",
+     "truth_hash": "a22223cf8b63c6e4ec4b7544d2c5930f66ae72f05f21d1ea83db041521ba1f2e",
+     "values": {
+      "agreement_no": "SA-2026-0425",
+      "date": "13 February 2026",
+      "customer": "Ostrevik Engineering Ltd",
+      "start_date": "2 March 2026",
+      "monthly_fee": "€10,600.00",
+      "services": "Second-level support for the Customer's field service app, covering bug analysis, hotfix releases and a quarterly review of open issues.",
+      "fees": [["Service desk", "per month", "€2,800.00"], ["Penetration test", "per test", "€7,800.00"]]
+     }
+    },
+    "ex_05": {
+     "file": "service_agreement_en/ex_05.docx",
+     "content_hash": "fdbe8553400a02dcf9f69fb200c16534add3ed23d8279d4be50213d9e87a28bf",
+     "truth_hash": "5d384d55e0d6a55066f9bd49f5a135c3582f490b79f1fa25f796312206a54a05",
+     "values": {
+      "agreement_no": "SA-2026-0431",
+      "date": "22 February 2026",
+      "customer": "Varnholt Publishing Ltd",
+      "start_date": "12 March 2026",
+      "monthly_fee": "€11,100.00",
+      "services": "Data quality checks on the Customer's product master data, delivered as a weekly report with correction proposals.",
+      "fees": [["Platform licence", "per month", "€4,500.00"], ["Service desk", "per month", "€2,800.00"], ["Penetration test", "per test", "€7,800.00"]]
+     }
+    },
+    "held_01": {
+     "file": "service_agreement_en/held_01.docx",
+     "content_hash": "3acb1a3717cf59634588a163114bd762771d60caf6a6076e7749d8982fdf7933",
+     "truth_hash": "9ce43914dc24fc8eb06c93b67f21b8fa015a0263bd89d1d61e06962a0871262d",
+     "values": {
+      "agreement_no": "SA-2026-0438",
+      "date": "2 March 2026",
+      "customer": "Quorvane Logistics Ltd",
+      "start_date": "21 March 2026",
+      "monthly_fee": "€11,950.00",
+      "services": "Administration of the Customer's identity and access management service, including onboarding and offboarding of user accounts.",
+      "fees": [["Training", "per session", "€950.00"], ["Change requests", "per hour", "€145.00"], ["Extra storage", "per TB per month", "€120.00"], ["Platform licence", "per month", "€4,500.00"]]
+     }
+    },
+    "held_02": {
+     "file": "service_agreement_en/held_02.docx",
+     "content_hash": "799b1cb6674830e4a33b5b049ba2849deb6e735af677d213d99765093c10ad2d",
+     "truth_hash": "aa6a3e307baa84fcd82eee7d86acb6f22e392ce16bb65df2306bf69a38fa8df5",
+     "values": {
+      "agreement_no": "SA-2026-0448",
+      "date": "13 March 2026",
+      "customer": "Thistlecombe Energy Ltd",
+      "start_date": "2 April 2026",
+      "monthly_fee": "€12,600.00",
+      "services": "Hosting and nightly backup of the Customer's document archive in an EU data centre, with restore tests every six months.",
+      "fees": [["Penetration test", "per test", "€7,800.00"], ["Extra storage", "per TB per month", "€120.00"]]
+     }
+    },
+    "held_03": {
+     "file": "service_agreement_en/held_03.docx",
+     "content_hash": "e2214a86089dbc52712d802d7ab319c53e1e2d5374def276c94a0f218b7fe1f1",
+     "truth_hash": "b080efff9cb0a7a0edb833ffcb5da8e6b0a87b6d6beb83c50b1b4893450aaa93",
+     "values": {
+      "agreement_no": "SA-2026-0449",
+      "date": "16 March 2026",
+      "customer": "Calvenna Health Partners Ltd",
+      "start_date": "6 April 2026",
+      "monthly_fee": "€13,550.00",
+      "services": "Quarterly security patching of the Customer's application servers, including a change log and a short test report after each cycle.",
+      "fees": [["Platform licence", "per month", "€4,500.00"], ["Service desk", "per month", "€2,800.00"], ["On-site support", "per day", "€1,200.00"]]
+     }
+    },
+    "held_04": {
+     "file": "service_agreement_en/held_04.docx",
+     "content_hash": "27e74c7e2b3c46df0cc9a8bfbb958c345082529cd1acbf078f5bea84cb0240d4",
+     "truth_hash": "6134079902c452323d764f16cf45098abfb250d2fd3af70f989b3da0adbd712f",
+     "values": {
+      "agreement_no": "SA-2026-0458",
+      "date": "26 March 2026",
+      "customer": "Pellbrook Marine Supplies Ltd",
+      "start_date": "17 April 2026",
+      "monthly_fee": "€14,250.00",
+      "services": "Maintenance of the Customer's online shop integration with its payment and shipping providers, including updates for interface changes.",
+      "fees": [["Data migration", "one-off", "€6,500.00"], ["Penetration test", "per test", "€7,800.00"], ["Extra storage", "per TB per month", "€120.00"], ["Change requests", "per hour", "€145.00"]]
+     }
+    },
+    "held_05": {
+     "file": "service_agreement_en/held_05.docx",
+     "content_hash": "fd37d802be8b41be4e12d1f7d5eeb5b190b71c3eea9e10bea026eae1d535a536",
+     "truth_hash": "63a6dd5f895f845e50177054a38351937adef571a5d150675a00fa99c7785bb5",
+     "values": {
+      "agreement_no": "SA-2026-0464",
+      "date": "7 April 2026",
+      "customer": "Glenmarrow Facilities Ltd",
+      "start_date": "30 April 2026",
+      "monthly_fee": "€15,000.00",
+      "services": "Operation and monitoring of the Customer's warehouse management platform, including incident handling during business hours and a monthly service report.",
+      "fees": [["On-site support", "per day", "€1,200.00"], ["Change requests", "per hour", "€145.00"]]
+     }
+    },
+    "held_06": {
+     "file": "service_agreement_en/held_06.docx",
+     "content_hash": "721ec6957b238fd4eab455aeec1106bc128b37e222b7a1e221fcf5a3757ef229",
+     "truth_hash": "f20eeed8961e90f444d9436a95d81ea80c50e1b45a01fc01288829286d3fa0cf",
+     "values": {
+      "agreement_no": "SA-2026-0472",
+      "date": "17 April 2026",
+      "customer": "Merrowind Retail Group Ltd",
+      "start_date": "11 May 2026",
+      "monthly_fee": "€15,900.00",
+      "services": "Monitoring of the Customer's sensor data pipeline, with alerting outside business hours and a root-cause report for every outage.",
+      "fees": [["Service desk", "per month", "€2,800.00"], ["Change requests", "per hour", "€145.00"], ["Extra storage", "per TB per month", "€120.00"]]
+     }
+    },
+    "held_07": {
+     "file": "service_agreement_en/held_07.docx",
+     "content_hash": "428c7941054598c976a19d11cb5146fbc5bf2c9374671a0a770132fbb4246653",
+     "truth_hash": "e7e1bcafaf6345ad5441d2dd687082fff39e22b9c785d69b80c723ef234694b2",
+     "values": {
+      "agreement_no": "SA-2026-0479",
+      "date": "22 April 2026",
+      "customer": "Ostrevik Engineering Ltd",
+      "start_date": "17 May 2026",
+      "monthly_fee": "€16,450.00",
+      "services": "Second-level support for the Customer's field service app, covering bug analysis, hotfix releases and a quarterly review of open issues.",
+      "fees": [["Penetration test", "per test", "€7,800.00"], ["Service desk", "per month", "€2,800.00"], ["Data migration", "one-off", "€6,500.00"], ["Extra storage", "per TB per month", "€120.00"]]
+     }
+    },
+    "held_08": {
+     "file": "service_agreement_en/held_08.docx",
+     "content_hash": "cddc2bf7ac129ae2c8a88f7568f2567b256ae63eeed5f679da2c16d75b7af2b1",
+     "truth_hash": "1e9c2f19678937aa284e8b0cc056e8bd33630d260e2dff27848e9e5b6355f1a4",
+     "values": {
+      "agreement_no": "SA-2026-0486",
+      "date": "30 April 2026",
+      "customer": "Varnholt Publishing Ltd",
+      "start_date": "26 May 2026",
+      "monthly_fee": "€17,000.00",
+      "services": "Data quality checks on the Customer's product master data, delivered as a weekly report with correction proposals.",
+      "fees": [["Service desk", "per month", "€2,800.00"], ["Training", "per session", "€950.00"]]
+     }
+    }
+   }
+  },
+  "service_agreement_de": {
+   "doc_type": "service_agreement",
+   "lang": "de",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "service_agreement_de/ex_01.docx",
+     "content_hash": "50b6f7814c649b21176763fa0ccb3e0ee30e614b0b7a7430c22459e85524d1fc",
+     "truth_hash": "784830b5e924a3c1fbc9ad6c1a8a1fea9970e278d7205e5ff8aff891c023ab4c",
+     "values": {
+      "agreement_no": "DV-2026-0406",
+      "date": "15.01.2026",
+      "customer": "Kesselwind Logistik GmbH",
+      "start_date": "29.01.2026",
+      "monthly_fee": "8.000,00 €",
+      "services": "Second-Level-Support für die Außendienst-App des Auftraggebers mit Fehleranalyse, Hotfix-Releases und einer vierteljährlichen Durchsicht offener Punkte.",
+      "fees": [["Änderungsaufträge", "pro Stunde", "145,00 €"], ["Schulung", "pro Termin", "950,00 €"]]
+     }
+    },
+    "ex_02": {
+     "file": "service_agreement_de/ex_02.docx",
+     "content_hash": "3bf0b6b89c538a7597f707cea42513a0d58ca727bfa823a7464b74af8d282c43",
+     "truth_hash": "80ff42c8b09429a06df80faf80d3bb49e6f7d1e92fc82040197c41dc413f1818",
+     "values": {
+      "agreement_no": "DV-2026-0409",
+      "date": "24.01.2026",
+      "customer": "Hallerquell Getränke GmbH",
+      "start_date": "08.02.2026",
+      "monthly_fee": "9.100,00 €",
+      "services": "Betrieb und Überwachung der Lagerverwaltungsplattform des Auftraggebers einschließlich Störungsbearbeitung während der Geschäftszeiten und eines monatlichen Serviceberichts.",
+      "fees": [["Datenmigration", "einmalig", "6.500,00 €"], ["Service Desk", "pro Monat", "2.800,00 €"], ["Vor-Ort-Support", "pro Tag", "1.200,00 €"]]
+     }
+    },
+    "ex_03": {
+     "file": "service_agreement_de/ex_03.docx",
+     "content_hash": "58646f6c066b8ddb55ea9447d41b16960c58c525c14c7e7fa22240d2a5892471",
+     "truth_hash": "def848e76176ee4298bc2f56c71cee39c44f1dce1b7b63486d65d1d4828accdf",
+     "values": {
+      "agreement_no": "DV-2026-0420",
+      "date": "05.02.2026",
+      "customer": "Strelitzer Datenwerk GmbH",
+      "start_date": "21.02.2026",
+      "monthly_fee": "9.850,00 €",
+      "services": "Prüfung der Produktstammdaten des Auftraggebers auf Datenqualität mit einem wöchentlichen Bericht und Korrekturvorschlägen.",
+      "fees": [["Plattformlizenz", "pro Monat", "4.500,00 €"], ["Penetrationstest", "pro Test", "7.800,00 €"], ["Änderungsaufträge", "pro Stunde", "145,00 €"], ["Vor-Ort-Support", "pro Tag", "1.200,00 €"]]
+     }
+    },
+    "ex_04": {
+     "file": "service_agreement_de/ex_04.docx",
+     "content_hash": "45e4dfe5a1c23ac627f11a5772d21ca565263c013597e5e0bf8580b17572dc1a",
+     "truth_hash": "01469c131637c2352dcaebfeb949a81133ae36e8c7d7869c1b03ec3b79eddbe7",
+     "values": {
+      "agreement_no": "DV-2026-0425",
+      "date": "09.02.2026",
+      "customer": "Finkenstedt Medizintechnik GmbH",
+      "start_date": "26.02.2026",
+      "monthly_fee": "10.550,00 €",
+      "services": "Vierteljährliche Sicherheitsupdates der Anwendungsserver des Auftraggebers mit Änderungsprotokoll und kurzem Testbericht nach jedem Zyklus.",
+      "fees": [["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"], ["Schulung", "pro Termin", "950,00 €"]]
+     }
+    },
+    "ex_05": {
+     "file": "service_agreement_de/ex_05.docx",
+     "content_hash": "e760c828f430cd50c56c6b5331cb5f55c46e16943dc037f6ece254d7f4e15830",
+     "truth_hash": "e5759f580381ef6ceabf3c53299c2292256cf14a53654e2a8b6e0cef8bcffafe",
+     "values": {
+      "agreement_no": "DV-2026-0430",
+      "date": "22.02.2026",
+      "customer": "Zeisigtal Handelsgesellschaft mbH",
+      "start_date": "12.03.2026",
+      "monthly_fee": "11.050,00 €",
+      "services": "Hosting und nächtliche Sicherung des Dokumentenarchivs des Auftraggebers in einem Rechenzentrum in der EU mit halbjährlichen Wiederherstellungstests.",
+      "fees": [["Penetrationstest", "pro Test", "7.800,00 €"], ["Datenmigration", "einmalig", "6.500,00 €"], ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"]]
+     }
+    },
+    "held_01": {
+     "file": "service_agreement_de/held_01.docx",
+     "content_hash": "313432f99ce405fbddb2f78ade61918c2cf6c5fb106651924db1248790c9382d",
+     "truth_hash": "65a03d5cd4c9aec71fab1af3e6c7cb8615fb0b532411b9dc647c76152347850c",
+     "values": {
+      "agreement_no": "DV-2026-0439",
+      "date": "28.02.2026",
+      "customer": "Lindenhaag Bau GmbH",
+      "start_date": "19.03.2026",
+      "monthly_fee": "12.150,00 €",
+      "services": "Wartung der Anbindung des Onlineshops des Auftraggebers an Zahlungs- und Versanddienstleister einschließlich Anpassungen bei Schnittstellenänderungen.",
+      "fees": [["Penetrationstest", "pro Test", "7.800,00 €"], ["Plattformlizenz", "pro Monat", "4.500,00 €"], ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"], ["Schulung", "pro Termin", "950,00 €"]]
+     }
+    },
+    "held_02": {
+     "file": "service_agreement_de/held_02.docx",
+     "content_hash": "bcf2ee87a51230c6a3f2670ca0124169e3d0ed4f2ccbe802e7f2c58c84243608",
+     "truth_hash": "9b7e42abd047394d9e0bec7012a717d8002625986dcfb8d4d8ea3c23bcd13601",
+     "values": {
+      "agreement_no": "DV-2026-0447",
+      "date": "12.03.2026",
+      "customer": "Auerbrunn Maschinenbau AG",
+      "start_date": "01.04.2026",
+      "monthly_fee": "12.700,00 €",
+      "services": "Administration des Identitäts- und Zugriffsmanagements des Auftraggebers einschließlich Anlage und Sperrung von Benutzerkonten.",
+      "fees": [["Vor-Ort-Support", "pro Tag", "1.200,00 €"], ["Schulung", "pro Termin", "950,00 €"]]
+     }
+    },
+    "held_03": {
+     "file": "service_agreement_de/held_03.docx",
+     "content_hash": "90246ab95bd5f1571a0fc1f4c0bedf86adba0217692c5fbc22b79e3c8a929f6a",
+     "truth_hash": "332309d61dd5efccc54bcac002bbf1ec0ba857fa56bdd563654f5c7f0eee6fc0",
+     "values": {
+      "agreement_no": "DV-2026-0450",
+      "date": "18.03.2026",
+      "customer": "Moorwiese Energie GmbH",
+      "start_date": "08.04.2026",
+      "monthly_fee": "13.350,00 €",
+      "services": "Überwachung der Sensordaten-Pipeline des Auftraggebers mit Alarmierung außerhalb der Geschäftszeiten und einem Ursachenbericht zu jedem Ausfall.",
+      "fees": [["Änderungsaufträge", "pro Stunde", "145,00 €"], ["Penetrationstest", "pro Test", "7.800,00 €"], ["Vor-Ort-Support", "pro Tag", "1.200,00 €"]]
+     }
+    },
+    "held_04": {
+     "file": "service_agreement_de/held_04.docx",
+     "content_hash": "b3a2bf1b32de4865cde93fe5145d0174e92f7e2bffb1f4f2f4834c5cce20474a",
+     "truth_hash": "ab1fd230a731b70a1c46e2df26bf804bf4c0256825da4b62afa810efc589252f",
+     "values": {
+      "agreement_no": "DV-2026-0458",
+      "date": "31.03.2026",
+      "customer": "Kesselwind Logistik GmbH",
+      "start_date": "22.04.2026",
+      "monthly_fee": "14.000,00 €",
+      "services": "Second-Level-Support für die Außendienst-App des Auftraggebers mit Fehleranalyse, Hotfix-Releases und einer vierteljährlichen Durchsicht offener Punkte.",
+      "fees": [["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"], ["Datenmigration", "einmalig", "6.500,00 €"], ["Penetrationstest", "pro Test", "7.800,00 €"], ["Plattformlizenz", "pro Monat", "4.500,00 €"]]
+     }
+    },
+    "held_05": {
+     "file": "service_agreement_de/held_05.docx",
+     "content_hash": "90ad312ceb6abf1883a69923d6194eff52eea44c4b5000845ab31e12802ad5fe",
+     "truth_hash": "0fdea4aec510429c6b9efe1bf40a4b99b12d473db7fda14a5e2d4038719037f4",
+     "values": {
+      "agreement_no": "DV-2026-0463",
+      "date": "08.04.2026",
+      "customer": "Hallerquell Getränke GmbH",
+      "start_date": "01.05.2026",
+      "monthly_fee": "14.900,00 €",
+      "services": "Betrieb und Überwachung der Lagerverwaltungsplattform des Auftraggebers einschließlich Störungsbearbeitung während der Geschäftszeiten und eines monatlichen Serviceberichts.",
+      "fees": [["Penetrationstest", "pro Test", "7.800,00 €"], ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"]]
+     }
+    },
+    "held_06": {
+     "file": "service_agreement_de/held_06.docx",
+     "content_hash": "5110aa55194a108579b5b4465d2a0abf056127554d37135c15e005915e711583",
+     "truth_hash": "4323525c8b985e89035d8355913258a351c9f529026de5632ed2a39bf212dcb7",
+     "values": {
+      "agreement_no": "DV-2026-0474",
+      "date": "15.04.2026",
+      "customer": "Strelitzer Datenwerk GmbH",
+      "start_date": "09.05.2026",
+      "monthly_fee": "15.900,00 €",
+      "services": "Prüfung der Produktstammdaten des Auftraggebers auf Datenqualität mit einem wöchentlichen Bericht und Korrekturvorschlägen.",
+      "fees": [["Änderungsaufträge", "pro Stunde", "145,00 €"], ["Penetrationstest", "pro Test", "7.800,00 €"], ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"]]
+     }
+    },
+    "held_07": {
+     "file": "service_agreement_de/held_07.docx",
+     "content_hash": "775aaa202b32c38b1a264f82d178468cab98e3092750512c2b9350ab17213717",
+     "truth_hash": "f94f0563a62d5cb290bf5f41a8ae76b5ee569a0a8d55a237ee69f982a0991ffc",
+     "values": {
+      "agreement_no": "DV-2026-0480",
+      "date": "24.04.2026",
+      "customer": "Finkenstedt Medizintechnik GmbH",
+      "start_date": "19.05.2026",
+      "monthly_fee": "16.600,00 €",
+      "services": "Vierteljährliche Sicherheitsupdates der Anwendungsserver des Auftraggebers mit Änderungsprotokoll und kurzem Testbericht nach jedem Zyklus.",
+      "fees": [["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"], ["Datenmigration", "einmalig", "6.500,00 €"], ["Änderungsaufträge", "pro Stunde", "145,00 €"], ["Penetrationstest", "pro Test", "7.800,00 €"]]
+     }
+    },
+    "held_08": {
+     "file": "service_agreement_de/held_08.docx",
+     "content_hash": "d57c9c2367d3b0a258719493d73ca46e570d5b48ed318792d369ffad647741f5",
+     "truth_hash": "0e5deeccc3af1a8116137e63248d17b7e3442b28f42eb672325f330764a6dbd5",
+     "values": {
+      "agreement_no": "DV-2026-0484",
+      "date": "04.05.2026",
+      "customer": "Zeisigtal Handelsgesellschaft mbH",
+      "start_date": "30.05.2026",
+      "monthly_fee": "17.450,00 €",
+      "services": "Hosting und nächtliche Sicherung des Dokumentenarchivs des Auftraggebers in einem Rechenzentrum in der EU mit halbjährlichen Wiederherstellungstests.",
+      "fees": [["Schulung", "pro Termin", "950,00 €"], ["Änderungsaufträge", "pro Stunde", "145,00 €"]]
+     }
+    }
+   }
+  },
+  "nda_en": {
+   "doc_type": "nda",
+   "lang": "en",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "nda_en/ex_01.docx",
+     "content_hash": "5b078a14abc8f1baebdceec2acda6efc1a687be58370669bcbb866a12705b5d2",
+     "truth_hash": "80c4451c6fc22a742f291a7c65a0ed9cd64ab4fc61855a57016ebe6bd2e8a4ae",
+     "values": {
+      "effective_date": "2 February 2026",
+      "party_b": "Glenmarrow Facilities Ltd",
+      "purpose": "Evaluation of a reseller partnership for the DACH region"
+     }
+    },
+    "ex_02": {
+     "file": "nda_en/ex_02.docx",
+     "content_hash": "75c25e4caaf5ffdb0f29067034bc021def7ebda8e2283e3c3fdd0ee82485addb",
+     "truth_hash": "a296f62b8cfdc709ce97ad347345e4025e1c99982e014816bdcf15e7a34d3eaa",
+     "values": {
+      "effective_date": "15 February 2026",
+      "party_b": "Varnholt Publishing Ltd",
+      "purpose": "Review of a data migration concept for a regional retailer"
+     }
+    },
+    "ex_03": {
+     "file": "nda_en/ex_03.docx",
+     "content_hash": "c901a6af6cd56d14f15617f396d5acdfcea245dc46c4cbc71714cbbefa42f449",
+     "truth_hash": "9e097d800f9e200cd0e8261ab61d3b58eaadd96619250647bc9053e99af6bc9f",
+     "values": {
+      "effective_date": "24 February 2026",
+      "party_b": "Pellbrook Marine Supplies Ltd",
+      "purpose": "Assessment of a possible integration between the parties' booking systems"
+     }
+    },
+    "ex_04": {
+     "file": "nda_en/ex_04.docx",
+     "content_hash": "f1ab5fc8bdcd65dfe3dad0b47edb432fa28d81419cc908fa8f076a02f8866a66",
+     "truth_hash": "ebbff0644c46df50789a19e3f626b923dff697f21c56ba141c0405c465aef760",
+     "values": {
+      "effective_date": "3 March 2026",
+      "party_b": "Quorvane Logistics Ltd",
+      "purpose": "Due diligence for a planned software licence agreement"
+     }
+    },
+    "ex_05": {
+     "file": "nda_en/ex_05.docx",
+     "content_hash": "3350b482d3ae63a4d38aea8e76149558df9561cc40218b7415961e540f235250",
+     "truth_hash": "8d409695bb29949d3eb56dd0c6cac2628669f816f84b970abeea84d332af291a",
+     "values": {
+      "effective_date": "16 March 2026",
+      "party_b": "Calvenna Health Partners Ltd",
+      "purpose": "Evaluation of a joint offer for a fleet telematics project"
+     }
+    },
+    "held_01": {
+     "file": "nda_en/held_01.docx",
+     "content_hash": "f3bd00065a922037a37d5c558abc2f653d0f4c5a515318b949040e6b75b4cfca",
+     "truth_hash": "e9db5b13924da4e91dc87398191223166602ed5191415b001ec5e1fe2b5c6f5d",
+     "values": {
+      "effective_date": "22 March 2026",
+      "party_b": "Merrowind Retail Group Ltd",
+      "purpose": "Scoping of a managed security service"
+     }
+    },
+    "held_02": {
+     "file": "nda_en/held_02.docx",
+     "content_hash": "8c83c71803565b6e3de6b7ddb6da2e12282bdf29c8f81ad1186e9255f491e15a",
+     "truth_hash": "7fb06a98da9cdf04cd17d062e4bb8cab0d38130b46307e46fd3050dad59d384c",
+     "values": {
+      "effective_date": "2 April 2026",
+      "party_b": "Thistlecombe Energy Ltd",
+      "purpose": "Preparation of a pilot for automated invoice processing"
+     }
+    },
+    "held_03": {
+     "file": "nda_en/held_03.docx",
+     "content_hash": "a034ea03ca0e75576100a1056df7a252675c2e4dc51d50bec8ecdb92780ef632",
+     "truth_hash": "14576a4b8323c009bec961b9852344e802d979bdd1a4892cfba6c2b6c2bba972",
+     "values": {
+      "effective_date": "8 April 2026",
+      "party_b": "Ostrevik Engineering Ltd",
+      "purpose": "Discussion of a shared research project on predictive maintenance"
+     }
+    },
+    "held_04": {
+     "file": "nda_en/held_04.docx",
+     "content_hash": "32ac7284989496aa44f23c3d7bb5ffcb9c819756d060c61e252f68aaa70be9d7",
+     "truth_hash": "399dcfe97e176abc2e6e66f66d5ea8aadf23f3a603608706e76c25dbe5975242",
+     "values": {
+      "effective_date": "21 April 2026",
+      "party_b": "Glenmarrow Facilities Ltd",
+      "purpose": "Evaluation of a reseller partnership for the DACH region"
+     }
+    },
+    "held_05": {
+     "file": "nda_en/held_05.docx",
+     "content_hash": "9460270f8ff7fab13d962bd7bf2c329abead84a2be00dd7d3222541cb02e8137",
+     "truth_hash": "ddde68611c8372801774327cf046c242f925d7f353d944723b3836e6988ee6c2",
+     "values": {
+      "effective_date": "28 April 2026",
+      "party_b": "Varnholt Publishing Ltd",
+      "purpose": "Review of a data migration concept for a regional retailer"
+     }
+    },
+    "held_06": {
+     "file": "nda_en/held_06.docx",
+     "content_hash": "96faeb494c9a92dcc729abd1843969c26459536a9e23a9eef46899987a6a175f",
+     "truth_hash": "f185e6e78249c34e4d8a45b69dcaf97417b622eb01572910fdff079aef3be7d5",
+     "values": {
+      "effective_date": "6 May 2026",
+      "party_b": "Pellbrook Marine Supplies Ltd",
+      "purpose": "Assessment of a possible integration between the parties' booking systems"
+     }
+    },
+    "held_07": {
+     "file": "nda_en/held_07.docx",
+     "content_hash": "7a7bb14871af2fac72fcca2d4319ccadb65bdfac1ab9711bd760032764281343",
+     "truth_hash": "e2ae39dfbad67fba06da6f28d48c0d069c649bb381ee7c5515401e732ed3210b",
+     "values": {
+      "effective_date": "14 May 2026",
+      "party_b": "Quorvane Logistics Ltd",
+      "purpose": "Due diligence for a planned software licence agreement"
+     }
+    },
+    "held_08": {
+     "file": "nda_en/held_08.docx",
+     "content_hash": "9c0cfce4737beb797900643eccdb0982f1ec0b1659719899ea09d4016350f94f",
+     "truth_hash": "cc91419684d8e07e76389f33697ee69f7be5da468e4e430f9e1a1d9e2b95b95e",
+     "values": {
+      "effective_date": "25 May 2026",
+      "party_b": "Calvenna Health Partners Ltd",
+      "purpose": "Evaluation of a joint offer for a fleet telematics project"
+     }
+    }
+   }
+  },
+  "nda_de": {
+   "doc_type": "nda",
+   "lang": "de",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "nda_de/ex_01.docx",
+     "content_hash": "93beae0a1454c7f2950638c652a7c8df960ceb76f2d1fd48b26dccd3d3d138d4",
+     "truth_hash": "c4f4b025a2d10b55696277ce8c7646720c94852d294dff525681eb837ef8bd67",
+     "values": {
+      "effective_date": "04.02.2026",
+      "party_b": "Kesselwind Logistik GmbH",
+      "purpose": "Bewertung einer möglichen Anbindung der Buchungssysteme beider Parteien"
+     }
+    },
+    "ex_02": {
+     "file": "nda_de/ex_02.docx",
+     "content_hash": "83ff0d803756c6887eeaedaea01748f40e8dc62650263e9b85c49d1a560f8d8a",
+     "truth_hash": "634edb54828969b720c1132eeb8267c54cfef9e7f2075d0a21db0cc4a4e538f5",
+     "values": {
+      "effective_date": "16.02.2026",
+      "party_b": "Zeisigtal Handelsgesellschaft mbH",
+      "purpose": "Abstimmung eines gemeinsamen Forschungsprojekts zur vorausschauenden Wartung"
+     }
+    },
+    "ex_03": {
+     "file": "nda_de/ex_03.docx",
+     "content_hash": "46ed1b4566319aef5edd31bcb0d222ccbfd66602e5c5bba2199bfca7281f13bf",
+     "truth_hash": "434a344b1f401eb629ce93bde846a5b8a2cbad5c06938d80f6448e10c6c4921d",
+     "values": {
+      "effective_date": "21.02.2026",
+      "party_b": "Moorwiese Energie GmbH",
+      "purpose": "Bewertung einer Vertriebspartnerschaft für die DACH-Region"
+     }
+    },
+    "ex_04": {
+     "file": "nda_de/ex_04.docx",
+     "content_hash": "bc21c264a4a87c34c59c9827a784379a08c35a2c2d0bcdd4d0c3f5e7bcfb016c",
+     "truth_hash": "56e5798248eb35789361784a855fe8538c63f32e52785b62e78ddfbbdafffb07",
+     "values": {
+      "effective_date": "01.03.2026",
+      "party_b": "Strelitzer Datenwerk GmbH",
+      "purpose": "Due Diligence für einen geplanten Softwarelizenzvertrag"
+     }
+    },
+    "ex_05": {
+     "file": "nda_de/ex_05.docx",
+     "content_hash": "dfa38de96bfd107ebfe8c1775fb5c74f7b5fb18db61ab6a7405cb193bfc45efd",
+     "truth_hash": "09c7a44e1c2f3c2eb026e40506cf4018923c9226b14d94e0be8624b33cce1c55",
+     "values": {
+      "effective_date": "12.03.2026",
+      "party_b": "Lindenhaag Bau GmbH",
+      "purpose": "Vorbereitung eines Piloten zur automatisierten Rechnungsverarbeitung"
+     }
+    },
+    "held_01": {
+     "file": "nda_de/held_01.docx",
+     "content_hash": "39f95bb14c9c5b3f696d6ba73ab215046ebe4fb47f993452ad96f653d3240536",
+     "truth_hash": "068e51c75908af2a0c9bc6a08c58056beaa2e93f587fa38fa8e2ed04a054ae92",
+     "values": {
+      "effective_date": "21.03.2026",
+      "party_b": "Hallerquell Getränke GmbH",
+      "purpose": "Prüfung eines Migrationskonzepts für einen regionalen Händler"
+     }
+    },
+    "held_02": {
+     "file": "nda_de/held_02.docx",
+     "content_hash": "4cd382b2f0c6278acb7665b4b0c39cdf4502d968d9557e70bae476a71469b4ca",
+     "truth_hash": "0f88fa495f8f9428168272e79295c73229994b0f2201183c764d751961af5570",
+     "values": {
+      "effective_date": "01.04.2026",
+      "party_b": "Auerbrunn Maschinenbau AG",
+      "purpose": "Abgrenzung eines Managed-Security-Service"
+     }
+    },
+    "held_03": {
+     "file": "nda_de/held_03.docx",
+     "content_hash": "0e6cf3ae1248804246a133f429dd4282030067b4c63786f16a61cbf64e131e3c",
+     "truth_hash": "f6b82ef1d6eed598d06a3062597d65d3a7167ff51f320bb2816ff997b3330353",
+     "values": {
+      "effective_date": "09.04.2026",
+      "party_b": "Finkenstedt Medizintechnik GmbH",
+      "purpose": "Prüfung eines gemeinsamen Angebots für ein Telematikprojekt"
+     }
+    },
+    "held_04": {
+     "file": "nda_de/held_04.docx",
+     "content_hash": "2657c82ffaa043e97e81584f96878b3c667b8df18d1f45d0d6897f4216d57c63",
+     "truth_hash": "5aa59e7a213648bc03fe3c858f227235c5f6b6b1105d443ca56717f1c95922e2",
+     "values": {
+      "effective_date": "20.04.2026",
+      "party_b": "Kesselwind Logistik GmbH",
+      "purpose": "Bewertung einer möglichen Anbindung der Buchungssysteme beider Parteien"
+     }
+    },
+    "held_05": {
+     "file": "nda_de/held_05.docx",
+     "content_hash": "1191c802691c385f0fc7c8556043881dfa99b393d2edad910828e690755e4a20",
+     "truth_hash": "e6037e4b07ef237dbf74670911846a7f97a3e5858d26818f111a481924faa388",
+     "values": {
+      "effective_date": "29.04.2026",
+      "party_b": "Zeisigtal Handelsgesellschaft mbH",
+      "purpose": "Abstimmung eines gemeinsamen Forschungsprojekts zur vorausschauenden Wartung"
+     }
+    },
+    "held_06": {
+     "file": "nda_de/held_06.docx",
+     "content_hash": "7d247150d5750d3f1e757f4d9faf96203150d36f78838b0e46ca038634e8d2d9",
+     "truth_hash": "7d5015f09ced436551010a03e99f77bdca0902a5a2d0cdb396a5c8f1a3b7a596",
+     "values": {
+      "effective_date": "04.05.2026",
+      "party_b": "Moorwiese Energie GmbH",
+      "purpose": "Bewertung einer Vertriebspartnerschaft für die DACH-Region"
+     }
+    },
+    "held_07": {
+     "file": "nda_de/held_07.docx",
+     "content_hash": "4248e8e8d91c883a6b05daaa6d010bf62ed628ab2954bdf17334f48dd2463d6f",
+     "truth_hash": "c212d151af06196648d4e3e20e684c022f75d7c160988d0624755cc24ca8f9d9",
+     "values": {
+      "effective_date": "12.05.2026",
+      "party_b": "Strelitzer Datenwerk GmbH",
+      "purpose": "Due Diligence für einen geplanten Softwarelizenzvertrag"
+     }
+    },
+    "held_08": {
+     "file": "nda_de/held_08.docx",
+     "content_hash": "272883ecb4135d4f5333e26cf8678471ff58c97ab527bb321f824f580d7174d7",
+     "truth_hash": "02c884b0c9698a59f03efac26050576b23be82dd378800214ba4eb425ffea8b9",
+     "values": {
+      "effective_date": "26.05.2026",
+      "party_b": "Lindenhaag Bau GmbH",
+      "purpose": "Vorbereitung eines Piloten zur automatisierten Rechnungsverarbeitung"
+     }
+    }
+   }
+  },
+  "invoice_en": {
+   "doc_type": "invoice",
+   "lang": "en",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "invoice_en/ex_01.docx",
+     "content_hash": "2f2af660a661c03dc7d36bb06fdc7a4e0443b4b5dda249a46eb264378edbceab",
+     "truth_hash": "02a643571bd39df949a62a9bfc3fb0881114239f7662a29d49312fda37bff8be",
+     "values": {
+      "invoice_no": "INV-2026-0141",
+      "invoice_date": "6 February 2026",
+      "due_date": "8 March 2026",
+      "customer": "Calvenna Health Partners Ltd",
+      "vat_id": "GB000000100",
+      "items": [["Software licence", "3", "€220.00", "€660.00"], ["Onsite support", "6", "€400.00", "€2,400.00"]],
+      "subtotal": "€3,060.00",
+      "vat": "€612.00",
+      "total": "€3,672.00"
+     }
+    },
+    "ex_02": {
+     "file": "invoice_en/ex_02.docx",
+     "content_hash": "e79c4883b204be416f351d47f196dbc97b940a1ca1773b6dd78a18e0b75c2c2f",
+     "truth_hash": "e58686a8a7ada60baaeb99fe503f9cdcb1c3c2407d255c35d6fce37991481b7b",
+     "values": {
+      "invoice_no": "INV-2026-0143",
+      "invoice_date": "16 February 2026",
+      "due_date": "18 March 2026",
+      "customer": "Thistlecombe Energy Ltd",
+      "vat_id": "GB000000101",
+      "items": [["Training workshop", "1", "€900.00", "€900.00"], ["Software licence", "8", "€220.00", "€1,760.00"], ["Security review", "6", "€1,200.00", "€7,200.00"]],
+      "subtotal": "€9,860.00",
+      "vat": "€1,972.00",
+      "total": "€11,832.00"
+     }
+    },
+    "ex_03": {
+     "file": "invoice_en/ex_03.docx",
+     "content_hash": "4a86fc2f15410d98343e5f4c9aa566e7b6ec502d948822e9411d7c78e993dbcc",
+     "truth_hash": "22318a0aab0fe09f06d1c6b96a89dc0cbfd23b17478a21323506c6fa26c52d74",
+     "values": {
+      "invoice_no": "INV-2026-0147",
+      "invoice_date": "24 February 2026",
+      "due_date": "26 March 2026",
+      "customer": "Ostrevik Engineering Ltd",
+      "vat_id": "GB000000102",
+      "items": [["Cloud hosting (monthly)", "2", "€480.00", "€960.00"], ["Training workshop", "5", "€900.00", "€4,500.00"], ["Data export", "8", "€350.00", "€2,800.00"], ["Security review", "7", "€1,200.00", "€8,400.00"]],
+      "subtotal": "€16,660.00",
+      "vat": "€3,332.00",
+      "total": "€19,992.00"
+     }
+    },
+    "ex_04": {
+     "file": "invoice_en/ex_04.docx",
+     "content_hash": "5b791bd2bf542c662f98cb71700f19dc4779b99bb1e2a96b9aba170a2ee07970",
+     "truth_hash": "13c34eba602aa831a17082f47aa431f8a150f489739d022598fe933d5ce93d94",
+     "values": {
+      "invoice_no": "INV-2026-0149",
+      "invoice_date": "1 March 2026",
+      "due_date": "31 March 2026",
+      "customer": "Quorvane Logistics Ltd",
+      "vat_id": "GB000000103",
+      "items": [["Security review", "5", "€1,200.00", "€6,000.00"], ["Software licence", "4", "€220.00", "€880.00"], ["Training workshop", "6", "€900.00", "€5,400.00"], ["Data export", "4", "€350.00", "€1,400.00"], ["Implementation", "8", "€160.00", "€1,280.00"]],
+      "subtotal": "€14,960.00",
+      "vat": "€2,992.00",
+      "total": "€17,952.00"
+     }
+    },
+    "ex_05": {
+     "file": "invoice_en/ex_05.docx",
+     "content_hash": "1cea73a41b7cf309d72a4675ab613b7656e1db2bb48d506700cc13ce12e4f449",
+     "truth_hash": "54f860dddec5a0ef6a3606b6883d0a46a02ec29dbed6f5dd19ebb67fb09416a6",
+     "values": {
+      "invoice_no": "INV-2026-0153",
+      "invoice_date": "10 March 2026",
+      "due_date": "9 April 2026",
+      "customer": "Glenmarrow Facilities Ltd",
+      "vat_id": "GB000000104",
+      "items": [["Cloud hosting (monthly)", "3", "€480.00", "€1,440.00"], ["Software licence", "12", "€220.00", "€2,640.00"]],
+      "subtotal": "€4,080.00",
+      "vat": "€816.00",
+      "total": "€4,896.00"
+     }
+    },
+    "held_01": {
+     "file": "invoice_en/held_01.docx",
+     "content_hash": "602bf2c1968fc789d1ae971e1a70230ec68021827532808f18440ded0b6706cf",
+     "truth_hash": "e02da83f47727abdd347bf9ac82bcc634003ab6f0558bf70672ae6fc8741770d",
+     "values": {
+      "invoice_no": "INV-2026-0157",
+      "invoice_date": "23 March 2026",
+      "due_date": "22 April 2026",
+      "customer": "Merrowind Retail Group Ltd",
+      "vat_id": "GB000000105",
+      "items": [["Training workshop", "3", "€900.00", "€2,700.00"], ["Security review", "6", "€1,200.00", "€7,200.00"], ["Onsite support", "9", "€400.00", "€3,600.00"]],
+      "subtotal": "€13,500.00",
+      "vat": "€2,700.00",
+      "total": "€16,200.00"
+     }
+    },
+    "held_02": {
+     "file": "invoice_en/held_02.docx",
+     "content_hash": "2c5d39de52dd4ad5567f33bd5007ae559b4bb6c9481e7beabf2d1aa596aeba69",
+     "truth_hash": "95e46ce0d2b26635419cd0432f8d658887d6c2ed35cc5fbd98282c706f434706",
+     "values": {
+      "invoice_no": "INV-2026-0160",
+      "invoice_date": "1 April 2026",
+      "due_date": "1 May 2026",
+      "customer": "Pellbrook Marine Supplies Ltd",
+      "vat_id": "GB000000106",
+      "items": [["Cloud hosting (monthly)", "9", "€480.00", "€4,320.00"], ["Security review", "3", "€1,200.00", "€3,600.00"], ["Training workshop", "7", "€900.00", "€6,300.00"], ["Software licence", "11", "€220.00", "€2,420.00"]],
+      "subtotal": "€16,640.00",
+      "vat": "€3,328.00",
+      "total": "€19,968.00"
+     }
+    },
+    "held_03": {
+     "file": "invoice_en/held_03.docx",
+     "content_hash": "ed0bbc60e0def44b8eb02cf3b83477155b9d34eb395f4e3e86e801c215cfe611",
+     "truth_hash": "d2ab376be1c530ef4eaf29f64c4964516cd784a00a3b27bcfab26d7793bf9391",
+     "values": {
+      "invoice_no": "INV-2026-0163",
+      "invoice_date": "8 April 2026",
+      "due_date": "8 May 2026",
+      "customer": "Varnholt Publishing Ltd",
+      "vat_id": "GB000000107",
+      "items": [["Security review", "6", "€1,200.00", "€7,200.00"], ["Data export", "1", "€350.00", "€350.00"], ["Software licence", "7", "€220.00", "€1,540.00"], ["Cloud hosting (monthly)", "7", "€480.00", "€3,360.00"], ["Implementation", "8", "€160.00", "€1,280.00"]],
+      "subtotal": "€13,730.00",
+      "vat": "€2,746.00",
+      "total": "€16,476.00"
+     }
+    },
+    "held_04": {
+     "file": "invoice_en/held_04.docx",
+     "content_hash": "35f54525a6ba7dd3034c8036b0c699454d9aa87d2c69fb7c9d7dddc9c1ab66fa",
+     "truth_hash": "0743acf7ee85c19538ec8a7025f1ab7b0196560d18901591768fe3e2f80ee6b4",
+     "values": {
+      "invoice_no": "INV-2026-0164",
+      "invoice_date": "17 April 2026",
+      "due_date": "17 May 2026",
+      "customer": "Calvenna Health Partners Ltd",
+      "vat_id": "GB000000108",
+      "items": [["Onsite support", "12", "€400.00", "€4,800.00"], ["Consulting services", "4", "€150.00", "€600.00"]],
+      "subtotal": "€5,400.00",
+      "vat": "€1,080.00",
+      "total": "€6,480.00"
+     }
+    },
+    "held_05": {
+     "file": "invoice_en/held_05.docx",
+     "content_hash": "f5268546258c77e7156fa227f11100567a75e2c81ad6f17490f543a5e96d76b4",
+     "truth_hash": "86fdd183ba8143ddc08596af4e95ecd603c6543da41f8b57306427b9349c9c71",
+     "values": {
+      "invoice_no": "INV-2026-0168",
+      "invoice_date": "25 April 2026",
+      "due_date": "25 May 2026",
+      "customer": "Thistlecombe Energy Ltd",
+      "vat_id": "GB000000109",
+      "items": [["Consulting services", "7", "€150.00", "€1,050.00"], ["Security review", "1", "€1,200.00", "€1,200.00"], ["Onsite support", "9", "€400.00", "€3,600.00"]],
+      "subtotal": "€5,850.00",
+      "vat": "€1,170.00",
+      "total": "€7,020.00"
+     }
+    },
+    "held_06": {
+     "file": "invoice_en/held_06.docx",
+     "content_hash": "ede176622db24c698f68035c15e8edb12c1c8ac20d57e559228f33737aebe349",
+     "truth_hash": "e0d0c56b1806a93becf0c3528ad78d244d687add11511bdf1167f74beac1f36d",
+     "values": {
+      "invoice_no": "INV-2026-0172",
+      "invoice_date": "8 May 2026",
+      "due_date": "7 June 2026",
+      "customer": "Ostrevik Engineering Ltd",
+      "vat_id": "GB000000110",
+      "items": [["Cloud hosting (monthly)", "9", "€480.00", "€4,320.00"], ["Onsite support", "5", "€400.00", "€2,000.00"], ["Software licence", "1", "€220.00", "€220.00"], ["Training workshop", "9", "€900.00", "€8,100.00"]],
+      "subtotal": "€14,640.00",
+      "vat": "€2,928.00",
+      "total": "€17,568.00"
+     }
+    },
+    "held_07": {
+     "file": "invoice_en/held_07.docx",
+     "content_hash": "42dd8f2fcc22bea5b49f07c45215cb57654218e90b6c1cfce00102186c71d033",
+     "truth_hash": "6be946de8ac68c902c0796f5bbc972dbf6dd4bb1039093f43c692df7a014fe86",
+     "values": {
+      "invoice_no": "INV-2026-0173",
+      "invoice_date": "16 May 2026",
+      "due_date": "15 June 2026",
+      "customer": "Quorvane Logistics Ltd",
+      "vat_id": "GB000000111",
+      "items": [["Consulting services", "3", "€150.00", "€450.00"], ["Training workshop", "10", "€900.00", "€9,000.00"], ["Security review", "9", "€1,200.00", "€10,800.00"], ["Cloud hosting (monthly)", "4", "€480.00", "€1,920.00"], ["Software licence", "4", "€220.00", "€880.00"]],
+      "subtotal": "€23,050.00",
+      "vat": "€4,610.00",
+      "total": "€27,660.00"
+     }
+    },
+    "held_08": {
+     "file": "invoice_en/held_08.docx",
+     "content_hash": "94f0b97ad2366c2a159a6f329de0ff78bbd8d8746d564edbef00f3a08b33e174",
+     "truth_hash": "66cd3c4a934ee819b3c0c397d351855cfd3ae3b517fcac84c31b95f138f5b169",
+     "values": {
+      "invoice_no": "INV-2026-0178",
+      "invoice_date": "24 May 2026",
+      "due_date": "23 June 2026",
+      "customer": "Glenmarrow Facilities Ltd",
+      "vat_id": "GB000000112",
+      "items": [["Data export", "7", "€350.00", "€2,450.00"], ["Security review", "4", "€1,200.00", "€4,800.00"]],
+      "subtotal": "€7,250.00",
+      "vat": "€1,450.00",
+      "total": "€8,700.00"
+     }
+    }
+   }
+  },
+  "invoice_de": {
+   "doc_type": "invoice",
+   "lang": "de",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "invoice_de/ex_01.docx",
+     "content_hash": "7c37635405af9945609ee8e6b46ca66a77c895b4a663f1d576c938adbf6a0662",
+     "truth_hash": "e46c9a68225630a284cf2d557cc2b125c8580522e501e136523460384d7e8913",
+     "values": {
+      "invoice_no": "RE-2026-0142",
+      "invoice_date": "03.02.2026",
+      "due_date": "17.02.2026",
+      "customer": "Finkenstedt Medizintechnik GmbH",
+      "vat_id": "DE000000100",
+      "items": [["Softwarelizenz", "6", "220,00 €", "1.320,00 €"], ["Vor-Ort-Support", "4", "400,00 €", "1.600,00 €"]],
+      "subtotal": "2.920,00 €",
+      "vat": "554,80 €",
+      "total": "3.474,80 €"
+     }
+    },
+    "ex_02": {
+     "file": "invoice_de/ex_02.docx",
+     "content_hash": "841e7fd676b983f848d2c142a053d3a63b87be8e836fe9a2d662e9e8e08f799d",
+     "truth_hash": "366207afebd929c05cf17b7bd2716805f07d641d08f8148fb89c2620b2e642ff",
+     "values": {
+      "invoice_no": "RE-2026-0145",
+      "invoice_date": "17.02.2026",
+      "due_date": "03.03.2026",
+      "customer": "Auerbrunn Maschinenbau AG",
+      "vat_id": "DE000000101",
+      "items": [["Beratungsleistungen", "10", "150,00 €", "1.500,00 €"], ["Datenexport", "2", "350,00 €", "700,00 €"], ["Sicherheitsprüfung", "4", "1.200,00 €", "4.800,00 €"]],
+      "subtotal": "7.000,00 €",
+      "vat": "1.330,00 €",
+      "total": "8.330,00 €"
+     }
+    },
+    "ex_03": {
+     "file": "invoice_de/ex_03.docx",
+     "content_hash": "8b97a5762e248e68caaba3fa5884e6c27813d1843d3af883d9ef41cae4940d88",
+     "truth_hash": "cd4b4019b9dab64fd8d9b784a3d61ef747899199bd643a9b2b40e16b5f4b4d48",
+     "values": {
+      "invoice_no": "RE-2026-0146",
+      "invoice_date": "26.02.2026",
+      "due_date": "12.03.2026",
+      "customer": "Kesselwind Logistik GmbH",
+      "vat_id": "DE000000102",
+      "items": [["Datenexport", "2", "350,00 €", "700,00 €"], ["Cloud-Hosting (monatlich)", "1", "480,00 €", "480,00 €"], ["Implementierung", "9", "160,00 €", "1.440,00 €"], ["Sicherheitsprüfung", "5", "1.200,00 €", "6.000,00 €"]],
+      "subtotal": "8.620,00 €",
+      "vat": "1.637,80 €",
+      "total": "10.257,80 €"
+     }
+    },
+    "ex_04": {
+     "file": "invoice_de/ex_04.docx",
+     "content_hash": "00a988a1cf9f59aa5ad7bfeb3a3f26787326f611f5fda71f4783ecbe9018ca13",
+     "truth_hash": "9d29fe10b105d10ff5ad43a584061ac64e34b4dea4d72b43d8d51a06cf3a5fa9",
+     "values": {
+      "invoice_no": "RE-2026-0150",
+      "invoice_date": "06.03.2026",
+      "due_date": "20.03.2026",
+      "customer": "Hallerquell Getränke GmbH",
+      "vat_id": "DE000000103",
+      "items": [["Schulungsworkshop", "11", "900,00 €", "9.900,00 €"], ["Vor-Ort-Support", "4", "400,00 €", "1.600,00 €"], ["Beratungsleistungen", "9", "150,00 €", "1.350,00 €"], ["Cloud-Hosting (monatlich)", "4", "480,00 €", "1.920,00 €"], ["Implementierung", "10", "160,00 €", "1.600,00 €"]],
+      "subtotal": "16.370,00 €",
+      "vat": "3.110,30 €",
+      "total": "19.480,30 €"
+     }
+    },
+    "ex_05": {
+     "file": "invoice_de/ex_05.docx",
+     "content_hash": "28dc0a9b04788ba01f8ef7ef9364fc101130cd9303f42ca50aa6376a7c4f7f22",
+     "truth_hash": "de6c918b110155bb87ea8f0c1f32324849077077fbec0c4c4439ab21607fb65f",
+     "values": {
+      "invoice_no": "RE-2026-0154",
+      "invoice_date": "10.03.2026",
+      "due_date": "24.03.2026",
+      "customer": "Moorwiese Energie GmbH",
+      "vat_id": "DE000000104",
+      "items": [["Schulungsworkshop", "5", "900,00 €", "4.500,00 €"], ["Cloud-Hosting (monatlich)", "7", "480,00 €", "3.360,00 €"]],
+      "subtotal": "7.860,00 €",
+      "vat": "1.493,40 €",
+      "total": "9.353,40 €"
+     }
+    },
+    "held_01": {
+     "file": "invoice_de/held_01.docx",
+     "content_hash": "21454c2b65d472ac2f1c57d8321fc98a4637f1e13b18e2049d7abba07a1de3b6",
+     "truth_hash": "72c37a416df9e4afc9e4cb9bb252c8d6f7bcf8347534bdb12a04ca1a7ec6da9c",
+     "values": {
+      "invoice_no": "RE-2026-0155",
+      "invoice_date": "22.03.2026",
+      "due_date": "05.04.2026",
+      "customer": "Strelitzer Datenwerk GmbH",
+      "vat_id": "DE000000105",
+      "items": [["Sicherheitsprüfung", "10", "1.200,00 €", "12.000,00 €"], ["Beratungsleistungen", "2", "150,00 €", "300,00 €"], ["Datenexport", "1", "350,00 €", "350,00 €"]],
+      "subtotal": "12.650,00 €",
+      "vat": "2.403,50 €",
+      "total": "15.053,50 €"
+     }
+    },
+    "held_02": {
+     "file": "invoice_de/held_02.docx",
+     "content_hash": "395e2fb3afffe3c0f29a9fc336bf67125e123796adf0ea772ab122e5a3b35c91",
+     "truth_hash": "d020956ed364f38488a7206278c0d2d033843ef1ef78ec0909dc905d5009ee13",
+     "values": {
+      "invoice_no": "RE-2026-0160",
+      "invoice_date": "28.03.2026",
+      "due_date": "11.04.2026",
+      "customer": "Lindenhaag Bau GmbH",
+      "vat_id": "DE000000106",
+      "items": [["Softwarelizenz", "3", "220,00 €", "660,00 €"], ["Schulungsworkshop", "6", "900,00 €", "5.400,00 €"], ["Sicherheitsprüfung", "2", "1.200,00 €", "2.400,00 €"], ["Beratungsleistungen", "11", "150,00 €", "1.650,00 €"]],
+      "subtotal": "10.110,00 €",
+      "vat": "1.920,90 €",
+      "total": "12.030,90 €"
+     }
+    },
+    "held_03": {
+     "file": "invoice_de/held_03.docx",
+     "content_hash": "1fa99012dd821cee6b8f85cbcc125253ffd6f65c1e6b9a4635ab78172d71e3d6",
+     "truth_hash": "0b5db9c6c44574177f2f2271383847b18b39c3e4e9184451cac1785cbec024a7",
+     "values": {
+      "invoice_no": "RE-2026-0163",
+      "invoice_date": "11.04.2026",
+      "due_date": "25.04.2026",
+      "customer": "Zeisigtal Handelsgesellschaft mbH",
+      "vat_id": "DE000000107",
+      "items": [["Sicherheitsprüfung", "2", "1.200,00 €", "2.400,00 €"], ["Softwarelizenz", "6", "220,00 €", "1.320,00 €"], ["Implementierung", "2", "160,00 €", "320,00 €"], ["Vor-Ort-Support", "11", "400,00 €", "4.400,00 €"], ["Cloud-Hosting (monatlich)", "1", "480,00 €", "480,00 €"]],
+      "subtotal": "8.920,00 €",
+      "vat": "1.694,80 €",
+      "total": "10.614,80 €"
+     }
+    },
+    "held_04": {
+     "file": "invoice_de/held_04.docx",
+     "content_hash": "ff755adf277d90c80ed319bc436e527a7becbac6253ee7af1d6bac4300bd809d",
+     "truth_hash": "e931864648b2a0fd864ef60564f733026273a80f9cb1279c4b9e2a6291224735",
+     "values": {
+      "invoice_no": "RE-2026-0164",
+      "invoice_date": "18.04.2026",
+      "due_date": "02.05.2026",
+      "customer": "Finkenstedt Medizintechnik GmbH",
+      "vat_id": "DE000000108",
+      "items": [["Implementierung", "9", "160,00 €", "1.440,00 €"], ["Sicherheitsprüfung", "7", "1.200,00 €", "8.400,00 €"]],
+      "subtotal": "9.840,00 €",
+      "vat": "1.869,60 €",
+      "total": "11.709,60 €"
+     }
+    },
+    "held_05": {
+     "file": "invoice_de/held_05.docx",
+     "content_hash": "f22ca54f55bf4cf8eb410ce7e30bad8b583afd0ef5a9417e3734d6335e02d863",
+     "truth_hash": "a11076ecb8c7061c42562c08f8c8b57a0ba8dff259e1937f6b6bd249ba4310d5",
+     "values": {
+      "invoice_no": "RE-2026-0169",
+      "invoice_date": "29.04.2026",
+      "due_date": "13.05.2026",
+      "customer": "Auerbrunn Maschinenbau AG",
+      "vat_id": "DE000000109",
+      "items": [["Beratungsleistungen", "6", "150,00 €", "900,00 €"], ["Implementierung", "3", "160,00 €", "480,00 €"], ["Datenexport", "5", "350,00 €", "1.750,00 €"]],
+      "subtotal": "3.130,00 €",
+      "vat": "594,70 €",
+      "total": "3.724,70 €"
+     }
+    },
+    "held_06": {
+     "file": "invoice_de/held_06.docx",
+     "content_hash": "5a4f42c373a41dea771e9904f9750ba6b300cac5def3c932bf0c58f580bf296a",
+     "truth_hash": "634a7ac968d403068f72e4e0377394a2fdfc0a1db213f3ae921a2843083cc9ab",
+     "values": {
+      "invoice_no": "RE-2026-0172",
+      "invoice_date": "09.05.2026",
+      "due_date": "23.05.2026",
+      "customer": "Kesselwind Logistik GmbH",
+      "vat_id": "DE000000110",
+      "items": [["Sicherheitsprüfung", "5", "1.200,00 €", "6.000,00 €"], ["Datenexport", "11", "350,00 €", "3.850,00 €"], ["Softwarelizenz", "3", "220,00 €", "660,00 €"], ["Schulungsworkshop", "6", "900,00 €", "5.400,00 €"]],
+      "subtotal": "15.910,00 €",
+      "vat": "3.022,90 €",
+      "total": "18.932,90 €"
+     }
+    },
+    "held_07": {
+     "file": "invoice_de/held_07.docx",
+     "content_hash": "1ec5cb62a2af9408cb10342d98afcba50b31efe111c3ec9a44664750ad4d42af",
+     "truth_hash": "c9458665b14c79099872ae93453a319d5770dcd5c2de3073d7471ca0bb950d12",
+     "values": {
+      "invoice_no": "RE-2026-0173",
+      "invoice_date": "17.05.2026",
+      "due_date": "31.05.2026",
+      "customer": "Hallerquell Getränke GmbH",
+      "vat_id": "DE000000111",
+      "items": [["Softwarelizenz", "11", "220,00 €", "2.420,00 €"], ["Implementierung", "3", "160,00 €", "480,00 €"], ["Beratungsleistungen", "11", "150,00 €", "1.650,00 €"], ["Datenexport", "12", "350,00 €", "4.200,00 €"], ["Schulungsworkshop", "11", "900,00 €", "9.900,00 €"]],
+      "subtotal": "18.650,00 €",
+      "vat": "3.543,50 €",
+      "total": "22.193,50 €"
+     }
+    },
+    "held_08": {
+     "file": "invoice_de/held_08.docx",
+     "content_hash": "3e412fd3da6c70946bf5dcebb5bcea30a9a7eb35acc93778050a94141c1a3dae",
+     "truth_hash": "e23908c5570059e6b38bf9b16833cc89e91bc601b1875ecdded6dd5d04e7c46f",
+     "values": {
+      "invoice_no": "RE-2026-0176",
+      "invoice_date": "27.05.2026",
+      "due_date": "10.06.2026",
+      "customer": "Moorwiese Energie GmbH",
+      "vat_id": "DE000000112",
+      "items": [["Schulungsworkshop", "10", "900,00 €", "9.000,00 €"], ["Cloud-Hosting (monatlich)", "3", "480,00 €", "1.440,00 €"]],
+      "subtotal": "10.440,00 €",
+      "vat": "1.983,60 €",
+      "total": "12.423,60 €"
+     }
+    }
+   }
+  },
+  "minutes_en": {
+   "doc_type": "minutes",
+   "lang": "en",
+   "examples": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"],
+   "held_out": ["held_01", "held_02", "held_03", "held_04", "held_05", "held_06", "held_07", "held_08"],
+   "documents": {
+    "ex_01": {
+     "file": "minutes_en/ex_01.docx",
+     "content_hash": "b7e25a0b3fceb885b9559523274934740558bfb9ae8480a40a7b350dcc6837fe",
+     "truth_hash": "537c941c01df24c38f9c669b527e8fbfdd035db43164e4ff52db0c3a344a8b8e",
+     "values": {
+      "meeting": "Data quality working group",
+      "date": "7 March 2026",
+      "chair": "Lena Lindqvist",
+      "minute_taker": "Lukas Novak",
+      "attendees": "Matteo Sandner, Tobias Varga, Clara Haverkamp",
+      "agenda": "Usage figures for the quarter, the renewal of the service contract, and new requirements.",
+      "decisions": "The migration will run over one weekend with a rollback plan approved in advance.",
+      "actions": [["Send the updated project plan to all attendees", "Sophie Okafor", "14 March 2026"], ["Prepare the user training material", "Sophie Okafor", "21 March 2026"]]
+     }
+    },
+    "ex_02": {
+     "file": "minutes_en/ex_02.docx",
+     "content_hash": "4102a7571312e6085324c0a83efc99ac54b59aeac6bae3a33dd82dec14c9853f",
+     "truth_hash": "7ab9ff637d5391d22fd85df53408bb955b53ed83d66745f7d75b3b7efeb9c7a1",
+     "values": {
+      "meeting": "Quarterly business review – sensor analytics",
+      "date": "16 March 2026",
+      "chair": "Sophie Okafor",
+      "minute_taker": "Hannah Achterberg",
+      "attendees": "Clara Haverkamp, Tobias Varga, Lena Lindqvist, Elif Whitcombe",
+      "agenda": "Changes in the payment provider's interface, the release calendar, and test coverage.",
+      "decisions": "Two servers keep their exception for one more cycle; all others are patched on schedule.",
+      "actions": [["Book the test environment for the load test", "Tobias Varga", "23 March 2026"], ["Draft the data processing agreement", "Clara Haverkamp", "30 March 2026"], ["Review open incidents with the vendor", "Lena Lindqvist", "6 April 2026"]]
+     }
+    },
+    "ex_03": {
+     "file": "minutes_en/ex_03.docx",
+     "content_hash": "92607d1a30a01fed4bc8f5187976c39072014d28a3d04d016868ccc51ac5ab91",
+     "truth_hash": "0ab0d20d51ff82fc2099c227aa60506b2ed6f4585915325c852f2675d8d1f5b0",
+     "values": {
+      "meeting": "Monthly service review – field service app",
+      "date": "23 March 2026",
+      "chair": "Clara Haverkamp",
+      "minute_taker": "Tobias Varga",
+      "attendees": "Jonas Kessling, Farid Morandi, Noah Petrovic, Matteo Sandner, Daniel Ferreira",
+      "agenda": "What went well in the rollout, what did not, and which follow-ups are still open.",
+      "decisions": "The go-live moves to the second week of the month; the budget stays unchanged.",
+      "actions": [["Review open incidents with the vendor", "Matteo Sandner", "30 March 2026"], ["Prepare the user training material", "Noah Petrovic", "6 April 2026"], ["Update the risk register", "Matteo Sandner", "13 April 2026"], ["Confirm the budget with finance", "Matteo Sandner", "20 April 2026"]]
+     }
+    },
+    "ex_04": {
+     "file": "minutes_en/ex_04.docx",
+     "content_hash": "5ef79dbeff498efd71c5c3e50e5568297087fc385c7c44289e08dce175a150e0",
+     "truth_hash": "0293460ecbd13d0f1e2df53446fb3e7eeb425cbecf1df6f480c1ace6dc74726b",
+     "values": {
+      "meeting": "Kick-off – document archive migration",
+      "date": "29 March 2026",
+      "chair": "Ines Tamura",
+      "minute_taker": "Matteo Sandner",
+      "attendees": "Lena Lindqvist, Anika Brandauer, Noah Petrovic",
+      "agenda": "Status of the migration plan, open risks, and the budget forecast for the next quarter.",
+      "decisions": "The contract is renewed for one year, and a feature request list is drafted for Q3.",
+      "actions": [["Clarify the licence count with procurement", "Noah Petrovic", "5 April 2026"], ["Confirm the budget with finance", "Noah Petrovic", "12 April 2026"], ["Update the risk register", "Lena Lindqvist", "19 April 2026"], ["Draft the data processing agreement", "Lena Lindqvist", "26 April 2026"], ["Collect feedback from the pilot users", "Lena Lindqvist", "3 May 2026"]]
+     }
+    },
+    "ex_05": {
+     "file": "minutes_en/ex_05.docx",
+     "content_hash": "0f2f5987826a23a776ac31d346697b64f285190c3144faa84c1bec22651b255b",
+     "truth_hash": "9e5d7442f2fffa81be66fe087ec72eef7d6bdb1937bf3dc31d28621597c7865b",
+     "values": {
+      "meeting": "Release planning – online shop integration",
+      "date": "9 April 2026",
+      "chair": "Hannah Achterberg",
+      "minute_taker": "Ines Tamura",
+      "attendees": "Samuel Rinaldi, Jonas Kessling, Matteo Sandner, Mira Ostwald",
+      "agenda": "Scope of the archive migration, the test strategy, and how the cut-over weekend will run.",
+      "decisions": "The integration release is postponed until the new interface has passed acceptance tests.",
+      "actions": [["Send the updated project plan to all attendees", "Matteo Sandner", "16 April 2026"], ["Update the risk register", "Jonas Kessling", "23 April 2026"]]
+     }
+    },
+    "held_01": {
+     "file": "minutes_en/held_01.docx",
+     "content_hash": "a5eb8bad82d36effccb41023a840381f13ef68046b83166d60cdf131fd055231",
+     "truth_hash": "425a3383fd17ffb8e60e661c9c26a67f80bb9d936cda7c5cbe982a0acab67598",
+     "values": {
+      "meeting": "Project steering committee – warehouse platform",
+      "date": "22 April 2026",
+      "chair": "Farid Morandi",
+      "minute_taker": "Daniel Ferreira",
+      "attendees": "Tobias Varga, Jonas Kessling, Noah Petrovic, Hannah Achterberg, Elif Whitcombe",
+      "agenda": "Findings of the latest data quality report and who owns which correction.",
+      "decisions": "Onboarding of user accounts is automated first; the remaining follow-ups go to the backlog.",
+      "actions": [["Update the risk register", "Hannah Achterberg", "29 April 2026"], ["Book the test environment for the load test", "Tobias Varga", "6 May 2026"], ["Clarify the licence count with procurement", "Hannah Achterberg", "13 May 2026"]]
+     }
+    },
+    "held_02": {
+     "file": "minutes_en/held_02.docx",
+     "content_hash": "79e6726d741e5c00883a665a278bcc4356c1de7851c7311c1d60ce0dc69930b1",
+     "truth_hash": "45935aee34a2417660f571003547f805a8a8465c55aeb8a46cb19eb6e2555a95",
+     "values": {
+      "meeting": "Retrospective – identity management rollout",
+      "date": "26 April 2026",
+      "chair": "Anika Brandauer",
+      "minute_taker": "Samuel Rinaldi",
+      "attendees": "Lukas Novak, Mira Ostwald, Ines Tamura",
+      "agenda": "Patch status per server group, exceptions requested by the business, and the next window.",
+      "decisions": "Hotfix releases will ship every two weeks until the backlog is below twenty items.",
+      "actions": [["Send the updated project plan to all attendees", "Tobias Varga", "3 May 2026"], ["Clarify the licence count with procurement", "Lukas Novak", "10 May 2026"], ["Review open incidents with the vendor", "Lukas Novak", "17 May 2026"], ["Book the test environment for the load test", "Lukas Novak", "24 May 2026"]]
+     }
+    },
+    "held_03": {
+     "file": "minutes_en/held_03.docx",
+     "content_hash": "0b00e72f38c6cd51a26d5c3d06f3f8606ecec75d49d85f30c438eaa63c3d9d4c",
+     "truth_hash": "8e89ec000cca6e3c1d33de42c085ff180b933b6ef3a52c4d9063f81a474c51e8",
+     "values": {
+      "meeting": "Security patch review",
+      "date": "10 May 2026",
+      "chair": "Elif Whitcombe",
+      "minute_taker": "Farid Morandi",
+      "attendees": "Mira Ostwald, Clara Haverkamp, Hannah Achterberg, Samuel Rinaldi",
+      "agenda": "Review of last month's incidents, the support backlog, and the planned app release.",
+      "decisions": "Each product category gets a named data owner, and corrections are reviewed weekly.",
+      "actions": [["Clarify the licence count with procurement", "Hannah Achterberg", "17 May 2026"], ["Prepare the user training material", "Hannah Achterberg", "24 May 2026"], ["Collect feedback from the pilot users", "Hannah Achterberg", "31 May 2026"], ["Draft the data processing agreement", "Samuel Rinaldi", "7 June 2026"], ["Book the test environment for the load test", "Mira Ostwald", "14 June 2026"]]
+     }
+    },
+    "held_04": {
+     "file": "minutes_en/held_04.docx",
+     "content_hash": "15721caf197a403d3d0cac0bee134635726aadea11319f04526f62a7a4938d8c",
+     "truth_hash": "03c8ad349a8038f59fbd3e67b1b092beca812acb501d3ebb3c0af7d45aac92d8",
+     "values": {
+      "meeting": "Data quality working group",
+      "date": "14 May 2026",
+      "chair": "Tobias Varga",
+      "minute_taker": "Elif Whitcombe",
+      "attendees": "Samuel Rinaldi, Noah Petrovic, Daniel Ferreira, Anika Brandauer, Hannah Achterberg",
+      "agenda": "Usage figures for the quarter, the renewal of the service contract, and new requirements.",
+      "decisions": "The migration will run over one weekend with a rollback plan approved in advance.",
+      "actions": [["Send the updated project plan to all attendees", "Samuel Rinaldi", "21 May 2026"], ["Update the risk register", "Noah Petrovic", "28 May 2026"]]
+     }
+    },
+    "held_05": {
+     "file": "minutes_en/held_05.docx",
+     "content_hash": "090e7b3bbf9610120099282423cd6c765382984f1664c4f28fd548e7fb0b197d",
+     "truth_hash": "f15922f02b5d7f3c50e1a05817a2213d27d860f1ee065bbe3c6ca1a1d0c1e07e",
+     "values": {
+      "meeting": "Quarterly business review – sensor analytics",
+      "date": "22 May 2026",
+      "chair": "Daniel Ferreira",
+      "minute_taker": "Hannah Achterberg",
+      "attendees": "Lena Lindqvist, Anika Brandauer, Samuel Rinaldi",
+      "agenda": "Changes in the payment provider's interface, the release calendar, and test coverage.",
+      "decisions": "Two servers keep their exception for one more cycle; all others are patched on schedule.",
+      "actions": [["Send the updated project plan to all attendees", "Samuel Rinaldi", "29 May 2026"], ["Collect feedback from the pilot users", "Lena Lindqvist", "5 June 2026"], ["Schedule the go-live rehearsal", "Ines Tamura", "12 June 2026"]]
+     }
+    },
+    "held_06": {
+     "file": "minutes_en/held_06.docx",
+     "content_hash": "8f939e19181e42ec80e114fb38227df8731bc99ee11ff25d3e8ae9c6fb201a65",
+     "truth_hash": "f2e927664c00e9729d27abc38d0cd88a18cd10f7d2e1816960b832402ad77d26",
+     "values": {
+      "meeting": "Monthly service review – field service app",
+      "date": "31 May 2026",
+      "chair": "Lukas Novak",
+      "minute_taker": "Anika Brandauer",
+      "attendees": "Noah Petrovic, Lena Lindqvist, Ines Tamura, Mira Ostwald",
+      "agenda": "What went well in the rollout, what did not, and which follow-ups are still open.",
+      "decisions": "The go-live moves to the second week of the month; the budget stays unchanged.",
+      "actions": [["Schedule the go-live rehearsal", "Lena Lindqvist", "7 June 2026"], ["Confirm the budget with finance", "Lena Lindqvist", "14 June 2026"], ["Prepare the user training material", "Mira Ostwald", "21 June 2026"], ["Review open incidents with the vendor", "Mira Ostwald", "28 June 2026"]]
+     }
+    },
+    "held_07": {
+     "file": "minutes_en/held_07.docx",
+     "content_hash": "9271b8fd8f074c62afb07db92079cf15773439c64d6ae61740597010584c7ace",
+     "truth_hash": "1fd402e5faf4125198854854a90e36ae1c1967cbaaee1886334aa9a120f9d18a",
+     "values": {
+      "meeting": "Kick-off – document archive migration",
+      "date": "9 June 2026",
+      "chair": "Mira Ostwald",
+      "minute_taker": "Noah Petrovic",
+      "attendees": "Ines Tamura, Samuel Rinaldi, Anika Brandauer, Daniel Ferreira, Lena Lindqvist",
+      "agenda": "Status of the migration plan, open risks, and the budget forecast for the next quarter.",
+      "decisions": "The contract is renewed for one year, and a feature request list is drafted for Q3.",
+      "actions": [["Update the risk register", "Ines Tamura", "16 June 2026"], ["Review open incidents with the vendor", "Anika Brandauer", "23 June 2026"], ["Book the test environment for the load test", "Samuel Rinaldi", "30 June 2026"], ["Collect feedback from the pilot users", "Ines Tamura", "7 July 2026"], ["Draft the data processing agreement", "Anika Brandauer", "14 July 2026"]]
+     }
+    },
+    "held_08": {
+     "file": "minutes_en/held_08.docx",
+     "content_hash": "a030518c1992d073c082a26cf87e78097f264c9ec3692b74e1c4942388567e1b",
+     "truth_hash": "675ac6da18a7b4a5a762571cde646cb1dfa94bd261f72c8d8f52c685a4733def",
+     "values": {
+      "meeting": "Release planning – online shop integration",
+      "date": "20 June 2026",
+      "chair": "Noah Petrovic",
+      "minute_taker": "Mira Ostwald",
+      "attendees": "Farid Morandi, Anika Brandauer, Elif Whitcombe",
+      "agenda": "Scope of the archive migration, the test strategy, and how the cut-over weekend will run.",
+      "decisions": "The integration release is postponed until the new interface has passed acceptance tests.",
+      "actions": [["Review open incidents with the vendor", "Farid Morandi", "27 June 2026"], ["Prepare the user training material", "Matteo Sandner", "4 July 2026"]]
+     }
+    }
+   }
+  }
+ },
+ "cases": [
+  {"id": "service_agreement_en/held_01/clean", "pair": "service_agreement_en", "base": "held_01", "file": "service_agreement_en/held_01.docx", "content_hash": "3acb1a3717cf59634588a163114bd762771d60caf6a6076e7749d8982fdf7933", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_02/clean", "pair": "service_agreement_en", "base": "held_02", "file": "service_agreement_en/held_02.docx", "content_hash": "799b1cb6674830e4a33b5b049ba2849deb6e735af677d213d99765093c10ad2d", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_03/clean", "pair": "service_agreement_en", "base": "held_03", "file": "service_agreement_en/held_03.docx", "content_hash": "e2214a86089dbc52712d802d7ab319c53e1e2d5374def276c94a0f218b7fe1f1", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_04/clean", "pair": "service_agreement_en", "base": "held_04", "file": "service_agreement_en/held_04.docx", "content_hash": "27e74c7e2b3c46df0cc9a8bfbb958c345082529cd1acbf078f5bea84cb0240d4", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_05/clean", "pair": "service_agreement_en", "base": "held_05", "file": "service_agreement_en/held_05.docx", "content_hash": "fd37d802be8b41be4e12d1f7d5eeb5b190b71c3eea9e10bea026eae1d535a536", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_06/clean", "pair": "service_agreement_en", "base": "held_06", "file": "service_agreement_en/held_06.docx", "content_hash": "721ec6957b238fd4eab455aeec1106bc128b37e222b7a1e221fcf5a3757ef229", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_07/clean", "pair": "service_agreement_en", "base": "held_07", "file": "service_agreement_en/held_07.docx", "content_hash": "428c7941054598c976a19d11cb5146fbc5bf2c9374671a0a770132fbb4246653", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_08/clean", "pair": "service_agreement_en", "base": "held_08", "file": "service_agreement_en/held_08.docx", "content_hash": "cddc2bf7ac129ae2c8a88f7568f2567b256ae63eeed5f679da2c16d75b7af2b1", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_en/held_01/change_liability_cap", "pair": "service_agreement_en", "base": "held_01", "file": "service_agreement_en/cases/held_01__change_liability_cap.docx", "content_hash": "919afd9833ba27dcedde5600e179e45e21117331099fd20294a11509d19e31fc", "label": {"mutator": "change_liability_cap", "targets": ["clause.liability"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Except in cases of intent or gross negligence, the total liability of the Supplier under this Agreement shall not exceed EUR 250,000 per contract year.", "after": "Except in cases of intent or gross negligence, the total liability of the Supplier under this Agreement shall not exceed EUR 25,000 per contract year."}}},
+  {"id": "service_agreement_en/held_02/change_liability_cap", "pair": "service_agreement_en", "base": "held_02", "file": "service_agreement_en/cases/held_02__change_liability_cap.docx", "content_hash": "6c7723cef0f7863c93e3253ec37a2f5bdf946be41e79c765a220a13d49eb78d9", "label": {"mutator": "change_liability_cap", "targets": ["clause.liability"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Except in cases of intent or gross negligence, the total liability of the Supplier under this Agreement shall not exceed EUR 250,000 per contract year.", "after": "Except in cases of intent or gross negligence, the total liability of the Supplier under this Agreement shall not exceed EUR 25,000 per contract year."}}},
+  {"id": "service_agreement_en/held_03/change_governing_law", "pair": "service_agreement_en", "base": "held_03", "file": "service_agreement_en/cases/held_03__change_governing_law.docx", "content_hash": "09d961550064b934513e9e0fcef83e60f3496104770489a932d4ca3a8309c079", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement is governed by the laws of England and Wales. The courts of London have exclusive jurisdiction over any dispute arising from it.", "after": "This Agreement is governed by the laws of Ireland. The courts of Dublin have exclusive jurisdiction over any dispute arising from it."}}},
+  {"id": "service_agreement_en/held_04/change_governing_law", "pair": "service_agreement_en", "base": "held_04", "file": "service_agreement_en/cases/held_04__change_governing_law.docx", "content_hash": "2ce338e6aa0f3e7c9af75a4cba6497c42fb6030646b76f84c0dfa5d9bb040864", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement is governed by the laws of England and Wales. The courts of London have exclusive jurisdiction over any dispute arising from it.", "after": "This Agreement is governed by the laws of Ireland. The courts of Dublin have exclusive jurisdiction over any dispute arising from it."}}},
+  {"id": "service_agreement_en/held_05/change_notice_period", "pair": "service_agreement_en", "base": "held_05", "file": "service_agreement_en/cases/held_05__change_notice_period.docx", "content_hash": "bd0ff3553cea24aae33af4107295d41a7f8c440d046295f9bb3d1bbf4e97bd4a", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement starts on the Start Date and runs for an indefinite period. Either party may terminate it with three (3) months' written notice to the end of a calendar quarter.", "after": "This Agreement starts on the Start Date and runs for an indefinite period. Either party may terminate it with two (2) weeks' written notice to the end of a calendar quarter."}}},
+  {"id": "service_agreement_en/held_06/change_notice_period", "pair": "service_agreement_en", "base": "held_06", "file": "service_agreement_en/cases/held_06__change_notice_period.docx", "content_hash": "471f16d4b4b0a3c5a3ac433162db3fe90b785d15bb7069c10de11d1afbe06a1f", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement starts on the Start Date and runs for an indefinite period. Either party may terminate it with three (3) months' written notice to the end of a calendar quarter.", "after": "This Agreement starts on the Start Date and runs for an indefinite period. Either party may terminate it with two (2) weeks' written notice to the end of a calendar quarter."}}},
+  {"id": "service_agreement_en/held_07/delete_clause", "pair": "service_agreement_en", "base": "held_07", "file": "service_agreement_en/cases/held_07__delete_clause.docx", "content_hash": "343910e5a1fed8a7f68dba4f09960f81f577af5a89d4d006fc54c30445d26bf6", "label": {"mutator": "delete_clause", "targets": ["heading.confidentiality", "clause.confidentiality"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["5. Confidentiality", "Each party shall keep confidential all information it recieves from the other party in connection with this Agreement and shall use it only for the purposes of this Agreement. This obligation survives termination for three years."]}}},
+  {"id": "service_agreement_en/held_08/delete_clause", "pair": "service_agreement_en", "base": "held_08", "file": "service_agreement_en/cases/held_08__delete_clause.docx", "content_hash": "2af109fd3ed3c2589807b9598a9a6bfaa251c454985bae3a441543c999be0b8c", "label": {"mutator": "delete_clause", "targets": ["heading.confidentiality", "clause.confidentiality"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["5. Confidentiality", "Each party shall keep confidential all information it recieves from the other party in connection with this Agreement and shall use it only for the purposes of this Agreement. This obligation survives termination for three years."]}}},
+  {"id": "service_agreement_en/held_01/fix_typo", "pair": "service_agreement_en", "base": "held_01", "file": "service_agreement_en/cases/held_01__fix_typo.docx", "content_hash": "b8b3490946577ff12dc9b0f47cc1d91ed5e7bec6a92bf58190904f02e269345e", "label": {"mutator": "fix_typo", "targets": ["clause.confidentiality"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Each party shall keep confidential all information it recieves from the other party in connection with this Agreement and shall use it only for the purposes of this Agreement. This obligation survives termination for three years.", "after": "Each party shall keep confidential all information it receives from the other party in connection with this Agreement and shall use it only for the purposes of this Agreement. This obligation survives termination for three years."}}},
+  {"id": "service_agreement_en/held_02/fix_typo", "pair": "service_agreement_en", "base": "held_02", "file": "service_agreement_en/cases/held_02__fix_typo.docx", "content_hash": "135fff283205920570b7a5e9623950e7b6ea449530fb88cca053eff29dc38186", "label": {"mutator": "fix_typo", "targets": ["clause.confidentiality"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Each party shall keep confidential all information it recieves from the other party in connection with this Agreement and shall use it only for the purposes of this Agreement. This obligation survives termination for three years.", "after": "Each party shall keep confidential all information it receives from the other party in connection with this Agreement and shall use it only for the purposes of this Agreement. This obligation survives termination for three years."}}},
+  {"id": "service_agreement_en/held_03/whitespace_quotes", "pair": "service_agreement_en", "base": "held_03", "file": "service_agreement_en/cases/held_03__whitespace_quotes.docx", "content_hash": "bd0949175ac1f0e9e326a0a1a76a899354e7adc7c7b8ef9c55e093711b0c82e5", "label": {"mutator": "whitespace_quotes", "targets": ["clause.data_protection"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Where the Supplier processes personal data on behalf of the Customer, the parties shall conclude a data processing agreement in accordance with Article 28 GDPR. The Supplier shall not transfer personal data outside the European Economic Area without the Customer's prior written consent.", "after": "Where the Supplier processes personal data on behalf of the Customer, the parties shall conclude a data processing agreement in accordance with Article 28 GDPR.  The Supplier shall not transfer personal data outside the European Economic Area without the Customer’s prior written consent."}}},
+  {"id": "service_agreement_en/held_04/whitespace_quotes", "pair": "service_agreement_en", "base": "held_04", "file": "service_agreement_en/cases/held_04__whitespace_quotes.docx", "content_hash": "1330c54dad710453271c66df563d160bcdf7aba4d043bc1c66bafb20e09e752b", "label": {"mutator": "whitespace_quotes", "targets": ["clause.data_protection"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Where the Supplier processes personal data on behalf of the Customer, the parties shall conclude a data processing agreement in accordance with Article 28 GDPR. The Supplier shall not transfer personal data outside the European Economic Area without the Customer's prior written consent.", "after": "Where the Supplier processes personal data on behalf of the Customer, the parties shall conclude a data processing agreement in accordance with Article 28 GDPR.  The Supplier shall not transfer personal data outside the European Economic Area without the Customer’s prior written consent."}}},
+  {"id": "service_agreement_en/held_05/heading_caps", "pair": "service_agreement_en", "base": "held_05", "file": "service_agreement_en/cases/held_05__heading_caps.docx", "content_hash": "8e2addf8011b5d619239ce9a4dfb5c07cad6cfe11ee4fa0b08cc6c70358159a7", "label": {"mutator": "heading_caps", "targets": ["heading.liability"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "4. Limitation of Liability", "after": "4. LIMITATION OF LIABILITY"}}},
+  {"id": "service_agreement_en/held_06/heading_caps", "pair": "service_agreement_en", "base": "held_06", "file": "service_agreement_en/cases/held_06__heading_caps.docx", "content_hash": "7c9fd9346a165062072600fb649225896ecd7e4f41637bfdbebe98be7e134bce", "label": {"mutator": "heading_caps", "targets": ["heading.liability"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "4. Limitation of Liability", "after": "4. LIMITATION OF LIABILITY"}}},
+  {"id": "service_agreement_en/held_07/empty_field", "pair": "service_agreement_en", "base": "held_07", "file": "service_agreement_en/cases/held_07__empty_field.docx", "content_hash": "9c5c0c73397bb77fb737ffc03888f00d3906fc74c8f64411b968018c65bd4fcf", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Ostrevik Engineering Ltd", "after": ""}}},
+  {"id": "service_agreement_en/held_08/empty_field", "pair": "service_agreement_en", "base": "held_08", "file": "service_agreement_en/cases/held_08__empty_field.docx", "content_hash": "6724eab91b3077fe50058f2d0cd7776cc9eff0c0ec17410c0d984c4cdc4d00ed", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Varnholt Publishing Ltd", "after": ""}}},
+  {"id": "service_agreement_en/held_01/date_format", "pair": "service_agreement_en", "base": "held_01", "file": "service_agreement_en/cases/held_01__date_format.docx", "content_hash": "fb80f253b848ed4081d2b784b0bfcbee675b63b8fda71c27ff09c740c9f403ac", "label": {"mutator": "date_format", "targets": ["field.date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "2 March 2026", "after": "2026-03-02"}}},
+  {"id": "service_agreement_en/held_02/date_format", "pair": "service_agreement_en", "base": "held_02", "file": "service_agreement_en/cases/held_02__date_format.docx", "content_hash": "5115a0c6e22b2a542cacae276fc5a6a36aa9ce2407daf632e4a4e77b2cc3cdd1", "label": {"mutator": "date_format", "targets": ["field.date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "13 March 2026", "after": "2026-03-13"}}},
+  {"id": "service_agreement_en/held_03/invalid_value", "pair": "service_agreement_en", "base": "held_03", "file": "service_agreement_en/cases/held_03__invalid_value.docx", "content_hash": "a91014aa19d77bf1ff5625a79fed76fa093b742e45dcebc9efbe36b8fb044580", "label": {"mutator": "invalid_value", "targets": ["field.start_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "6 April 2026", "after": "TBD"}}},
+  {"id": "service_agreement_en/held_04/invalid_value", "pair": "service_agreement_en", "base": "held_04", "file": "service_agreement_en/cases/held_04__invalid_value.docx", "content_hash": "3485dfc8e7138ecdf1143bde44b15f82c29a94a166ac71cc5cf70784181fc15d", "label": {"mutator": "invalid_value", "targets": ["field.start_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "17 April 2026", "after": "TBD"}}},
+  {"id": "service_agreement_en/held_05/remove_row", "pair": "service_agreement_en", "base": "held_05", "file": "service_agreement_en/cases/held_05__remove_row.docx", "content_hash": "49c1e4eb76981ce4566671e398febfdfd0d64b2c43b31d644a07c3f155f8bff0", "label": {"mutator": "remove_row", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Change requests", "per hour", "€145.00"], "rows_left": 1}}},
+  {"id": "service_agreement_en/held_06/remove_row", "pair": "service_agreement_en", "base": "held_06", "file": "service_agreement_en/cases/held_06__remove_row.docx", "content_hash": "1dc8aed4d225cb8a8c691dd2b63eeeb22651dd871285e0c0b8a47046097442aa", "label": {"mutator": "remove_row", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Extra storage", "per TB per month", "€120.00"], "rows_left": 2}}},
+  {"id": "service_agreement_en/held_07/remove_column", "pair": "service_agreement_en", "base": "held_07", "file": "service_agreement_en/cases/held_07__remove_column.docx", "content_hash": "2115e9d53a9e72fde686e7808dc953a8159dab457d213961e0808e8f6b972e8b", "label": {"mutator": "remove_column", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Unit"}}},
+  {"id": "service_agreement_en/held_08/remove_column", "pair": "service_agreement_en", "base": "held_08", "file": "service_agreement_en/cases/held_08__remove_column.docx", "content_hash": "e56bd8e6e198d3be809e924a2c36628fb90f5d11a44520b290320598a06a788d", "label": {"mutator": "remove_column", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Unit"}}},
+  {"id": "service_agreement_en/held_01/delete_table", "pair": "service_agreement_en", "base": "held_01", "file": "service_agreement_en/cases/held_01__delete_table.docx", "content_hash": "b379b4f9c433a62beb4a9fe5079a0b3a2aa57d43fdb47cd525eb0146cd346cb3", "label": {"mutator": "delete_table", "targets": ["table.fees"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Service", "Unit", "Price"]}}},
+  {"id": "service_agreement_en/held_02/delete_table", "pair": "service_agreement_en", "base": "held_02", "file": "service_agreement_en/cases/held_02__delete_table.docx", "content_hash": "bd5d7303b27387444913d11e48d7a629404e84b34cb34a69d35b565979a7350b", "label": {"mutator": "delete_table", "targets": ["table.fees"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Service", "Unit", "Price"]}}},
+  {"id": "service_agreement_en/held_03/reorder_sections", "pair": "service_agreement_en", "base": "held_03", "file": "service_agreement_en/cases/held_03__reorder_sections.docx", "content_hash": "17fe476a451741c70fcc6e7e4ec864fa4ca0e2ab29b13e26df2b05aebe847f0d", "label": {"mutator": "reorder_sections", "targets": ["heading.confidentiality", "clause.confidentiality", "heading.data_protection", "clause.data_protection"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.confidentiality", "clause.confidentiality"], "after": "clause.data_protection"}}},
+  {"id": "service_agreement_en/held_04/reorder_sections", "pair": "service_agreement_en", "base": "held_04", "file": "service_agreement_en/cases/held_04__reorder_sections.docx", "content_hash": "5894407b80ab19d0034722a7ff660f71d45a48a19eb3a894c6686729c52b59ae", "label": {"mutator": "reorder_sections", "targets": ["heading.confidentiality", "clause.confidentiality", "heading.data_protection", "clause.data_protection"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.confidentiality", "clause.confidentiality"], "after": "clause.data_protection"}}},
+  {"id": "service_agreement_en/held_05/insert_benign", "pair": "service_agreement_en", "base": "held_05", "file": "service_agreement_en/cases/held_05__insert_benign.docx", "content_hash": "b370494fbef7bb3c3f23ca7f586cff5e70cf7b0451cf8ce177fb06069a2ec2a0", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.confidentiality", "text": "Note: A copy of this Agreement is kept in the Customer's contract register."}}},
+  {"id": "service_agreement_en/held_06/insert_benign", "pair": "service_agreement_en", "base": "held_06", "file": "service_agreement_en/cases/held_06__insert_benign.docx", "content_hash": "8e81e39844f09d8379aaaa4c9e9921879548ef703c475af295474a938c0cc32e", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.confidentiality", "text": "Note: A copy of this Agreement is kept in the Customer's contract register."}}},
+  {"id": "service_agreement_en/held_07/insert_material", "pair": "service_agreement_en", "base": "held_07", "file": "service_agreement_en/cases/held_07__insert_material.docx", "content_hash": "2e6c6ef93bfbc3f161d4f646031ec5311b4df806a67df542937473cf335e69e9", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.liability", "text": "Notwithstanding clause 4, the Supplier accepts unlimited liability for all damages."}}},
+  {"id": "service_agreement_en/held_08/insert_material", "pair": "service_agreement_en", "base": "held_08", "file": "service_agreement_en/cases/held_08__insert_material.docx", "content_hash": "e92887cab1908021c8667806552f7de583265d3100a1afeecda7cd63985e4aed", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.liability", "text": "Notwithstanding clause 4, the Supplier accepts unlimited liability for all damages."}}},
+  {"id": "service_agreement_de/held_01/clean", "pair": "service_agreement_de", "base": "held_01", "file": "service_agreement_de/held_01.docx", "content_hash": "313432f99ce405fbddb2f78ade61918c2cf6c5fb106651924db1248790c9382d", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_02/clean", "pair": "service_agreement_de", "base": "held_02", "file": "service_agreement_de/held_02.docx", "content_hash": "bcf2ee87a51230c6a3f2670ca0124169e3d0ed4f2ccbe802e7f2c58c84243608", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_03/clean", "pair": "service_agreement_de", "base": "held_03", "file": "service_agreement_de/held_03.docx", "content_hash": "90246ab95bd5f1571a0fc1f4c0bedf86adba0217692c5fbc22b79e3c8a929f6a", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_04/clean", "pair": "service_agreement_de", "base": "held_04", "file": "service_agreement_de/held_04.docx", "content_hash": "b3a2bf1b32de4865cde93fe5145d0174e92f7e2bffb1f4f2f4834c5cce20474a", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_05/clean", "pair": "service_agreement_de", "base": "held_05", "file": "service_agreement_de/held_05.docx", "content_hash": "90ad312ceb6abf1883a69923d6194eff52eea44c4b5000845ab31e12802ad5fe", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_06/clean", "pair": "service_agreement_de", "base": "held_06", "file": "service_agreement_de/held_06.docx", "content_hash": "5110aa55194a108579b5b4465d2a0abf056127554d37135c15e005915e711583", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_07/clean", "pair": "service_agreement_de", "base": "held_07", "file": "service_agreement_de/held_07.docx", "content_hash": "775aaa202b32c38b1a264f82d178468cab98e3092750512c2b9350ab17213717", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_08/clean", "pair": "service_agreement_de", "base": "held_08", "file": "service_agreement_de/held_08.docx", "content_hash": "d57c9c2367d3b0a258719493d73ca46e570d5b48ed318792d369ffad647741f5", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "service_agreement_de/held_01/change_liability_cap", "pair": "service_agreement_de", "base": "held_01", "file": "service_agreement_de/cases/held_01__change_liability_cap.docx", "content_hash": "4e21e17f91eda89853fa2f9356e42417ff27c0fdc4da49a1695968d2322f85a8", "label": {"mutator": "change_liability_cap", "targets": ["clause.liability"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Außer bei Vorsatz und grober Fahrlässigkeit ist die Haftung des Auftragnehmers aus diesem Vertrag auf 250.000 € je Vertragsjahr beschränkt.", "after": "Außer bei Vorsatz und grober Fahrlässigkeit ist die Haftung des Auftragnehmers aus diesem Vertrag auf 25.000 € je Vertragsjahr beschränkt."}}},
+  {"id": "service_agreement_de/held_02/change_liability_cap", "pair": "service_agreement_de", "base": "held_02", "file": "service_agreement_de/cases/held_02__change_liability_cap.docx", "content_hash": "c71a6ab098b1b2cac0f06dad93263ee44c5e15539e4f87b0c3d3691879156949", "label": {"mutator": "change_liability_cap", "targets": ["clause.liability"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Außer bei Vorsatz und grober Fahrlässigkeit ist die Haftung des Auftragnehmers aus diesem Vertrag auf 250.000 € je Vertragsjahr beschränkt.", "after": "Außer bei Vorsatz und grober Fahrlässigkeit ist die Haftung des Auftragnehmers aus diesem Vertrag auf 25.000 € je Vertragsjahr beschränkt."}}},
+  {"id": "service_agreement_de/held_03/change_governing_law", "pair": "service_agreement_de", "base": "held_03", "file": "service_agreement_de/cases/held_03__change_governing_law.docx", "content_hash": "01c4e85d14f2cebf2051bda1a49b24d88558ee9284f738ff18fcb145dcd457a3", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Es gilt das Recht der Bundesrepublik Deutschland. Ausschließlicher Gerichtsstand ist München.", "after": "Es gilt das Recht der Bundesrepublik Deutschland. Ausschließlicher Gerichtsstand ist Hamburg."}}},
+  {"id": "service_agreement_de/held_04/change_governing_law", "pair": "service_agreement_de", "base": "held_04", "file": "service_agreement_de/cases/held_04__change_governing_law.docx", "content_hash": "ec24c892f256d1d6a55825f1bd3bd7211c25732223c7667671c4106164d87449", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Es gilt das Recht der Bundesrepublik Deutschland. Ausschließlicher Gerichtsstand ist München.", "after": "Es gilt das Recht der Bundesrepublik Deutschland. Ausschließlicher Gerichtsstand ist Hamburg."}}},
+  {"id": "service_agreement_de/held_05/change_notice_period", "pair": "service_agreement_de", "base": "held_05", "file": "service_agreement_de/cases/held_05__change_notice_period.docx", "content_hash": "a4cca45e6f78834013c4d4c8b9a6d1371ed21868ba45bca5ff62664bed49543a", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Der Vertrag beginnt mit dem Vertragsbeginn und läuft auf unbestimmte Zeit. Er kann von jeder Partei mit einer Frist von drei Monaten zum Ende eines Kalenderquartals schriftlich gekündigt werden.", "after": "Der Vertrag beginnt mit dem Vertragsbeginn und läuft auf unbestimmte Zeit. Er kann von jeder Partei mit einer Frist von zwei Wochen zum Ende eines Kalenderquartals schriftlich gekündigt werden."}}},
+  {"id": "service_agreement_de/held_06/change_notice_period", "pair": "service_agreement_de", "base": "held_06", "file": "service_agreement_de/cases/held_06__change_notice_period.docx", "content_hash": "4ca13c40af19fdefbf53516f0bb2f80b45eac4cab6f548032eac20b90edd6383", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Der Vertrag beginnt mit dem Vertragsbeginn und läuft auf unbestimmte Zeit. Er kann von jeder Partei mit einer Frist von drei Monaten zum Ende eines Kalenderquartals schriftlich gekündigt werden.", "after": "Der Vertrag beginnt mit dem Vertragsbeginn und läuft auf unbestimmte Zeit. Er kann von jeder Partei mit einer Frist von zwei Wochen zum Ende eines Kalenderquartals schriftlich gekündigt werden."}}},
+  {"id": "service_agreement_de/held_07/delete_clause", "pair": "service_agreement_de", "base": "held_07", "file": "service_agreement_de/cases/held_07__delete_clause.docx", "content_hash": "dd9f6998d2853ce856319bf10934bea32b2aff8252bf539c90a2e373bd305d23", "label": {"mutator": "delete_clause", "targets": ["heading.confidentiality", "clause.confidentiality"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["§ 5 Vertraulichkeit", "Die Parteien verpflichten sich, alle Informatoinen, die sie im Zusammenhang mit diesem Vertrag von der anderen Partei erhalten, vertraulich zu behandeln und ausschließlich für die Zwecke dieses Vertrags zu verwenden. Diese Pflicht gilt drei Jahre über das Vertragsende hinaus."]}}},
+  {"id": "service_agreement_de/held_08/delete_clause", "pair": "service_agreement_de", "base": "held_08", "file": "service_agreement_de/cases/held_08__delete_clause.docx", "content_hash": "7adc7b44b9b37e80c1eb137ef9e264ac72216c030fe3cb448a39e1c49329a9c3", "label": {"mutator": "delete_clause", "targets": ["heading.confidentiality", "clause.confidentiality"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["§ 5 Vertraulichkeit", "Die Parteien verpflichten sich, alle Informatoinen, die sie im Zusammenhang mit diesem Vertrag von der anderen Partei erhalten, vertraulich zu behandeln und ausschließlich für die Zwecke dieses Vertrags zu verwenden. Diese Pflicht gilt drei Jahre über das Vertragsende hinaus."]}}},
+  {"id": "service_agreement_de/held_01/fix_typo", "pair": "service_agreement_de", "base": "held_01", "file": "service_agreement_de/cases/held_01__fix_typo.docx", "content_hash": "c87bf770de35b5f7ce4b96b1028ee5ab3885b19cdbbb0108f251b8868ef334dc", "label": {"mutator": "fix_typo", "targets": ["clause.confidentiality"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Die Parteien verpflichten sich, alle Informatoinen, die sie im Zusammenhang mit diesem Vertrag von der anderen Partei erhalten, vertraulich zu behandeln und ausschließlich für die Zwecke dieses Vertrags zu verwenden. Diese Pflicht gilt drei Jahre über das Vertragsende hinaus.", "after": "Die Parteien verpflichten sich, alle Informationen, die sie im Zusammenhang mit diesem Vertrag von der anderen Partei erhalten, vertraulich zu behandeln und ausschließlich für die Zwecke dieses Vertrags zu verwenden. Diese Pflicht gilt drei Jahre über das Vertragsende hinaus."}}},
+  {"id": "service_agreement_de/held_02/fix_typo", "pair": "service_agreement_de", "base": "held_02", "file": "service_agreement_de/cases/held_02__fix_typo.docx", "content_hash": "76553e39a47d7e72649b0ac98f441434b9d855153e839e460d02691b1309d6d9", "label": {"mutator": "fix_typo", "targets": ["clause.confidentiality"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Die Parteien verpflichten sich, alle Informatoinen, die sie im Zusammenhang mit diesem Vertrag von der anderen Partei erhalten, vertraulich zu behandeln und ausschließlich für die Zwecke dieses Vertrags zu verwenden. Diese Pflicht gilt drei Jahre über das Vertragsende hinaus.", "after": "Die Parteien verpflichten sich, alle Informationen, die sie im Zusammenhang mit diesem Vertrag von der anderen Partei erhalten, vertraulich zu behandeln und ausschließlich für die Zwecke dieses Vertrags zu verwenden. Diese Pflicht gilt drei Jahre über das Vertragsende hinaus."}}},
+  {"id": "service_agreement_de/held_03/whitespace_quotes", "pair": "service_agreement_de", "base": "held_03", "file": "service_agreement_de/cases/held_03__whitespace_quotes.docx", "content_hash": "179da1853e4c1d96c4f713f870e22a72af1cf28eeea7178fc2783082615b4a3e", "label": {"mutator": "whitespace_quotes", "targets": ["clause.data_protection"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Soweit der Auftragnehmer personenbezogene Daten im Auftrag des Auftraggebers verarbeitet, schließen die Parteien einen Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO. Eine Übermittlung personenbezogener Daten in Länder außerhalb des Europäischen Wirtschaftsraums bedarf der vorherigen schriftlichen Zustimmung des Auftraggebers.", "after": "Soweit der Auftragnehmer personenbezogene Daten im Auftrag des Auftraggebers verarbeitet, schließen die Parteien einen Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO.  Eine Übermittlung personenbezogener Daten in Länder außerhalb des Europäischen Wirtschaftsraums bedarf der vorherigen schriftlichen Zustimmung  des Auftraggebers."}}},
+  {"id": "service_agreement_de/held_04/whitespace_quotes", "pair": "service_agreement_de", "base": "held_04", "file": "service_agreement_de/cases/held_04__whitespace_quotes.docx", "content_hash": "052cc57bf466173b874a3770aec266917b0784d377e920c4c322c7f6d2226090", "label": {"mutator": "whitespace_quotes", "targets": ["clause.data_protection"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Soweit der Auftragnehmer personenbezogene Daten im Auftrag des Auftraggebers verarbeitet, schließen die Parteien einen Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO. Eine Übermittlung personenbezogener Daten in Länder außerhalb des Europäischen Wirtschaftsraums bedarf der vorherigen schriftlichen Zustimmung des Auftraggebers.", "after": "Soweit der Auftragnehmer personenbezogene Daten im Auftrag des Auftraggebers verarbeitet, schließen die Parteien einen Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO.  Eine Übermittlung personenbezogener Daten in Länder außerhalb des Europäischen Wirtschaftsraums bedarf der vorherigen schriftlichen Zustimmung  des Auftraggebers."}}},
+  {"id": "service_agreement_de/held_05/heading_caps", "pair": "service_agreement_de", "base": "held_05", "file": "service_agreement_de/cases/held_05__heading_caps.docx", "content_hash": "3dd39b9b191233ecfd20e59a8730183031ff0f766c17ea9941ba7f1d9933817d", "label": {"mutator": "heading_caps", "targets": ["heading.liability"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "§ 4 Haftungsbeschränkung", "after": "§ 4 HAFTUNGSBESCHRÄNKUNG"}}},
+  {"id": "service_agreement_de/held_06/heading_caps", "pair": "service_agreement_de", "base": "held_06", "file": "service_agreement_de/cases/held_06__heading_caps.docx", "content_hash": "945b459c83136c5dc7c9c351e2a0502eb99f688aef9fe2266d89efc2ee67b26c", "label": {"mutator": "heading_caps", "targets": ["heading.liability"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "§ 4 Haftungsbeschränkung", "after": "§ 4 HAFTUNGSBESCHRÄNKUNG"}}},
+  {"id": "service_agreement_de/held_07/empty_field", "pair": "service_agreement_de", "base": "held_07", "file": "service_agreement_de/cases/held_07__empty_field.docx", "content_hash": "cfee1ad2cd6627302c3e7d0884f5ae9abe06fa4fbe2f75073f619c3aa1b570ea", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Finkenstedt Medizintechnik GmbH", "after": ""}}},
+  {"id": "service_agreement_de/held_08/empty_field", "pair": "service_agreement_de", "base": "held_08", "file": "service_agreement_de/cases/held_08__empty_field.docx", "content_hash": "154ace430542ce104bce8b7b58daf4b54c434994ab533151c8f326234feff7c9", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Zeisigtal Handelsgesellschaft mbH", "after": ""}}},
+  {"id": "service_agreement_de/held_01/date_format", "pair": "service_agreement_de", "base": "held_01", "file": "service_agreement_de/cases/held_01__date_format.docx", "content_hash": "793f1bd24c6f21827f31b6897e20a6b1e438e61ad0f92b432d3ec6be5a2f6de8", "label": {"mutator": "date_format", "targets": ["field.date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "28.02.2026", "after": "2026-02-28"}}},
+  {"id": "service_agreement_de/held_02/date_format", "pair": "service_agreement_de", "base": "held_02", "file": "service_agreement_de/cases/held_02__date_format.docx", "content_hash": "33be2f0cf57d1de50fb2ab18132f36cf90c975e5ca96aeeadee2baf3e9829e23", "label": {"mutator": "date_format", "targets": ["field.date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "12.03.2026", "after": "2026-03-12"}}},
+  {"id": "service_agreement_de/held_03/invalid_value", "pair": "service_agreement_de", "base": "held_03", "file": "service_agreement_de/cases/held_03__invalid_value.docx", "content_hash": "dc3867fed63db754e8a6200be58f5073985bf509055c54859412bb172c791a73", "label": {"mutator": "invalid_value", "targets": ["field.start_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "08.04.2026", "after": "offen"}}},
+  {"id": "service_agreement_de/held_04/invalid_value", "pair": "service_agreement_de", "base": "held_04", "file": "service_agreement_de/cases/held_04__invalid_value.docx", "content_hash": "46a0da0a44240dec1385fe9ca49759c07d398b9350a831dcd9695d60ecbbeebe", "label": {"mutator": "invalid_value", "targets": ["field.start_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "22.04.2026", "after": "offen"}}},
+  {"id": "service_agreement_de/held_05/remove_row", "pair": "service_agreement_de", "base": "held_05", "file": "service_agreement_de/cases/held_05__remove_row.docx", "content_hash": "17aa3b36daf61ae1ba0f5fa2e1778fceadb71387028793520595252b7c772867", "label": {"mutator": "remove_row", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"], "rows_left": 1}}},
+  {"id": "service_agreement_de/held_06/remove_row", "pair": "service_agreement_de", "base": "held_06", "file": "service_agreement_de/cases/held_06__remove_row.docx", "content_hash": "9b508d194544d755d5233b85238e53ff1d672741e644bab218ec1c83e3edc29c", "label": {"mutator": "remove_row", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Zusätzlicher Speicher", "pro TB und Monat", "120,00 €"], "rows_left": 2}}},
+  {"id": "service_agreement_de/held_07/remove_column", "pair": "service_agreement_de", "base": "held_07", "file": "service_agreement_de/cases/held_07__remove_column.docx", "content_hash": "9fd4eff05b01d3dfc48b7e4e8d397361c6a0ff2ba13ef20adb366747acb3fd83", "label": {"mutator": "remove_column", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Einheit"}}},
+  {"id": "service_agreement_de/held_08/remove_column", "pair": "service_agreement_de", "base": "held_08", "file": "service_agreement_de/cases/held_08__remove_column.docx", "content_hash": "87e1f61eaf769ce2cc374d9c302cc401677a8934d5e7c27910f727d5e3683928", "label": {"mutator": "remove_column", "targets": ["table.fees"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Einheit"}}},
+  {"id": "service_agreement_de/held_01/delete_table", "pair": "service_agreement_de", "base": "held_01", "file": "service_agreement_de/cases/held_01__delete_table.docx", "content_hash": "8dabcbb211b16f771725cb2ee393b4effb3b47aae94dca1d825c3ef4c167b49e", "label": {"mutator": "delete_table", "targets": ["table.fees"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Leistung", "Einheit", "Preis"]}}},
+  {"id": "service_agreement_de/held_02/delete_table", "pair": "service_agreement_de", "base": "held_02", "file": "service_agreement_de/cases/held_02__delete_table.docx", "content_hash": "8efb6724134bf30675dcb3a50febc51b0859d0b9e8304f91e64b716a3300b993", "label": {"mutator": "delete_table", "targets": ["table.fees"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Leistung", "Einheit", "Preis"]}}},
+  {"id": "service_agreement_de/held_03/reorder_sections", "pair": "service_agreement_de", "base": "held_03", "file": "service_agreement_de/cases/held_03__reorder_sections.docx", "content_hash": "b18d5f89bec6d1a44c456047e8b6830f2a9a534deb232264c682f58ba56d6428", "label": {"mutator": "reorder_sections", "targets": ["heading.confidentiality", "clause.confidentiality", "heading.data_protection", "clause.data_protection"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.confidentiality", "clause.confidentiality"], "after": "clause.data_protection"}}},
+  {"id": "service_agreement_de/held_04/reorder_sections", "pair": "service_agreement_de", "base": "held_04", "file": "service_agreement_de/cases/held_04__reorder_sections.docx", "content_hash": "deaa85e3bc17f57181bcb2d0059275a84a2feeea7a2eaf9326a412c184eddc1b", "label": {"mutator": "reorder_sections", "targets": ["heading.confidentiality", "clause.confidentiality", "heading.data_protection", "clause.data_protection"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.confidentiality", "clause.confidentiality"], "after": "clause.data_protection"}}},
+  {"id": "service_agreement_de/held_05/insert_benign", "pair": "service_agreement_de", "base": "held_05", "file": "service_agreement_de/cases/held_05__insert_benign.docx", "content_hash": "d58a551a924932c79f7f5a9a32f8c0f25c2d93f38aa7d50a4c414d8f537f6fca", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.confidentiality", "text": "Hinweis: Eine Kopie dieses Vertrags wird im Vertragsregister des Auftraggebers abgelegt."}}},
+  {"id": "service_agreement_de/held_06/insert_benign", "pair": "service_agreement_de", "base": "held_06", "file": "service_agreement_de/cases/held_06__insert_benign.docx", "content_hash": "dae9cb046f8819fe442c571a3655494d7e67c52cb5e4c59fddee0f3e809c6e5e", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.confidentiality", "text": "Hinweis: Eine Kopie dieses Vertrags wird im Vertragsregister des Auftraggebers abgelegt."}}},
+  {"id": "service_agreement_de/held_07/insert_material", "pair": "service_agreement_de", "base": "held_07", "file": "service_agreement_de/cases/held_07__insert_material.docx", "content_hash": "31d45e99109b97a8cb798f0741041fc24acbf38aef78c0945fd2e32dc226f251", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.liability", "text": "Abweichend von § 4 haftet der Auftragnehmer unbeschränkt für alle Schäden."}}},
+  {"id": "service_agreement_de/held_08/insert_material", "pair": "service_agreement_de", "base": "held_08", "file": "service_agreement_de/cases/held_08__insert_material.docx", "content_hash": "67e1381105286af172ab4116473544d63417acbee8ca947ac84f6c70fc92fe2c", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.liability", "text": "Abweichend von § 4 haftet der Auftragnehmer unbeschränkt für alle Schäden."}}},
+  {"id": "nda_en/held_01/clean", "pair": "nda_en", "base": "held_01", "file": "nda_en/held_01.docx", "content_hash": "f3bd00065a922037a37d5c558abc2f653d0f4c5a515318b949040e6b75b4cfca", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_02/clean", "pair": "nda_en", "base": "held_02", "file": "nda_en/held_02.docx", "content_hash": "8c83c71803565b6e3de6b7ddb6da2e12282bdf29c8f81ad1186e9255f491e15a", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_03/clean", "pair": "nda_en", "base": "held_03", "file": "nda_en/held_03.docx", "content_hash": "a034ea03ca0e75576100a1056df7a252675c2e4dc51d50bec8ecdb92780ef632", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_04/clean", "pair": "nda_en", "base": "held_04", "file": "nda_en/held_04.docx", "content_hash": "32ac7284989496aa44f23c3d7bb5ffcb9c819756d060c61e252f68aaa70be9d7", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_05/clean", "pair": "nda_en", "base": "held_05", "file": "nda_en/held_05.docx", "content_hash": "9460270f8ff7fab13d962bd7bf2c329abead84a2be00dd7d3222541cb02e8137", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_06/clean", "pair": "nda_en", "base": "held_06", "file": "nda_en/held_06.docx", "content_hash": "96faeb494c9a92dcc729abd1843969c26459536a9e23a9eef46899987a6a175f", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_07/clean", "pair": "nda_en", "base": "held_07", "file": "nda_en/held_07.docx", "content_hash": "7a7bb14871af2fac72fcca2d4319ccadb65bdfac1ab9711bd760032764281343", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_08/clean", "pair": "nda_en", "base": "held_08", "file": "nda_en/held_08.docx", "content_hash": "9c0cfce4737beb797900643eccdb0982f1ec0b1659719899ea09d4016350f94f", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_en/held_01/change_governing_law", "pair": "nda_en", "base": "held_01", "file": "nda_en/cases/held_01__change_governing_law.docx", "content_hash": "e58d0d4bd885dd5cd02aab537f94e7e9b4dbdd0f253d5804e23b5490da17f2f1", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement is governed by the laws of England and Wales, and the courts of London have exclusive jurisdiction.", "after": "This Agreement is governed by the laws of Ireland, and the courts of Dublin have exclusive jurisdiction."}}},
+  {"id": "nda_en/held_02/change_governing_law", "pair": "nda_en", "base": "held_02", "file": "nda_en/cases/held_02__change_governing_law.docx", "content_hash": "e16f42a1afce4a5011fa5747a5f897ccfb774931d89418096e9f44d28cc69713", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement is governed by the laws of England and Wales, and the courts of London have exclusive jurisdiction.", "after": "This Agreement is governed by the laws of Ireland, and the courts of Dublin have exclusive jurisdiction."}}},
+  {"id": "nda_en/held_03/change_notice_period", "pair": "nda_en", "base": "held_03", "file": "nda_en/cases/held_03__change_notice_period.docx", "content_hash": "17b1d0df17eae160afe1b9d9d407e9df5f5ba1072eac218dcc69c3519072c8bb", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement remains in force for two (2) years from the Effective Date. The obligations in clause 2 survive for a further three (3) years.", "after": "This Agreement remains in force for six (6) months from the Effective Date. The obligations in clause 2 survive for a further three (3) years."}}},
+  {"id": "nda_en/held_04/change_notice_period", "pair": "nda_en", "base": "held_04", "file": "nda_en/cases/held_04__change_notice_period.docx", "content_hash": "9893aea7c0ff51cd6bec6e86cdae2ce35ce60df7d1abe926a5b294654994038f", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "This Agreement remains in force for two (2) years from the Effective Date. The obligations in clause 2 survive for a further three (3) years.", "after": "This Agreement remains in force for six (6) months from the Effective Date. The obligations in clause 2 survive for a further three (3) years."}}},
+  {"id": "nda_en/held_05/delete_clause", "pair": "nda_en", "base": "held_05", "file": "nda_en/cases/held_05__delete_clause.docx", "content_hash": "5800e053d944ef18080ae287da251d3c125259c07f4cf237751de416617f0ce8", "label": {"mutator": "delete_clause", "targets": ["heading.obligations", "clause.obligations"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["2. Obligations", "The recieving party shall keep the Confidential Information secret, protect it with at least the care it applies to its own confidential information, and use it only for the Purpose."]}}},
+  {"id": "nda_en/held_06/delete_clause", "pair": "nda_en", "base": "held_06", "file": "nda_en/cases/held_06__delete_clause.docx", "content_hash": "d2592c27f54c94a6b789719bad4766f424ad55542ef52ccee7aed448a8700ad2", "label": {"mutator": "delete_clause", "targets": ["heading.obligations", "clause.obligations"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["2. Obligations", "The recieving party shall keep the Confidential Information secret, protect it with at least the care it applies to its own confidential information, and use it only for the Purpose."]}}},
+  {"id": "nda_en/held_07/fix_typo", "pair": "nda_en", "base": "held_07", "file": "nda_en/cases/held_07__fix_typo.docx", "content_hash": "eb226cdae1f4d1901066f9089dd74193f305475f4c4fcb4881422895112986a9", "label": {"mutator": "fix_typo", "targets": ["clause.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "The recieving party shall keep the Confidential Information secret, protect it with at least the care it applies to its own confidential information, and use it only for the Purpose.", "after": "The receiving party shall keep the Confidential Information secret, protect it with at least the care it applies to its own confidential information, and use it only for the Purpose."}}},
+  {"id": "nda_en/held_08/fix_typo", "pair": "nda_en", "base": "held_08", "file": "nda_en/cases/held_08__fix_typo.docx", "content_hash": "3bc0321eda876d075c8838c0c59cac92f20b0ebfe1e6d3dfa8bb4ba2fd83ba8d", "label": {"mutator": "fix_typo", "targets": ["clause.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "The recieving party shall keep the Confidential Information secret, protect it with at least the care it applies to its own confidential information, and use it only for the Purpose.", "after": "The receiving party shall keep the Confidential Information secret, protect it with at least the care it applies to its own confidential information, and use it only for the Purpose."}}},
+  {"id": "nda_en/held_01/whitespace_quotes", "pair": "nda_en", "base": "held_01", "file": "nda_en/cases/held_01__whitespace_quotes.docx", "content_hash": "c0dbc055c1a5da082130de5163293f4784aca58bb636ba40baae81239ff72987", "label": {"mutator": "whitespace_quotes", "targets": ["clause.exclusions"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "These obligations do not apply to information that is public, that the receiving party already lawfully knew, or that it must disclose by law.", "after": "These obligations do not apply to information that is public,  that the receiving party already lawfully knew,  or that it must disclose by law."}}},
+  {"id": "nda_en/held_02/whitespace_quotes", "pair": "nda_en", "base": "held_02", "file": "nda_en/cases/held_02__whitespace_quotes.docx", "content_hash": "b40ffb87704eb6e5e611c8045d594f30519c75d19e4b57ea8ac3fc13b7307ada", "label": {"mutator": "whitespace_quotes", "targets": ["clause.exclusions"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "These obligations do not apply to information that is public, that the receiving party already lawfully knew, or that it must disclose by law.", "after": "These obligations do not apply to information that is public,  that the receiving party already lawfully knew,  or that it must disclose by law."}}},
+  {"id": "nda_en/held_03/heading_caps", "pair": "nda_en", "base": "held_03", "file": "nda_en/cases/held_03__heading_caps.docx", "content_hash": "006ed84afed678d8945bf4a460f9253103e3dada6da64679eb8beacb43a51736", "label": {"mutator": "heading_caps", "targets": ["heading.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "2. Obligations", "after": "2. OBLIGATIONS"}}},
+  {"id": "nda_en/held_04/heading_caps", "pair": "nda_en", "base": "held_04", "file": "nda_en/cases/held_04__heading_caps.docx", "content_hash": "b2cbd1207118575b9d9b04fa83d77b16ddfbfddb44571f23b72c819b5dc51c66", "label": {"mutator": "heading_caps", "targets": ["heading.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "2. Obligations", "after": "2. OBLIGATIONS"}}},
+  {"id": "nda_en/held_05/empty_field", "pair": "nda_en", "base": "held_05", "file": "nda_en/cases/held_05__empty_field.docx", "content_hash": "d30e642b33ea6e8149a03715457c10b6fa5d96a496191dbef62a0454f7f9414d", "label": {"mutator": "empty_field", "targets": ["field.party_b"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Varnholt Publishing Ltd", "after": ""}}},
+  {"id": "nda_en/held_06/empty_field", "pair": "nda_en", "base": "held_06", "file": "nda_en/cases/held_06__empty_field.docx", "content_hash": "7fbaac8c230232168b149a809a12084dd9d48f5d2af4db8bc0362a1734e16679", "label": {"mutator": "empty_field", "targets": ["field.party_b"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Pellbrook Marine Supplies Ltd", "after": ""}}},
+  {"id": "nda_en/held_07/date_format", "pair": "nda_en", "base": "held_07", "file": "nda_en/cases/held_07__date_format.docx", "content_hash": "63dd37b5c10ecda0a42a726e656ff340f8a1a36212464112d2d8947299a034c2", "label": {"mutator": "date_format", "targets": ["field.effective_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "14 May 2026", "after": "2026-05-14"}}},
+  {"id": "nda_en/held_08/date_format", "pair": "nda_en", "base": "held_08", "file": "nda_en/cases/held_08__date_format.docx", "content_hash": "0ee21c00e1a5eda3f7d00fc29a56064f537544af5b84e929dc75a140fce97dc0", "label": {"mutator": "date_format", "targets": ["field.effective_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "25 May 2026", "after": "2026-05-25"}}},
+  {"id": "nda_en/held_01/invalid_value", "pair": "nda_en", "base": "held_01", "file": "nda_en/cases/held_01__invalid_value.docx", "content_hash": "a73197e513d1f130697a360a4d83760a06851a6f3067882e6673205bffa12810", "label": {"mutator": "invalid_value", "targets": ["field.effective_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "22 March 2026", "after": "TBD"}}},
+  {"id": "nda_en/held_02/invalid_value", "pair": "nda_en", "base": "held_02", "file": "nda_en/cases/held_02__invalid_value.docx", "content_hash": "067ae814f159706661cb24c7ca4b31c9b46204f3ab132f6d41b0a79f8d1902cf", "label": {"mutator": "invalid_value", "targets": ["field.effective_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "2 April 2026", "after": "TBD"}}},
+  {"id": "nda_en/held_03/reorder_sections", "pair": "nda_en", "base": "held_03", "file": "nda_en/cases/held_03__reorder_sections.docx", "content_hash": "57859e305d0f805ccefceb08aea91dd8d4c5ce71a7b209184da7cafcd8c375e5", "label": {"mutator": "reorder_sections", "targets": ["heading.exclusions", "clause.exclusions", "heading.term", "clause.term"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.exclusions", "clause.exclusions"], "after": "clause.term"}}},
+  {"id": "nda_en/held_04/reorder_sections", "pair": "nda_en", "base": "held_04", "file": "nda_en/cases/held_04__reorder_sections.docx", "content_hash": "8d4078db1a67ebc57690dd4df22ab6ef4c9ea9da736bee28d3bb66790aac6875", "label": {"mutator": "reorder_sections", "targets": ["heading.exclusions", "clause.exclusions", "heading.term", "clause.term"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.exclusions", "clause.exclusions"], "after": "clause.term"}}},
+  {"id": "nda_en/held_05/insert_benign", "pair": "nda_en", "base": "held_05", "file": "nda_en/cases/held_05__insert_benign.docx", "content_hash": "7567f8c0e15710742fca088f85e80e4a96e03edd3eab591e6a63cc7c3c04c80c", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.exclusions", "text": "Note: Either party may ask for a signed copy of this Agreement."}}},
+  {"id": "nda_en/held_06/insert_benign", "pair": "nda_en", "base": "held_06", "file": "nda_en/cases/held_06__insert_benign.docx", "content_hash": "b5109f015e6b079aee40bc1b47d11189d71bfaa691b9861ebbd27b42383ab6dc", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.exclusions", "text": "Note: Either party may ask for a signed copy of this Agreement."}}},
+  {"id": "nda_en/held_07/insert_material", "pair": "nda_en", "base": "held_07", "file": "nda_en/cases/held_07__insert_material.docx", "content_hash": "95700dd4b1d3b24e6c2b6b06974234d0d9beea741c778afd812a4b96f907705f", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.obligations", "text": "The receiving party may share Confidential Information with its subcontractors without notice."}}},
+  {"id": "nda_en/held_08/insert_material", "pair": "nda_en", "base": "held_08", "file": "nda_en/cases/held_08__insert_material.docx", "content_hash": "2cbb9f7ba36781e23cba55f25652d1b5e7142d83f55f67e94f14851e9cdab083", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.obligations", "text": "The receiving party may share Confidential Information with its subcontractors without notice."}}},
+  {"id": "nda_de/held_01/clean", "pair": "nda_de", "base": "held_01", "file": "nda_de/held_01.docx", "content_hash": "39f95bb14c9c5b3f696d6ba73ab215046ebe4fb47f993452ad96f653d3240536", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_02/clean", "pair": "nda_de", "base": "held_02", "file": "nda_de/held_02.docx", "content_hash": "4cd382b2f0c6278acb7665b4b0c39cdf4502d968d9557e70bae476a71469b4ca", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_03/clean", "pair": "nda_de", "base": "held_03", "file": "nda_de/held_03.docx", "content_hash": "0e6cf3ae1248804246a133f429dd4282030067b4c63786f16a61cbf64e131e3c", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_04/clean", "pair": "nda_de", "base": "held_04", "file": "nda_de/held_04.docx", "content_hash": "2657c82ffaa043e97e81584f96878b3c667b8df18d1f45d0d6897f4216d57c63", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_05/clean", "pair": "nda_de", "base": "held_05", "file": "nda_de/held_05.docx", "content_hash": "1191c802691c385f0fc7c8556043881dfa99b393d2edad910828e690755e4a20", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_06/clean", "pair": "nda_de", "base": "held_06", "file": "nda_de/held_06.docx", "content_hash": "7d247150d5750d3f1e757f4d9faf96203150d36f78838b0e46ca038634e8d2d9", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_07/clean", "pair": "nda_de", "base": "held_07", "file": "nda_de/held_07.docx", "content_hash": "4248e8e8d91c883a6b05daaa6d010bf62ed628ab2954bdf17334f48dd2463d6f", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_08/clean", "pair": "nda_de", "base": "held_08", "file": "nda_de/held_08.docx", "content_hash": "272883ecb4135d4f5333e26cf8678471ff58c97ab527bb321f824f580d7174d7", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "nda_de/held_01/change_governing_law", "pair": "nda_de", "base": "held_01", "file": "nda_de/cases/held_01__change_governing_law.docx", "content_hash": "2edf0783fa9cf3240cfcfde077edccce3b5baa18001122d312eca42ada279f90", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Es gilt deutsches Recht. Ausschließlicher Gerichtsstand ist Frankfurt am Main.", "after": "Es gilt deutsches Recht. Ausschließlicher Gerichtsstand ist Berlin."}}},
+  {"id": "nda_de/held_02/change_governing_law", "pair": "nda_de", "base": "held_02", "file": "nda_de/cases/held_02__change_governing_law.docx", "content_hash": "4495d731f3b7641b864c00f528eca2187463dbccc12166778c2912a3323aff28", "label": {"mutator": "change_governing_law", "targets": ["clause.governing_law"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Es gilt deutsches Recht. Ausschließlicher Gerichtsstand ist Frankfurt am Main.", "after": "Es gilt deutsches Recht. Ausschließlicher Gerichtsstand ist Berlin."}}},
+  {"id": "nda_de/held_03/change_notice_period", "pair": "nda_de", "base": "held_03", "file": "nda_de/cases/held_03__change_notice_period.docx", "content_hash": "2c86e9986792f80ba58aaa44865800cea8ae9ffac698803416b5878e73f1d192", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Diese Vereinbarung gilt für zwei Jahre ab dem Datum des Inkrafttretens. Die Pflichten aus § 2 gelten weitere drei Jahre fort.", "after": "Diese Vereinbarung gilt für sechs Monate ab dem Datum des Inkrafttretens. Die Pflichten aus § 2 gelten weitere drei Jahre fort."}}},
+  {"id": "nda_de/held_04/change_notice_period", "pair": "nda_de", "base": "held_04", "file": "nda_de/cases/held_04__change_notice_period.docx", "content_hash": "bc39c5dbde551b1f4ad192cfe25379e858690a42cf2a193acb3c743dcad22614", "label": {"mutator": "change_notice_period", "targets": ["clause.term"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Diese Vereinbarung gilt für zwei Jahre ab dem Datum des Inkrafttretens. Die Pflichten aus § 2 gelten weitere drei Jahre fort.", "after": "Diese Vereinbarung gilt für sechs Monate ab dem Datum des Inkrafttretens. Die Pflichten aus § 2 gelten weitere drei Jahre fort."}}},
+  {"id": "nda_de/held_05/delete_clause", "pair": "nda_de", "base": "held_05", "file": "nda_de/cases/held_05__delete_clause.docx", "content_hash": "3e9e55ff4ed76ab486e2ea930ac3dcbfe9d778e54a542160491ae3f022b09905", "label": {"mutator": "delete_clause", "targets": ["heading.obligations", "clause.obligations"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["§ 2 Pflichten", "Die empfangende Partei hält die vertraulichen Informationen geheim, schützt sie mindestens mit der Sorgfallt, die sie für eigene vertrauliche Informationen anwendet, und verwendet sie nur für den Zweck."]}}},
+  {"id": "nda_de/held_06/delete_clause", "pair": "nda_de", "base": "held_06", "file": "nda_de/cases/held_06__delete_clause.docx", "content_hash": "f4b35493cf04496208b6bbf8a910c75f1ce11a69379234dc48f485d426fc8160", "label": {"mutator": "delete_clause", "targets": ["heading.obligations", "clause.obligations"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["§ 2 Pflichten", "Die empfangende Partei hält die vertraulichen Informationen geheim, schützt sie mindestens mit der Sorgfallt, die sie für eigene vertrauliche Informationen anwendet, und verwendet sie nur für den Zweck."]}}},
+  {"id": "nda_de/held_07/fix_typo", "pair": "nda_de", "base": "held_07", "file": "nda_de/cases/held_07__fix_typo.docx", "content_hash": "a589d9adf2ea5c7033b1d1c1e968c9f95201ac737e2d0ebb0716797a8a2c3c1f", "label": {"mutator": "fix_typo", "targets": ["clause.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Die empfangende Partei hält die vertraulichen Informationen geheim, schützt sie mindestens mit der Sorgfallt, die sie für eigene vertrauliche Informationen anwendet, und verwendet sie nur für den Zweck.", "after": "Die empfangende Partei hält die vertraulichen Informationen geheim, schützt sie mindestens mit der Sorgfalt, die sie für eigene vertrauliche Informationen anwendet, und verwendet sie nur für den Zweck."}}},
+  {"id": "nda_de/held_08/fix_typo", "pair": "nda_de", "base": "held_08", "file": "nda_de/cases/held_08__fix_typo.docx", "content_hash": "666a953a2515fa5f36acd7559c1d35d3efe7f841ac8fdec3b4b0a8c71f2b9022", "label": {"mutator": "fix_typo", "targets": ["clause.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Die empfangende Partei hält die vertraulichen Informationen geheim, schützt sie mindestens mit der Sorgfallt, die sie für eigene vertrauliche Informationen anwendet, und verwendet sie nur für den Zweck.", "after": "Die empfangende Partei hält die vertraulichen Informationen geheim, schützt sie mindestens mit der Sorgfalt, die sie für eigene vertrauliche Informationen anwendet, und verwendet sie nur für den Zweck."}}},
+  {"id": "nda_de/held_01/whitespace_quotes", "pair": "nda_de", "base": "held_01", "file": "nda_de/cases/held_01__whitespace_quotes.docx", "content_hash": "7b54898647c3a204562c86f92c49adfcc7923c082d7bd9bfcfc867aea2664006", "label": {"mutator": "whitespace_quotes", "targets": ["clause.exclusions"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Diese Pflichten gelten nicht für Informationen, die öffentlich bekannt sind, die der empfangenden Partei bereits rechtmäßig bekannt waren oder die sie aufgrund gesetzlicher Pflichten offenlegen muss.", "after": "Diese Pflichten gelten nicht für Informationen, die öffentlich bekannt sind,  die der empfangenden Partei bereits rechtmäßig bekannt waren oder  die sie aufgrund gesetzlicher Pflichten offenlegen muss."}}},
+  {"id": "nda_de/held_02/whitespace_quotes", "pair": "nda_de", "base": "held_02", "file": "nda_de/cases/held_02__whitespace_quotes.docx", "content_hash": "7aca8821e775bffc7d0cb1ef58d6e6776e1740cbd3a149ff68b7bf335092a304", "label": {"mutator": "whitespace_quotes", "targets": ["clause.exclusions"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Diese Pflichten gelten nicht für Informationen, die öffentlich bekannt sind, die der empfangenden Partei bereits rechtmäßig bekannt waren oder die sie aufgrund gesetzlicher Pflichten offenlegen muss.", "after": "Diese Pflichten gelten nicht für Informationen, die öffentlich bekannt sind,  die der empfangenden Partei bereits rechtmäßig bekannt waren oder  die sie aufgrund gesetzlicher Pflichten offenlegen muss."}}},
+  {"id": "nda_de/held_03/heading_caps", "pair": "nda_de", "base": "held_03", "file": "nda_de/cases/held_03__heading_caps.docx", "content_hash": "892307f9e0b1402138d6eda154c71d36b86fa3b1707be2ad49a123e791ce613b", "label": {"mutator": "heading_caps", "targets": ["heading.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "§ 2 Pflichten", "after": "§ 2 PFLICHTEN"}}},
+  {"id": "nda_de/held_04/heading_caps", "pair": "nda_de", "base": "held_04", "file": "nda_de/cases/held_04__heading_caps.docx", "content_hash": "6142a683bf6f6ec6a31f03380a606d162603c0f663c654ba9d2a191bc061ed48", "label": {"mutator": "heading_caps", "targets": ["heading.obligations"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "§ 2 Pflichten", "after": "§ 2 PFLICHTEN"}}},
+  {"id": "nda_de/held_05/empty_field", "pair": "nda_de", "base": "held_05", "file": "nda_de/cases/held_05__empty_field.docx", "content_hash": "708bc3af72115e26f5a6c4e53e2b565ea4fc6632ccf56466f7bfab31d335f333", "label": {"mutator": "empty_field", "targets": ["field.party_b"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Zeisigtal Handelsgesellschaft mbH", "after": ""}}},
+  {"id": "nda_de/held_06/empty_field", "pair": "nda_de", "base": "held_06", "file": "nda_de/cases/held_06__empty_field.docx", "content_hash": "102685a64ea0c4d740e361d5987cdf2076cb3e4f13ee60c7dfbeb4ecc933196f", "label": {"mutator": "empty_field", "targets": ["field.party_b"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Moorwiese Energie GmbH", "after": ""}}},
+  {"id": "nda_de/held_07/date_format", "pair": "nda_de", "base": "held_07", "file": "nda_de/cases/held_07__date_format.docx", "content_hash": "5a382ac50fdfe4f7747e3262e0791f2de11455bc8230ae45013dee31378c4908", "label": {"mutator": "date_format", "targets": ["field.effective_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "12.05.2026", "after": "2026-05-12"}}},
+  {"id": "nda_de/held_08/date_format", "pair": "nda_de", "base": "held_08", "file": "nda_de/cases/held_08__date_format.docx", "content_hash": "da496a235c9c895fd4dceb984eb45f2b6bd6c6e2e7e0a585a5aba5fc446411cd", "label": {"mutator": "date_format", "targets": ["field.effective_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "26.05.2026", "after": "2026-05-26"}}},
+  {"id": "nda_de/held_01/invalid_value", "pair": "nda_de", "base": "held_01", "file": "nda_de/cases/held_01__invalid_value.docx", "content_hash": "d5c98bc594fa3850a538aca0b5514fa516dcd869baf7486ba0b692fd71769904", "label": {"mutator": "invalid_value", "targets": ["field.effective_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "21.03.2026", "after": "offen"}}},
+  {"id": "nda_de/held_02/invalid_value", "pair": "nda_de", "base": "held_02", "file": "nda_de/cases/held_02__invalid_value.docx", "content_hash": "2020109425ccbefe6c1f12d6998179140a814ae7910a3fea88b03526a83e1657", "label": {"mutator": "invalid_value", "targets": ["field.effective_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "01.04.2026", "after": "offen"}}},
+  {"id": "nda_de/held_03/reorder_sections", "pair": "nda_de", "base": "held_03", "file": "nda_de/cases/held_03__reorder_sections.docx", "content_hash": "8ad59477e2dece4b5b65694463f39eae7ad88dae14107a49da360de8c06e025f", "label": {"mutator": "reorder_sections", "targets": ["heading.exclusions", "clause.exclusions", "heading.term", "clause.term"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.exclusions", "clause.exclusions"], "after": "clause.term"}}},
+  {"id": "nda_de/held_04/reorder_sections", "pair": "nda_de", "base": "held_04", "file": "nda_de/cases/held_04__reorder_sections.docx", "content_hash": "21c6e1c43a8c43a3748619b09619a24ec4f7cc63e18cedb1dd78479400649d45", "label": {"mutator": "reorder_sections", "targets": ["heading.exclusions", "clause.exclusions", "heading.term", "clause.term"], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"moved": ["heading.exclusions", "clause.exclusions"], "after": "clause.term"}}},
+  {"id": "nda_de/held_05/insert_benign", "pair": "nda_de", "base": "held_05", "file": "nda_de/cases/held_05__insert_benign.docx", "content_hash": "3a9350507562a1bf57bb17c47dc4eb296a23f0dbf1fa96cda9e614145539b2c1", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.exclusions", "text": "Hinweis: Jede Partei erhält auf Wunsch eine unterschriebene Ausfertigung."}}},
+  {"id": "nda_de/held_06/insert_benign", "pair": "nda_de", "base": "held_06", "file": "nda_de/cases/held_06__insert_benign.docx", "content_hash": "528acf3ed5b18d9086a6db145092c0d48293cc55780b69896cd536c092ec87cf", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.exclusions", "text": "Hinweis: Jede Partei erhält auf Wunsch eine unterschriebene Ausfertigung."}}},
+  {"id": "nda_de/held_07/insert_material", "pair": "nda_de", "base": "held_07", "file": "nda_de/cases/held_07__insert_material.docx", "content_hash": "b77d906dc9b38f135ee576b6edaf8b09e47479acfa47cc45da821b647955e8ae", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.obligations", "text": "Die empfangende Partei darf vertrauliche Informationen ohne Mitteilung an Subunternehmer weitergeben."}}},
+  {"id": "nda_de/held_08/insert_material", "pair": "nda_de", "base": "held_08", "file": "nda_de/cases/held_08__insert_material.docx", "content_hash": "28d756b0262514ff55ff95a2b8e34c4fd4e6dbb7533eadef7a6d1dd5d1356540", "label": {"mutator": "insert_material", "targets": [], "expected_kind": null, "material": true, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.obligations", "text": "Die empfangende Partei darf vertrauliche Informationen ohne Mitteilung an Subunternehmer weitergeben."}}},
+  {"id": "invoice_en/held_01/clean", "pair": "invoice_en", "base": "held_01", "file": "invoice_en/held_01.docx", "content_hash": "602bf2c1968fc789d1ae971e1a70230ec68021827532808f18440ded0b6706cf", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_02/clean", "pair": "invoice_en", "base": "held_02", "file": "invoice_en/held_02.docx", "content_hash": "2c5d39de52dd4ad5567f33bd5007ae559b4bb6c9481e7beabf2d1aa596aeba69", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_03/clean", "pair": "invoice_en", "base": "held_03", "file": "invoice_en/held_03.docx", "content_hash": "ed0bbc60e0def44b8eb02cf3b83477155b9d34eb395f4e3e86e801c215cfe611", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_04/clean", "pair": "invoice_en", "base": "held_04", "file": "invoice_en/held_04.docx", "content_hash": "35f54525a6ba7dd3034c8036b0c699454d9aa87d2c69fb7c9d7dddc9c1ab66fa", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_05/clean", "pair": "invoice_en", "base": "held_05", "file": "invoice_en/held_05.docx", "content_hash": "f5268546258c77e7156fa227f11100567a75e2c81ad6f17490f543a5e96d76b4", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_06/clean", "pair": "invoice_en", "base": "held_06", "file": "invoice_en/held_06.docx", "content_hash": "ede176622db24c698f68035c15e8edb12c1c8ac20d57e559228f33737aebe349", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_07/clean", "pair": "invoice_en", "base": "held_07", "file": "invoice_en/held_07.docx", "content_hash": "42dd8f2fcc22bea5b49f07c45215cb57654218e90b6c1cfce00102186c71d033", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_08/clean", "pair": "invoice_en", "base": "held_08", "file": "invoice_en/held_08.docx", "content_hash": "94f0b97ad2366c2a159a6f329de0ff78bbd8d8746d564edbef00f3a08b33e174", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_en/held_01/change_payment_terms", "pair": "invoice_en", "base": "held_01", "file": "invoice_en/cases/held_01__change_payment_terms.docx", "content_hash": "f2a843d313f8874ae0f9679f7931600b9375ea2cc718b43ac6abdea2dac3cdc1", "label": {"mutator": "change_payment_terms", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate.", "after": "Payment is due within 90 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate."}}},
+  {"id": "invoice_en/held_02/change_payment_terms", "pair": "invoice_en", "base": "held_02", "file": "invoice_en/cases/held_02__change_payment_terms.docx", "content_hash": "17fc60e5324111834e30205e5a543f698e4a327050fc7c961497c1ae90092dcd", "label": {"mutator": "change_payment_terms", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate.", "after": "Payment is due within 90 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate."}}},
+  {"id": "invoice_en/held_03/delete_clause", "pair": "invoice_en", "base": "held_03", "file": "invoice_en/cases/held_03__delete_clause.docx", "content_hash": "74a659abf27f7be30c3a8e4cc10ce4f2ba593d2e45c3077bac6d7223c15f5176", "label": {"mutator": "delete_clause", "targets": ["heading.payment", "clause.payment"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["Payment Terms", "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate."]}}},
+  {"id": "invoice_en/held_04/delete_clause", "pair": "invoice_en", "base": "held_04", "file": "invoice_en/cases/held_04__delete_clause.docx", "content_hash": "5db55b1a1ba739dee5db35ff655b4913863e3b217f4f8f01c321263f8036d858", "label": {"mutator": "delete_clause", "targets": ["heading.payment", "clause.payment"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["Payment Terms", "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate."]}}},
+  {"id": "invoice_en/held_05/fix_typo", "pair": "invoice_en", "base": "held_05", "file": "invoice_en/cases/held_05__fix_typo.docx", "content_hash": "62d7cdd00729027b49c7d85cc8dd814f50b3256d29cb9624a244dbe212dbaf57", "label": {"mutator": "fix_typo", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate.", "after": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statutory rate."}}},
+  {"id": "invoice_en/held_06/fix_typo", "pair": "invoice_en", "base": "held_06", "file": "invoice_en/cases/held_06__fix_typo.docx", "content_hash": "10cfa7d9b42703ba7171f88d80cb0e19b4abf62964ff57e98c6aa1923ddbaf4f", "label": {"mutator": "fix_typo", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate.", "after": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statutory rate."}}},
+  {"id": "invoice_en/held_07/whitespace_quotes", "pair": "invoice_en", "base": "held_07", "file": "invoice_en/cases/held_07__whitespace_quotes.docx", "content_hash": "7aa722ef05cc89f1073d751a0b160d198486fd16c374339bfc5b64e56543d7ed", "label": {"mutator": "whitespace_quotes", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate.", "after": "Payment is due within 30 days of the invoice date.  Please quote the invoice number with your  payment. Late payments may incur interest at the statuatory rate."}}},
+  {"id": "invoice_en/held_08/whitespace_quotes", "pair": "invoice_en", "base": "held_08", "file": "invoice_en/cases/held_08__whitespace_quotes.docx", "content_hash": "724f6b09e412eb2bb9da17d4c6872fee801308ea14a0117b0cae2fb9b4431d25", "label": {"mutator": "whitespace_quotes", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment is due within 30 days of the invoice date. Please quote the invoice number with your payment. Late payments may incur interest at the statuatory rate.", "after": "Payment is due within 30 days of the invoice date.  Please quote the invoice number with your  payment. Late payments may incur interest at the statuatory rate."}}},
+  {"id": "invoice_en/held_01/heading_caps", "pair": "invoice_en", "base": "held_01", "file": "invoice_en/cases/held_01__heading_caps.docx", "content_hash": "cd77bb79a3dc22114c9edf1bee3a476be2b79e83ab9682f8fe4d744bf3032cce", "label": {"mutator": "heading_caps", "targets": ["heading.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment Terms", "after": "PAYMENT TERMS"}}},
+  {"id": "invoice_en/held_02/heading_caps", "pair": "invoice_en", "base": "held_02", "file": "invoice_en/cases/held_02__heading_caps.docx", "content_hash": "142bb73cdbbd9524e11116bf81e8a4b5dab3583c388b44958e7632fe355a113a", "label": {"mutator": "heading_caps", "targets": ["heading.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Payment Terms", "after": "PAYMENT TERMS"}}},
+  {"id": "invoice_en/held_03/empty_field", "pair": "invoice_en", "base": "held_03", "file": "invoice_en/cases/held_03__empty_field.docx", "content_hash": "1b308637bf4749080b132a7d21fd9d82f50326620baa9df3f436b83aac77a13d", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Varnholt Publishing Ltd", "after": ""}}},
+  {"id": "invoice_en/held_04/empty_field", "pair": "invoice_en", "base": "held_04", "file": "invoice_en/cases/held_04__empty_field.docx", "content_hash": "e95eda508e90542b5bd5fba3e0a4f535e6b243a7ce7cebb980892de1a9f23490", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Calvenna Health Partners Ltd", "after": ""}}},
+  {"id": "invoice_en/held_05/date_format", "pair": "invoice_en", "base": "held_05", "file": "invoice_en/cases/held_05__date_format.docx", "content_hash": "93d287eb7da716ea5190c87204711d0b9dcd94842d231b876e2092e2a9f9e240", "label": {"mutator": "date_format", "targets": ["field.invoice_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "25 April 2026", "after": "2026-04-25"}}},
+  {"id": "invoice_en/held_06/date_format", "pair": "invoice_en", "base": "held_06", "file": "invoice_en/cases/held_06__date_format.docx", "content_hash": "d46b8c4aea082e5771aba968b88769b0f0d3697aa32324c358b648f59c85bb9b", "label": {"mutator": "date_format", "targets": ["field.invoice_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "8 May 2026", "after": "2026-05-08"}}},
+  {"id": "invoice_en/held_07/invalid_value", "pair": "invoice_en", "base": "held_07", "file": "invoice_en/cases/held_07__invalid_value.docx", "content_hash": "eba28117c76e1298a95682fc3e5218d7d2f6901ea024d6e6c267d4f4fc1bb196", "label": {"mutator": "invalid_value", "targets": ["field.due_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "15 June 2026", "after": "TBD"}}},
+  {"id": "invoice_en/held_08/invalid_value", "pair": "invoice_en", "base": "held_08", "file": "invoice_en/cases/held_08__invalid_value.docx", "content_hash": "ee538b3c5bd946af5d1435f50ed98a39025431f587827447a50a83982b7c8a4c", "label": {"mutator": "invalid_value", "targets": ["field.due_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "23 June 2026", "after": "TBD"}}},
+  {"id": "invoice_en/held_01/remove_row", "pair": "invoice_en", "base": "held_01", "file": "invoice_en/cases/held_01__remove_row.docx", "content_hash": "9cb509dabb97c7cec127529a377eb22e8929523cc42891d47526e535da31bdd6", "label": {"mutator": "remove_row", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Onsite support", "9", "€400.00", "€3,600.00"], "rows_left": 2}}},
+  {"id": "invoice_en/held_02/remove_row", "pair": "invoice_en", "base": "held_02", "file": "invoice_en/cases/held_02__remove_row.docx", "content_hash": "481647a671ce50da705796aa846978304c430792953e926119c98260070018d0", "label": {"mutator": "remove_row", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Software licence", "11", "€220.00", "€2,420.00"], "rows_left": 3}}},
+  {"id": "invoice_en/held_03/remove_column", "pair": "invoice_en", "base": "held_03", "file": "invoice_en/cases/held_03__remove_column.docx", "content_hash": "7effd255972a0e8aeb0cd8afbaeddbc1b43453dce3259f9003b8dd104feb9d09", "label": {"mutator": "remove_column", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Unit Price"}}},
+  {"id": "invoice_en/held_04/remove_column", "pair": "invoice_en", "base": "held_04", "file": "invoice_en/cases/held_04__remove_column.docx", "content_hash": "f63cc5f5691493c9ac3ce8c04a78335bf5146336333dfab2c133d8cc1b3a603b", "label": {"mutator": "remove_column", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Unit Price"}}},
+  {"id": "invoice_en/held_05/delete_table", "pair": "invoice_en", "base": "held_05", "file": "invoice_en/cases/held_05__delete_table.docx", "content_hash": "6962be4e7c2143311b9518dbce064184d64185c06fe283a92e48060b503c4532", "label": {"mutator": "delete_table", "targets": ["table.items"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Description", "Qty", "Unit Price", "Amount"]}}},
+  {"id": "invoice_en/held_06/delete_table", "pair": "invoice_en", "base": "held_06", "file": "invoice_en/cases/held_06__delete_table.docx", "content_hash": "8870fce2c57eeaa6ab3d9bb488e9ded9c58a2863cfedb6946a7af74a74786821", "label": {"mutator": "delete_table", "targets": ["table.items"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Description", "Qty", "Unit Price", "Amount"]}}},
+  {"id": "invoice_en/held_07/insert_benign", "pair": "invoice_en", "base": "held_07", "file": "invoice_en/cases/held_07__insert_benign.docx", "content_hash": "110869403e384ea9e0e6d21bba3abf4b5b8a3ac2ee0bf5055a9552f3559eb947", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.thanks", "text": "Note: Please tell us if your billing address changes."}}},
+  {"id": "invoice_en/held_08/insert_benign", "pair": "invoice_en", "base": "held_08", "file": "invoice_en/cases/held_08__insert_benign.docx", "content_hash": "9dc7bf4d2bed0aea7a0a1473ab52df0a1cde2124ba61e53f39ab82f56893fd76", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.thanks", "text": "Note: Please tell us if your billing address changes."}}},
+  {"id": "invoice_de/held_01/clean", "pair": "invoice_de", "base": "held_01", "file": "invoice_de/held_01.docx", "content_hash": "21454c2b65d472ac2f1c57d8321fc98a4637f1e13b18e2049d7abba07a1de3b6", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_02/clean", "pair": "invoice_de", "base": "held_02", "file": "invoice_de/held_02.docx", "content_hash": "395e2fb3afffe3c0f29a9fc336bf67125e123796adf0ea772ab122e5a3b35c91", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_03/clean", "pair": "invoice_de", "base": "held_03", "file": "invoice_de/held_03.docx", "content_hash": "1fa99012dd821cee6b8f85cbcc125253ffd6f65c1e6b9a4635ab78172d71e3d6", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_04/clean", "pair": "invoice_de", "base": "held_04", "file": "invoice_de/held_04.docx", "content_hash": "ff755adf277d90c80ed319bc436e527a7becbac6253ee7af1d6bac4300bd809d", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_05/clean", "pair": "invoice_de", "base": "held_05", "file": "invoice_de/held_05.docx", "content_hash": "f22ca54f55bf4cf8eb410ce7e30bad8b583afd0ef5a9417e3734d6335e02d863", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_06/clean", "pair": "invoice_de", "base": "held_06", "file": "invoice_de/held_06.docx", "content_hash": "5a4f42c373a41dea771e9904f9750ba6b300cac5def3c932bf0c58f580bf296a", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_07/clean", "pair": "invoice_de", "base": "held_07", "file": "invoice_de/held_07.docx", "content_hash": "1ec5cb62a2af9408cb10342d98afcba50b31efe111c3ec9a44664750ad4d42af", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_08/clean", "pair": "invoice_de", "base": "held_08", "file": "invoice_de/held_08.docx", "content_hash": "3e412fd3da6c70946bf5dcebb5bcea30a9a7eb35acc93778050a94141c1a3dae", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "invoice_de/held_01/change_payment_terms", "pair": "invoice_de", "base": "held_01", "file": "invoice_de/cases/held_01__change_payment_terms.docx", "content_hash": "17ca130783c9c75ccaa159f09df863e72173590685a422f48ea65b6b258dc3de", "label": {"mutator": "change_payment_terms", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe.", "after": "Zahlbar innerhalb von 60 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe."}}},
+  {"id": "invoice_de/held_02/change_payment_terms", "pair": "invoice_de", "base": "held_02", "file": "invoice_de/cases/held_02__change_payment_terms.docx", "content_hash": "438e0d69fcb340d3e56800a2e552dbef10cc1ad41ba25e09b0572a19771460e8", "label": {"mutator": "change_payment_terms", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe.", "after": "Zahlbar innerhalb von 60 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe."}}},
+  {"id": "invoice_de/held_03/delete_clause", "pair": "invoice_de", "base": "held_03", "file": "invoice_de/cases/held_03__delete_clause.docx", "content_hash": "2460aa3501a8b893f5a3f8cdcc39e3280090652c81d32e07835ee181d5ce0312", "label": {"mutator": "delete_clause", "targets": ["heading.payment", "clause.payment"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["Zahlungsbedingungen", "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe."]}}},
+  {"id": "invoice_de/held_04/delete_clause", "pair": "invoice_de", "base": "held_04", "file": "invoice_de/cases/held_04__delete_clause.docx", "content_hash": "48f24c1777233c49dba1ce801cdbe72b136f2d683061f1207624f29363e3b886", "label": {"mutator": "delete_clause", "targets": ["heading.payment", "clause.payment"], "expected_kind": "missing_fixed", "material": true, "rule_dependent": false, "fixable": true, "detail": {"removed": ["Zahlungsbedingungen", "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe."]}}},
+  {"id": "invoice_de/held_05/fix_typo", "pair": "invoice_de", "base": "held_05", "file": "invoice_de/cases/held_05__fix_typo.docx", "content_hash": "bdc7a7ff5c0d46e72d4701977e474883db5acc6f681f81f484c76740011fa321", "label": {"mutator": "fix_typo", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe.", "after": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugszinsen in gesetzlicher Höhe."}}},
+  {"id": "invoice_de/held_06/fix_typo", "pair": "invoice_de", "base": "held_06", "file": "invoice_de/cases/held_06__fix_typo.docx", "content_hash": "7686a1d68613d84c7b698d90c61f7f15dd577dc158c0d457da6e93c81b7bd1f9", "label": {"mutator": "fix_typo", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe.", "after": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugszinsen in gesetzlicher Höhe."}}},
+  {"id": "invoice_de/held_07/whitespace_quotes", "pair": "invoice_de", "base": "held_07", "file": "invoice_de/cases/held_07__whitespace_quotes.docx", "content_hash": "bb924350c6911577af7545cce8d93ab5d386c470adcd329ac6dacad3b7e76310", "label": {"mutator": "whitespace_quotes", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe.", "after": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug.  Bitte geben Sie bei der  Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe."}}},
+  {"id": "invoice_de/held_08/whitespace_quotes", "pair": "invoice_de", "base": "held_08", "file": "invoice_de/cases/held_08__whitespace_quotes.docx", "content_hash": "c4523ceb7f488069727e3d7b0d719807132b9846e93d475db027728d84278cd1", "label": {"mutator": "whitespace_quotes", "targets": ["clause.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug. Bitte geben Sie bei der Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe.", "after": "Zahlbar innerhalb von 14 Tagen nach Rechnungsdatum ohne Abzug.  Bitte geben Sie bei der  Zahlung die Rechnungsnummer an. Bei Zahlungsverzug berechnen wir Verzugzinsen in gesetzlicher Höhe."}}},
+  {"id": "invoice_de/held_01/heading_caps", "pair": "invoice_de", "base": "held_01", "file": "invoice_de/cases/held_01__heading_caps.docx", "content_hash": "5b6cbe4260c555d59b7c43ac236fa23789600c5addd08a07bbc8463d14367793", "label": {"mutator": "heading_caps", "targets": ["heading.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlungsbedingungen", "after": "ZAHLUNGSBEDINGUNGEN"}}},
+  {"id": "invoice_de/held_02/heading_caps", "pair": "invoice_de", "base": "held_02", "file": "invoice_de/cases/held_02__heading_caps.docx", "content_hash": "bd26640bd953b247f246ca8a5990d8376c3174fdb33bf68647550cc6bc1b4433", "label": {"mutator": "heading_caps", "targets": ["heading.payment"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "Zahlungsbedingungen", "after": "ZAHLUNGSBEDINGUNGEN"}}},
+  {"id": "invoice_de/held_03/empty_field", "pair": "invoice_de", "base": "held_03", "file": "invoice_de/cases/held_03__empty_field.docx", "content_hash": "6607ec4a851ffb345c3614bdc30024f305f08a8630112792ff3fc6b8270d05c8", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Zeisigtal Handelsgesellschaft mbH", "after": ""}}},
+  {"id": "invoice_de/held_04/empty_field", "pair": "invoice_de", "base": "held_04", "file": "invoice_de/cases/held_04__empty_field.docx", "content_hash": "be784d0a93c6dc37fba755f91d4eca0aa532c4fe2479deaaa9d7368371e0d8d8", "label": {"mutator": "empty_field", "targets": ["field.customer"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Finkenstedt Medizintechnik GmbH", "after": ""}}},
+  {"id": "invoice_de/held_05/date_format", "pair": "invoice_de", "base": "held_05", "file": "invoice_de/cases/held_05__date_format.docx", "content_hash": "d56d7d67e22b25065e850df9225313722a449c1ff6fc93d6145a7de6b29c18b9", "label": {"mutator": "date_format", "targets": ["field.invoice_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "29.04.2026", "after": "2026-04-29"}}},
+  {"id": "invoice_de/held_06/date_format", "pair": "invoice_de", "base": "held_06", "file": "invoice_de/cases/held_06__date_format.docx", "content_hash": "f1708247a0829e9216c6552ae9d6aa343a651d9da2504085cc51afbde1234760", "label": {"mutator": "date_format", "targets": ["field.invoice_date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "09.05.2026", "after": "2026-05-09"}}},
+  {"id": "invoice_de/held_07/invalid_value", "pair": "invoice_de", "base": "held_07", "file": "invoice_de/cases/held_07__invalid_value.docx", "content_hash": "822b1ec5ef8bd6975aef599d53780320182da74a6e7de780437b1168580da137", "label": {"mutator": "invalid_value", "targets": ["field.due_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "31.05.2026", "after": "offen"}}},
+  {"id": "invoice_de/held_08/invalid_value", "pair": "invoice_de", "base": "held_08", "file": "invoice_de/cases/held_08__invalid_value.docx", "content_hash": "7833c42c2a6c3da01e51f00a0e008fcc662aa76dbf625dd8142a4a3cef44fdc2", "label": {"mutator": "invalid_value", "targets": ["field.due_date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "10.06.2026", "after": "offen"}}},
+  {"id": "invoice_de/held_01/remove_row", "pair": "invoice_de", "base": "held_01", "file": "invoice_de/cases/held_01__remove_row.docx", "content_hash": "686e56296e63337debb58b6a29af855294c7bd4a7caa0625f8883aca4663b672", "label": {"mutator": "remove_row", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Datenexport", "1", "350,00 €", "350,00 €"], "rows_left": 2}}},
+  {"id": "invoice_de/held_02/remove_row", "pair": "invoice_de", "base": "held_02", "file": "invoice_de/cases/held_02__remove_row.docx", "content_hash": "8a8c91a128ea35663f72925b384fac8255c9f4e0d5e25e8df16b466082a677e2", "label": {"mutator": "remove_row", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Beratungsleistungen", "11", "150,00 €", "1.650,00 €"], "rows_left": 3}}},
+  {"id": "invoice_de/held_03/remove_column", "pair": "invoice_de", "base": "held_03", "file": "invoice_de/cases/held_03__remove_column.docx", "content_hash": "b5a0ca53c3fab0496dcef97ae7f2f4fa9b96034e6e637519bfe578b35459e8f1", "label": {"mutator": "remove_column", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Einzelpreis"}}},
+  {"id": "invoice_de/held_04/remove_column", "pair": "invoice_de", "base": "held_04", "file": "invoice_de/cases/held_04__remove_column.docx", "content_hash": "72dc89b928793af5e60d72114ab8c8f658da5c11a60293142ac62906d917c058", "label": {"mutator": "remove_column", "targets": ["table.items"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Einzelpreis"}}},
+  {"id": "invoice_de/held_05/delete_table", "pair": "invoice_de", "base": "held_05", "file": "invoice_de/cases/held_05__delete_table.docx", "content_hash": "e1fd1dccb969300665fd508a9818a50e138c854625ee0f6757a1017148d13cc3", "label": {"mutator": "delete_table", "targets": ["table.items"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"]}}},
+  {"id": "invoice_de/held_06/delete_table", "pair": "invoice_de", "base": "held_06", "file": "invoice_de/cases/held_06__delete_table.docx", "content_hash": "5caf3606ca3cb196214136986a37041a25c00b362ca1e490b06cc73f2ef33247", "label": {"mutator": "delete_table", "targets": ["table.items"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"]}}},
+  {"id": "invoice_de/held_07/insert_benign", "pair": "invoice_de", "base": "held_07", "file": "invoice_de/cases/held_07__insert_benign.docx", "content_hash": "cf889717e3b6155aa3aad57c14a69c94655d2947d8008bbd44b90a48ed72ef08", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.thanks", "text": "Hinweis: Bitte teilen Sie uns Änderungen Ihrer Rechnungsanschrift mit."}}},
+  {"id": "invoice_de/held_08/insert_benign", "pair": "invoice_de", "base": "held_08", "file": "invoice_de/cases/held_08__insert_benign.docx", "content_hash": "371de8a5563bb684f8e85ca58a842286d4ccf841d94a406902e1234b7c3b9598", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.thanks", "text": "Hinweis: Bitte teilen Sie uns Änderungen Ihrer Rechnungsanschrift mit."}}},
+  {"id": "minutes_en/held_01/clean", "pair": "minutes_en", "base": "held_01", "file": "minutes_en/held_01.docx", "content_hash": "a5eb8bad82d36effccb41023a840381f13ef68046b83166d60cdf131fd055231", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_02/clean", "pair": "minutes_en", "base": "held_02", "file": "minutes_en/held_02.docx", "content_hash": "79e6726d741e5c00883a665a278bcc4356c1de7851c7311c1d60ce0dc69930b1", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_03/clean", "pair": "minutes_en", "base": "held_03", "file": "minutes_en/held_03.docx", "content_hash": "0b00e72f38c6cd51a26d5c3d06f3f8606ecec75d49d85f30c438eaa63c3d9d4c", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_04/clean", "pair": "minutes_en", "base": "held_04", "file": "minutes_en/held_04.docx", "content_hash": "15721caf197a403d3d0cac0bee134635726aadea11319f04526f62a7a4938d8c", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_05/clean", "pair": "minutes_en", "base": "held_05", "file": "minutes_en/held_05.docx", "content_hash": "090e7b3bbf9610120099282423cd6c765382984f1664c4f28fd548e7fb0b197d", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_06/clean", "pair": "minutes_en", "base": "held_06", "file": "minutes_en/held_06.docx", "content_hash": "8f939e19181e42ec80e114fb38227df8731bc99ee11ff25d3e8ae9c6fb201a65", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_07/clean", "pair": "minutes_en", "base": "held_07", "file": "minutes_en/held_07.docx", "content_hash": "9271b8fd8f074c62afb07db92079cf15773439c64d6ae61740597010584c7ace", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_08/clean", "pair": "minutes_en", "base": "held_08", "file": "minutes_en/held_08.docx", "content_hash": "a030518c1992d073c082a26cf87e78097f264c9ec3692b74e1c4942388567e1b", "label": {"mutator": "none", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {}}},
+  {"id": "minutes_en/held_01/delete_clause", "pair": "minutes_en", "base": "held_01", "file": "minutes_en/cases/held_01__delete_clause.docx", "content_hash": "e85fef74eb44768511986d0dd28c83f60bf4c292d0fde93a6dc57514bce49497", "label": {"mutator": "delete_clause", "targets": ["heading.distribution", "clause.distribution"], "expected_kind": "missing_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"removed": ["4. Distribution", "These minutes are sent to all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved."]}}},
+  {"id": "minutes_en/held_02/delete_clause", "pair": "minutes_en", "base": "held_02", "file": "minutes_en/cases/held_02__delete_clause.docx", "content_hash": "961b5bfe46393ec8a2b2d798e70461c944d293edd4495bfd9a7dfe324ea9f293", "label": {"mutator": "delete_clause", "targets": ["heading.distribution", "clause.distribution"], "expected_kind": "missing_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"removed": ["4. Distribution", "These minutes are sent to all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved."]}}},
+  {"id": "minutes_en/held_03/fix_typo", "pair": "minutes_en", "base": "held_03", "file": "minutes_en/cases/held_03__fix_typo.docx", "content_hash": "bb7175627e14994158deb0b0fd95f426a79cefaf5852b198d8d688de356d1e91", "label": {"mutator": "fix_typo", "targets": ["clause.distribution"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "These minutes are sent to all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved.", "after": "These minutes are sent to all attendees and to the steering committee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved."}}},
+  {"id": "minutes_en/held_04/fix_typo", "pair": "minutes_en", "base": "held_04", "file": "minutes_en/cases/held_04__fix_typo.docx", "content_hash": "682170a66fe88d986b71ae41b5a99887f58779024d0f0369e28f5a738bef5fdb", "label": {"mutator": "fix_typo", "targets": ["clause.distribution"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "These minutes are sent to all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved.", "after": "These minutes are sent to all attendees and to the steering committee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved."}}},
+  {"id": "minutes_en/held_05/whitespace_quotes", "pair": "minutes_en", "base": "held_05", "file": "minutes_en/cases/held_05__whitespace_quotes.docx", "content_hash": "c7542ab75a74662014e3aa6eeeb8147f388c8ba57ff2a3c38e8430f015ce22e0", "label": {"mutator": "whitespace_quotes", "targets": ["clause.distribution"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "These minutes are sent to all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved.", "after": "These minutes are sent to  all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days;  otherwise the minutes are deemed approved."}}},
+  {"id": "minutes_en/held_06/whitespace_quotes", "pair": "minutes_en", "base": "held_06", "file": "minutes_en/cases/held_06__whitespace_quotes.docx", "content_hash": "3154c085f862ef75b4dc5dc7918faa9bf581cdcfa396895acf9dd83653285e5a", "label": {"mutator": "whitespace_quotes", "targets": ["clause.distribution"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "These minutes are sent to all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days; otherwise the minutes are deemed approved.", "after": "These minutes are sent to  all attendees and to the steering commitee. Corrections must be sent to the minute taker within five working days;  otherwise the minutes are deemed approved."}}},
+  {"id": "minutes_en/held_07/heading_caps", "pair": "minutes_en", "base": "held_07", "file": "minutes_en/cases/held_07__heading_caps.docx", "content_hash": "2a40ab34f400591855fbe6b4673015cd3ea95251b83111556353395c655e64be", "label": {"mutator": "heading_caps", "targets": ["heading.decisions"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "2. Decisions", "after": "2. DECISIONS"}}},
+  {"id": "minutes_en/held_08/heading_caps", "pair": "minutes_en", "base": "held_08", "file": "minutes_en/cases/held_08__heading_caps.docx", "content_hash": "2963514cd0ea73f517c3f62d6a367307abb8eeb42c01680d776694692019aa49", "label": {"mutator": "heading_caps", "targets": ["heading.decisions"], "expected_kind": "changed_fixed", "material": false, "rule_dependent": false, "fixable": true, "detail": {"before": "2. Decisions", "after": "2. DECISIONS"}}},
+  {"id": "minutes_en/held_01/empty_field", "pair": "minutes_en", "base": "held_01", "file": "minutes_en/cases/held_01__empty_field.docx", "content_hash": "872a26e8c40e3acd20e1db86c2d75b39e24839b5ddaaddf2d9b2f4544eb15f09", "label": {"mutator": "empty_field", "targets": ["field.chair"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Farid Morandi", "after": ""}}},
+  {"id": "minutes_en/held_02/empty_field", "pair": "minutes_en", "base": "held_02", "file": "minutes_en/cases/held_02__empty_field.docx", "content_hash": "2730bfa5c9cef7b6d903bb391d8e571d00f8049a6ab8cd3d5bd4c49ea784313a", "label": {"mutator": "empty_field", "targets": ["field.chair"], "expected_kind": "missing_field", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "Anika Brandauer", "after": ""}}},
+  {"id": "minutes_en/held_03/date_format", "pair": "minutes_en", "base": "held_03", "file": "minutes_en/cases/held_03__date_format.docx", "content_hash": "1a7a4c0d0543a098d11e10bb1b3d16459ee018afebf68dc89a4fa39da6be49a0", "label": {"mutator": "date_format", "targets": ["field.date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "10 May 2026", "after": "2026-05-10"}}},
+  {"id": "minutes_en/held_04/date_format", "pair": "minutes_en", "base": "held_04", "file": "minutes_en/cases/held_04__date_format.docx", "content_hash": "5e4adc4ba1978e0d4f249aab0828e129ed8e3f519a53d6863dc6691e9b8ebba1", "label": {"mutator": "date_format", "targets": ["field.date"], "expected_kind": "format", "material": false, "rule_dependent": true, "fixable": false, "detail": {"before": "14 May 2026", "after": "2026-05-14"}}},
+  {"id": "minutes_en/held_05/invalid_value", "pair": "minutes_en", "base": "held_05", "file": "minutes_en/cases/held_05__invalid_value.docx", "content_hash": "c69828ba618e0ce03b76ea8b5d59bc91201824523893ddae761fbac9170ea531", "label": {"mutator": "invalid_value", "targets": ["field.date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "22 May 2026", "after": "TBD"}}},
+  {"id": "minutes_en/held_06/invalid_value", "pair": "minutes_en", "base": "held_06", "file": "minutes_en/cases/held_06__invalid_value.docx", "content_hash": "0ca5ba2c697def6decbc31d45f55606541e4719561b296f7e03721ab6a62496c", "label": {"mutator": "invalid_value", "targets": ["field.date"], "expected_kind": "format", "material": true, "rule_dependent": false, "fixable": false, "detail": {"before": "31 May 2026", "after": "TBD"}}},
+  {"id": "minutes_en/held_07/remove_row", "pair": "minutes_en", "base": "held_07", "file": "minutes_en/cases/held_07__remove_row.docx", "content_hash": "1d6ea302130dcf1b959f7c3eca94a7e6d3ebfc98668f915e3f9c504eb0c658ac", "label": {"mutator": "remove_row", "targets": ["table.actions"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Draft the data processing agreement", "Anika Brandauer", "14 July 2026"], "rows_left": 4}}},
+  {"id": "minutes_en/held_08/remove_row", "pair": "minutes_en", "base": "held_08", "file": "minutes_en/cases/held_08__remove_row.docx", "content_hash": "17f437867f876bdff71f769ebdf2ba9c092848cade1670545c3bdb3ca8364916", "label": {"mutator": "remove_row", "targets": ["table.actions"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_row": ["Prepare the user training material", "Matteo Sandner", "4 July 2026"], "rows_left": 1}}},
+  {"id": "minutes_en/held_01/remove_column", "pair": "minutes_en", "base": "held_01", "file": "minutes_en/cases/held_01__remove_column.docx", "content_hash": "d04a5f9f5c45b9a5292aeb4c15c0d8fdaf0e61cc5097fa121830d2e36cec9342", "label": {"mutator": "remove_column", "targets": ["table.actions"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Owner"}}},
+  {"id": "minutes_en/held_02/remove_column", "pair": "minutes_en", "base": "held_02", "file": "minutes_en/cases/held_02__remove_column.docx", "content_hash": "4fd0b1dda35ecf7aeb7738c5ad5e31de8e33d4c79ab087105384837e590323c4", "label": {"mutator": "remove_column", "targets": ["table.actions"], "expected_kind": "table_shape", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_column": "Owner"}}},
+  {"id": "minutes_en/held_03/delete_table", "pair": "minutes_en", "base": "held_03", "file": "minutes_en/cases/held_03__delete_table.docx", "content_hash": "ddf819d02c83e4340480b03f557e4f869761bf94aee3325229451c5b34e09d88", "label": {"mutator": "delete_table", "targets": ["table.actions"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Action", "Owner", "Due Date"]}}},
+  {"id": "minutes_en/held_04/delete_table", "pair": "minutes_en", "base": "held_04", "file": "minutes_en/cases/held_04__delete_table.docx", "content_hash": "4aca2c6f460cb029f9e2ce560fc3826e95df077572f624fcd08d45629d8a714a", "label": {"mutator": "delete_table", "targets": ["table.actions"], "expected_kind": "missing_table", "material": true, "rule_dependent": false, "fixable": false, "detail": {"removed_table": ["Action", "Owner", "Due Date"]}}},
+  {"id": "minutes_en/held_05/insert_benign", "pair": "minutes_en", "base": "held_05", "file": "minutes_en/cases/held_05__insert_benign.docx", "content_hash": "851c6d48a8748649f976ea14819bcdd4380972d09ba16032e4ec7a39e67334eb", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.distribution", "text": "Note: The chair will schedule the next meeting."}}},
+  {"id": "minutes_en/held_06/insert_benign", "pair": "minutes_en", "base": "held_06", "file": "minutes_en/cases/held_06__insert_benign.docx", "content_hash": "52d23a1c7ed089be5f93cf7129c667fb65260db5060ae64bb3745461fa98bf18", "label": {"mutator": "insert_benign", "targets": [], "expected_kind": null, "material": false, "rule_dependent": false, "fixable": false, "detail": {"after": "clause.distribution", "text": "Note: The chair will schedule the next meeting."}}}
+ ]
+}
