@@ -3,16 +3,18 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M3 done (2026-11-26). Two suites run in three modes each (AI off, Claude
-Haiku 5.5, and a local model in LM Studio):
+**Status:** M4 built (2026-11-26); its three runs are next. Three suites, in three modes each
+(AI off, Claude Haiku 5.5, and a local model in LM Studio):
 - **comply** checks returned documents against their template. Its three-way comparison is in
   the changelog's M2 entry.
 - **generate** fills each template from 35 rough-notes texts and measures what DocForge wrote,
   hallucinations first. Its three runs happen on the owner's PC
   ([guide below](#run-the-generate-suite-on-your-pc-m3)); the comparison and five written-up
   failures are in the changelog's M3 entry.
-
-Analyze arrives in M4.
+- **analyze** builds a template from 1, 2, 3 or 5 example documents of each type and measures
+  what DocForge made of each element: fields found, boilerplate kept, field types, tables,
+  "label | value" information blocks, and the template's layout
+  ([guide below](#run-the-analyze-suite-on-your-pc-m4)).
 
 - Design: [DESIGN.md](DESIGN.md)
 - What each milestone built and learned: [CHANGELOG.md](CHANGELOG.md)
@@ -41,7 +43,9 @@ python -m evals run --suite comply --config evals/configs/no-ai.yaml
 **What each command does**
 - **`corpus build`** writes the 91 documents and 238 comply cases to `evals/corpus/build/`
   (gitignored) in about 10 s, and rewrites `evals/corpus/manifest.json`. That file is committed,
-  so a build that changes it means the corpus code changed.
+  so a build that changes it means the corpus code changed. It also writes the 19 documents only
+  analyze uses (the DPIA and status report examples, and one shared-value document per type),
+  listed in the manifest's `analyze` section.
 - **`run`** prints a table and writes `evals/results/<date>_<config>_comply.json`. With AI off,
   the whole comply suite takes about 40 s. A missing build is created first. If the corpus code
   no longer matches the committed manifest, the run stops.
@@ -57,6 +61,10 @@ python -m evals run --suite comply --config evals/configs/no-ai.yaml
   - With `ANTHROPIC_API_KEY` set, Claude Haiku 5.5 grades the free-text fields
     (`evals/configs/grader.yaml`, at most $1.00 per run). `--no-grade` skips the grading.
   - `--types` and `--limit` work as for comply; `--limit 1` takes the first notes style only.
+- **`run --suite analyze`** builds 45 templates: for each of the 9 types, from its first 1, 2,
+  3 and 5 examples, then from the first example and a second one that shares a value with it.
+  It writes `evals/results/<date>_<config>_analyze.json`. With AI off it takes about 10 s.
+  `--types` works as for comply; `--limit 1` builds from 1 example only.
 - **`compare A.json B.json [C.json ...]`** prints results of one suite side by side. After the
   table come the changes from the first file to each of the others: the cases whose alarm
   status changed (comply), or the fields whose outcome changed (generate). Add `--markdown` for
@@ -387,6 +395,126 @@ git push origin evals
 
 Remove the key when you're done (`Remove-Item Env:ANTHROPIC_API_KEY`), or close the window.
 
+## Run the analyze suite on your PC (M4)
+
+Same window and setup as the M2 guide above (steps 1 to 6). Only the Haiku run needs the key;
+analyze has no grader.
+
+### 1. Update
+
+```powershell
+git pull origin evals
+```
+
+### 2. The no-AI run (about a minute)
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/no-ai.yaml --dry-run
+```
+
+It should say `templates to build  45 (9 types)`. Then:
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/no-ai.yaml
+```
+
+### 3. The Haiku run (about 25 minutes)
+
+Set the key, as in M3:
+
+```powershell
+$key = Read-Host "Anthropic API key" -AsSecureString
+```
+
+```powershell
+$env:ANTHROPIC_API_KEY = [System.Net.NetworkCredential]::new("", $key).Password; Remove-Variable key
+```
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/haiku.yaml --repeat 3 --sample 10 --dry-run
+```
+
+It should say `cases that call a model  45`, `repeat runs  20` and `spending cap  $1.00`. The
+estimated cost says `unknown`: this is the first analyze run with Haiku, so the first 3 cases are
+a pilot, and the run stops if they project past the cap. Then a one-case test, whose result goes
+to a temp folder. Its progress line should say `llm`:
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/haiku.yaml --types nda_en --limit 1 --out "$env:TEMP\docforge-evals-test"
+```
+
+If it says `heuristic_fallback` instead, the AI classifier failed; stop and send the output.
+Otherwise:
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/haiku.yaml --repeat 3 --sample 10
+```
+
+Expected cost: about $0.25 to $0.50, and it stops at $1.00 in any case.
+
+### 4. The local run (about 3 hours)
+
+LM Studio as in M2 and M3: Qwen 3.6-27b with the template change, at least 16384 context, server
+on, and the PC kept awake.
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/local.yaml --repeat 3 --sample 10 --dry-run
+```
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/local.yaml --types nda_en --limit 1 --out "$env:TEMP\docforge-evals-test"
+```
+
+Again, the progress line should say `llm`. Then:
+
+```powershell
+python -m evals run --suite analyze --config evals/configs/local.yaml --repeat 3 --sample 10
+```
+
+Each analysis makes three or four model calls (a read-through, the classification, a
+self-critique), one at a time. If the run is interrupted, run the same command again; answered
+calls replay from the cache.
+
+### 5. Commit and push the three results
+
+```powershell
+git status
+```
+
+Only three new files in `evals/results/` should be listed (`*_analyze.json`).
+
+```powershell
+git add evals/results
+```
+
+```powershell
+git commit -m "Add the no-AI, Haiku and local analyze results"
+```
+
+```powershell
+git push origin evals
+```
+
+Remove the key when you're done (`Remove-Item Env:ANTHROPIC_API_KEY`), or close the window.
+
+## Read the analyze table
+
+Each case is one template: DocForge analyses some example documents of a type and publishes a
+template, and every element of the example it took as its representative is scored against the
+ground truth. The table has one row per number of examples.
+
+| Line | Meaning |
+|---|---|
+| field F1 | How well fields were told from boilerplate: true fields found (tp), boilerplate turned into fields (fp), fields missed (fn). Counts top-level elements and the cells of information blocks. |
+| boilerplate kept | Fixed text (titles, headings, clauses, fixed labels) the template keeps as fixed text |
+| types right | Found fields whose DocForge type fits: a date as date, an amount as number, a name as person |
+| tables | Repeating tables found with their header row as the columns |
+| layout kept | The template keeps the document's blocks in order with their styles, fixed text unchanged, labels before fields, and every row of an information block |
+| information blocks | What became of each "label \| value" block: `form` (labels fixed, values fields: right), `frozen` (values became boilerplate), `looped` (a repeating table: the labels became row data), `partial` |
+| shared value still a field | Two examples that share one value (the same customer, say): is it still a field? |
+| page numbers as auto fields | The footer's page number recognised as automatic content |
+| classified by | `llm` (AI), `heuristic` (no AI), or `heuristic_fallback` (AI was on but failed) |
+
 ## Read the generate table
 
 Each notes case is one rough-notes text: bullet points, an email, German and English mixed, notes
@@ -460,7 +588,8 @@ AI runs also record:
 They never record the key.
 
 Generate results also record a hash of the notes cases (`notes_hash`), so `compare` can tell
-whether two runs used the same notes, and what the grader did and spent (`grader`).
+whether two runs used the same notes, and what the grader did and spent (`grader`). Analyze
+results record `analyze_hash`, the hash of the documents only analyze uses.
 
 ## Rules for this folder
 

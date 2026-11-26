@@ -1,7 +1,7 @@
 # DocForge evaluation suite: design
 
 > **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1, M2 and M3 are
-> done. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> done; M4 is built and its runs are next. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
 > confirmed. The AI runs, and every generate run (it needs the grader's key), happen on the
 > owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
@@ -113,6 +113,7 @@ Default severities set by `compliance/checker.py` (the judge may change them lat
 | 20 | Without AI, unstructured notes are routed by heuristics. | `route_unstructured_heuristic` copies `Label: value` lines, then joins every other line, minus the ones it placed and all-caps titles, into the remaining text fields, by keyword overlap or as a last resort into the first one. It never fills tables. | Leftover prose lands in a short field such as an agreement number, as lines that were not next to each other in the notes. A value of four or more words whose words all occur in the notes therefore counts as from the notes (grounded but wrong), not as a hallucination (§3.5). |
 | 21 | — | The writer prompt asks for dates "as ISO (YYYY-MM-DD) unless the description says otherwise" and for normalised numbers (`_WRITER_DEVELOPER`), so values come back as `2026-03-02` and `11950.0`. The assembler renders a value as it is (`_coerce_scalar`: `str()`), with no formatting by field type or language. | AI-written dates and amounts don't keep the template's form (M3: Haiku 17/93 and Qwen 16/93 kept; failure 2). "Form kept" is reported apart from correctness. |
 | 22 | — | A section the writer skips is switched off (`_section_toggles`). The template builder wraps each section with fields in `{%p if _show_<section> %}`, from its first field to the next section with fields, so sections without fields after it fall inside the same block. | Skipping one section can remove every later section, legal clauses and signatures included (M3, failure 1). The layout check catches it. |
+| 23 | — | Smart analysis never makes a single table cell a field: the heuristic marks every cell `FIXED` ("inside table cell"), and the AI classifier sees only top-level elements (a table as its first row and its row count). Only tags-only mode turns cells into fields. A "label \| value" table is recognised (`looks_like_key_value_table`) only with one example, and only when its first value is plainly a value (a date, a number, a long text); it is then kept `FIXED`. With two or more examples, any table whose cells change is `REPEATABLE_TABLE` (`_classify_table`), even one whose first row changes too. The builder keeps a looped table's first row as its heading row and names the loop's columns after that row's cells. | An information block is never kept as a form: its values are frozen into the template, or it becomes a loop whose rows are data, labels included (M4). Analyze scores its cells one by one (§5.3). |
 
 ### 1.3 Pre-existing state of master (not changed, by rule)
 
@@ -240,11 +241,17 @@ publish → generate / check / fix.
    - `token_usage`
 3. Load the output .docx from storage for the layout check.
 
-**Analyze, per case** (one document type × k examples)
-1. Store the first k examples, then run `analyze_documents(mode="smart")` and `publish_template`.
-2. Compare `classification.classifications` and `field_definitions` with the ground truth of the
-   representative document (`job.representative_document_id`).
-3. Compare `template.docx` with the representative for layout.
+**Analyze, per case** (one document type × k examples; as built in M4, `evals/runners/analyze.py`)
+1. Store the case's documents in a fixed order, then run `analyze_documents(mode="smart")` and
+   `publish_template`, inside the case's cache scope. Every case builds its own template.
+2. Rebuild the ground truth of the representative DocForge chose
+   (`job.representative_document_id`) and resolve every element to its node, the cells of an
+   information block included (§3.3).
+3. Read each node's classification (`job.classification`) and the field definition that covers it
+   (`job.field_definitions`: its type, a table's columns), and score them (§5.3).
+4. Compare the published `template.docx` with the representative for layout.
+5. DocForge's warnings during the case (a section it couldn't wrap in a toggle, an AI step that
+   fell back) go into the case's record, not the console.
 
 ### 2.4 CLI
 
@@ -255,6 +262,7 @@ python -m evals run --suite all --config configs/haiku.yaml --max-usd 3
 python -m evals report                                        # rebuild RESULTS.md from results/
 python -m evals compare results/A.json results/B.json        # what got better or worse
 python -m evals run --suite generate --config configs/haiku.yaml   # fill templates from notes (M3)
+python -m evals run --suite analyze --config configs/haiku.yaml    # build templates from k examples (M4)
 python -m evals labels sheet --languages en                   # the 30 items the owner labels
 python -m evals labels check                                  # the grader's agreement with them
 python -m evals rescore results/A.json                        # outcomes again, from recorded values
@@ -308,6 +316,10 @@ element.
   material.
 - **Labelled fields** such as "Invoice Date: 23.11.2026" record the label and the value
   separately, matching DocForge's `static_prefix`.
+- **Information blocks** (M4), "label | value" tables without a header row, are one element of
+  kind `info_table` whose `cells` list every cell: a label is `fixed`, a value is a `field` with
+  its type (or `fixed` when it is the same in every document), each with a `cell` locator
+  (row, column) inside the table.
 
 ### 3.3 Resolving locators to node IDs
 
@@ -317,7 +329,9 @@ At run time, a locator is resolved against the document DocForge actually sees:
 3. Check that the node's text equals the ground-truth text after whitespace normalisation.
 
 If the texts differ, the case fails with an error that shows both texts. A mismatch means the
-generator or the walk changed, and the evals never guess.
+generator or the walk changed, and the evals never guess. An information block's cells resolve
+to the nodes DocForge gives the cells' paragraphs (parent: the table's node, with their row and
+column), with the same text check.
 
 A unit test builds one document of each type, resolves every locator, and cross-checks the result
 against DocForge's own extraction (`structure_normalizer.build_extraction`).
@@ -385,6 +399,10 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
   generator, and the truth hash proves it is the same one.
 - **Corpus hash.** sha256 of the manifest's canonical JSON, without the hash field itself. It
   covers every file, every ground truth and every label.
+- **The analyze section** (M4). What only analyze uses sits in the manifest's `analyze` section
+  with its own `analyze_hash`: the analyze-only types' examples and the shared-value documents
+  (§4.2). The corpus hash leaves the section out, so comply and generate keep `d2f7d14ee960`, and
+  a test checks that every committed result ran on the manifest's corpus.
 - **Manifest check.** A test rebuilds the corpus and compares the result with the committed
   manifest; in M5, CI does the same with `git diff --exit-code`.
 
@@ -396,8 +414,8 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
 | NDA | EN, DE | M1 | parties, effective date, term | — | confidentiality obligations, term, governing law |
 | Invoice | EN, DE | M1 | number, dates, customer, VAT ID / USt-IdNr., totals | line items | payment terms |
 | Meeting minutes | EN | M1 | date, chair, attendees | action items | distribution note |
-| Data protection impact assessment | EN | M3/M4 | purpose, data categories, legal basis | risk register | standard GDPR wording |
-| Project status report | EN | M3/M4 | project, date, author, summary | tasks | confidentiality notice |
+| Data protection impact assessment | EN | M4, analyze only | reference, version, date, owner (in the information block), processing activity, purpose, data categories, legal basis, data protection officer | risk register | standard GDPR wording |
+| Project status report | EN | M4, analyze only | report date, project, project manager, overall status (in the information block), author, summary, risks | tasks | confidentiality notice |
 
 **German documents follow German conventions**
 - dates like `23.11.2026`
@@ -419,9 +437,22 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
 - Generate (M3) and analyze (M4) add about 60 cases, which keeps the total near the brief's
   150–300.
 
-**Deferred to M4.** Key-value tables ("label | value" rows, as in a document-control block). When
-their values vary, DocForge may treat such a table as a repeating table. Leaving them out of M1
-keeps the comply ground truth clean, and M4 tests that behaviour on purpose.
+**Added in M4: information blocks and the shared-value check** (analyze only)
+- **Information blocks.** "Label | value" rows, as in a document-control block, kept out of M1 so
+  the comply ground truth stays clean. The DPIA and the status report each open with one. The
+  DPIA's first row is the same in every document ("Classification | Confidential"); the status
+  report's first value is a date, which is what DocForge's single-example rule for such tables
+  (`looks_like_key_value_table`) needs (§1.2 #23).
+- **Analyze-only types.** The DPIA and the status report have 5 examples and no held-out or
+  mutated documents, so the comply and generate cases are unchanged. They can join those suites
+  later.
+- **Shared-value documents.** `shared_02` is `ex_02` with one labelled value copied from `ex_01`:
+  the customer (agreements, invoices), the other party (NDAs), the meeting (minutes, as for a
+  recurring meeting), the data protection officer (DPIA) and the author (status report). A test
+  checks that only that value differs from `ex_02` and that it appears nowhere else in the
+  document. It tests what happens when the examples happen to share a value, which the
+  examples themselves never do.
+- **Case budget.** Analyze adds 45 cases: 9 types × k = 1, 2, 3, 5, plus 9 shared-value pairs.
 
 ### 4.3 Mutators
 
@@ -591,12 +622,33 @@ same order every run.
 |---|---|
 | Field precision / recall / F1 | Over the representative's top-level elements and key-value table cells. Predicted field: the classification needs a field (dynamic or repeatable). True field: ground-truth kind `field`. Cells of repeating tables are left out here; table detection measures them. |
 | Boilerplate preservation | Ground-truth `fixed` elements classified `FIXED` ÷ ground-truth `fixed` elements |
-| Field type accuracy | Among true fields that were found, how often `FieldDefinition.field_type` matches the ground truth under this map: text → text; multiline_text → multiline_text or text; date → date; person → person; number → number; money → number (open question); enum → enum |
+| Field type accuracy | Among true fields that were found, how often `FieldDefinition.field_type` matches the ground truth under this map: text → text; multiline_text → multiline_text or text; date → date; person → person; number → number; money → number (§10, question 3); enum → enum |
 | Repeating table detection | Ground-truth repeating tables classified `REPEATABLE_TABLE`, with columns equal to the ground-truth header row |
 | Layout fidelity | `template.docx` keeps the representative's skeleton: the same blocks in the same order, the same styles and table shapes, and fixed text unchanged. Fields carry tags. The idea follows `backend/tests/unit/test_template_keeps_its_layout.py`. |
 
 `auto` elements, such as page-number fields, are left out of precision and recall. Whether they
 come out as `AUTO_FIELD` is reported on its own.
+
+**As built in M4** (`evals/metrics/analyze.py`)
+- **Element outcomes.** A fixed element is `kept` (classified `FIXED`), `became_field` (a field
+  or table classification) or `other`. A field is `found` (dynamic, a repeating section or block)
+  or `missed`. A table is `detected` (repeating, with the header row as its columns),
+  `wrong_header` or `missed`. An information block is a `form` (values fields, labels fixed),
+  `frozen` (nothing in it a field), `looped` (a repeating table) or `partial`.
+- **Information-block cells** count in precision, recall and boilerplate, one by one. A looped
+  block keeps its first row as a heading row and repeats the rest (§1.2 #23): those rows' labels
+  count as boilerplate turned into fields, their values as fields found, and the first row's
+  value as a field missed.
+- **Layout fidelity** follows DocForge's own layout test: every block in order with its style; a
+  block the analysis kept fixed with its exact text; a labelled field with its label; a table
+  with its column count and first row; and every row of an information block, its label in
+  place. Markers (`{%p … %}`, `{%tr … %}`) may be added anywhere. A looped information block
+  therefore fails it ("rows lost"); a frozen one doesn't, since all its rows are still there.
+- **Shared value.** In the shared-value cases: whether the field both examples share is still
+  `found`.
+- **By number of examples.** Every metric is pooled per k over the 9 types. Field types are also
+  broken down by type and language (H9), and F1 and boilerplate per type.
+- **Stability** (`--repeat`): elements whose outcome is the same in every run ÷ elements.
 
 ### 5.4 Measured on every run
 
@@ -856,6 +908,11 @@ is still clean.
   timings and costs stay as recorded. It refuses a result whose `notes_hash` differs from the
   notes at hand, and it appends a `rescored` entry to `meta`: date, commit, `dirty_code`, and how
   many field outcomes changed.
+- **Analyze** (M4): `compare` prints each metric for 1, 2, 3 and 5 examples with the modes side
+  by side (§5.3), then the elements whose outcome changed ("fixed became_field → kept"). Analyze
+  results also record `analyze_hash`. Per case they hold the documents, the representative, the
+  engine that classified, every element's outcome (cells included), the layout check, and
+  DocForge's warnings.
 - **AI runs also record** the model, host and efforts, `temperature_sent`, the budget plan, live
   and replayed spend, the cache hit rate, `stopped`, and per case the judge's verdicts, its calls
   and their outcomes, and the tokens used.
@@ -895,6 +952,8 @@ rejected by a run.
 | H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 | Confirmed in M3: no AI made no hallucinations and left 101/166 given values empty. The AI modes left none empty and rarely invented: short fields Haiku 0/166, Qwen 2/166; table cells 3 each, Qwen's all rewordings. |
 | H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 | — |
 | H9 | German amounts written `12.500,00 €` are typed as text, not number | `CURRENCY_RE` expects the symbol before the number or an ISO code after it | M4 | — (added in M1) |
+| H10 | A "label \| value" information block is never kept as a form, in any mode: with one example it is frozen or looped, depending on its first row; with two or more it is looped | smart mode never makes a cell a field, and `_classify_table` loops any table whose cells change (§1.2 #23) | M4 | — (added in M4) |
+| H11 | A labelled value that is the same in all the examples becomes boilerplate without AI; the AI classifier still makes it a field | the diff marks the value identical; the AI also reads the label | M4 | — (added in M4) |
 
 Confirmed blind spots are the M6 candidates.
 
@@ -904,11 +963,11 @@ Confirmed blind spots are the M6 candidates.
    (§6.1, §6.6). The result records the exact model ID that LM Studio served.
 2. **Grader labels.** Answered in M3: the owner labelled 30 English items on 2026-11-26, and
    the grader passed the gate on both questions (§6.5).
-3. **Money.** Does an amount like `1.234,56 €` count as `number` or `text` in field type accuracy?
-   The proposal is `number`.
+3. **Money.** Decided in M4, as proposed: an amount counts as right when DocForge types it
+   `number`, since DocForge has no money type.
 4. **Date format.** Is a date-format change material "by rule" for any document type? The
    proposal is no, for every type, kept as `rule_dependent: true`.
-5. **DPIA language.** EN or DE? The proposal is EN in M3/M4, with DE later if there's time.
+5. **DPIA language.** Decided in M4, as proposed: English. A German DPIA can come later.
 6. **M6.** The brief has M6 fix the weakest result in a separate PR, which conflicts with
    "the app is never changed". Options:
    - prototype the fix on a throwaway branch and measure it with `compare`, never merging it
