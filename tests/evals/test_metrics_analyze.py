@@ -219,3 +219,17 @@ def test_the_template_layout_check():
                 *template[2:]]
     assert template_layout(truth, source, restyled, outcomes) == [
         "field.date: missing or out of order"]
+
+
+def test_every_row_of_an_information_block_must_survive_in_the_template():
+    block = {**_info(block=0), "rows": [["Classification", "Confidential"], ["Owner", "x"],
+                                         ["Version", "1.0"]]}
+    source = _skeleton(("table", (("Classification", "Confidential"), ("Owner", "Ines Tamura"),
+                                  ("Version", "1.0")), ""))
+    frozen = source  # values frozen, but every row is still there
+    looped = _skeleton(("table", (("Classification", "Confidential"),
+                                  ("{%tr for item in rows %}", ""),
+                                  ("{{ item.classification }}", "{{ item.confidential }}"),
+                                  ("{%tr endfor %}", "")), ""))
+    assert template_layout([block], source, frozen, {}) == []
+    assert template_layout([block], source, looped, {}) == ["info.doc: rows lost"]

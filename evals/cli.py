@@ -187,7 +187,7 @@ def _dry_run_text(config: dict, ai: dict, selected: list, plan: dict | None, *,
         lines.append("  model                     none (AI off)")
     if grading is not None:
         lines.append(f"  free-text grader          {grading}")
-    noun = "cases to check" if suite == "comply" else "notes cases"
+    noun = {"comply": "cases to check", "generate": "notes cases"}.get(suite, "templates to build")
     lines.append(f"  {noun:<26}{len(selected)} ({len(types)} types)")
     if plan:
         judged = plan["judged_expected"]
@@ -220,8 +220,9 @@ def _dry_run_text(config: dict, ai: dict, selected: list, plan: dict | None, *,
 
 def _progress(record: dict, done: int, total: int) -> None:
     status = ((record.get("judge") or {}).get("status")
-              or (record.get("routing") or {}).get("source") or "")
-    ms = record.get("check_ms") if "check_ms" in record else record.get("generate_ms")
+              or (record.get("routing") or {}).get("source") or record.get("source") or "")
+    ms = next((record[key] for key in ("check_ms", "generate_ms", "analyze_ms") if key in record),
+              None)
     seconds = (ms or 0) / 1000
     line = f"[{done:>3}/{total}] {record['id']:<56} {status:<10} {seconds:6.1f} s"
     if record.get("error"):
@@ -249,15 +250,17 @@ def _run(args: argparse.Namespace) -> int:
     from evals.harness import ConfigError, ai_enabled, apply_config, load_config, prepare
     from evals.paths import BUILD_DIR, CACHE_DIR, RESULTS_DIR
 
-    if args.suite not in ("comply", "generate"):
-        print(f"The {args.suite} suite arrives in M4; comply and generate run so far.",
-              file=sys.stderr)
+    if args.suite == "all":
+        print("Run one suite at a time: comply, generate or analyze.", file=sys.stderr)
         return 2
     config = load_config(args.config)
     ai = ai_enabled(config)
     manifest, corpus = _ensure_corpus()
     if args.types:
-        unknown = sorted(set(args.types) - set(manifest["types"]))
+        from evals.corpus.build import all_types
+
+        known = all_types(manifest) if args.suite == "analyze" else manifest["types"]
+        unknown = sorted(set(args.types) - set(known))
         if unknown:
             print(f"Unknown types: {', '.join(unknown)}", file=sys.stderr)
             return 2
@@ -266,11 +269,15 @@ def _run(args: argparse.Namespace) -> int:
         from evals.corpus.build import select_cases
 
         selected = select_cases(manifest, args.types, args.limit)
-    else:
+    elif args.suite == "generate":
         from evals.corpus.notes import load_notes, select_notes
 
         selected = select_notes(load_notes(), args.types, args.limit)
         grader_config, grading = _grading(args)
+    else:
+        from evals.corpus.analyze import analyze_cases
+
+        selected = analyze_cases(manifest, args.types, args.limit)
     paid = ai or grader_config is not None
 
     from evals.report import git_state
@@ -301,6 +308,8 @@ def _run(args: argparse.Namespace) -> int:
                     cap = min(cap, float(grader_config["max_usd"]))
                 judged = {c.id for c in selected if ai or any(
                     e["kind"] == "free" for e in c.expected.values())}
+            elif args.suite == "analyze":
+                judged = {c.id for c in selected}  # with AI on, every analysis calls it
             plan = _plan_budget(config, args, selected, cache, suite=args.suite, judged=judged,
                                 cap=cap)
         if args.dry_run:
@@ -353,7 +362,7 @@ def _run(args: argparse.Namespace) -> int:
                 observer=observer, should_stop=should_stop, repeat=args.repeat if ai else 1,
                 sample=args.sample, progress=progress,
             )
-        else:
+        elif args.suite == "generate":
             from evals.metrics.generate import summarize
             from evals.report import generate_table as table
             from evals.runners import generate
@@ -362,6 +371,16 @@ def _run(args: argparse.Namespace) -> int:
                 selected, manifest, BUILD_DIR, ai=ai, cache=cache, observer=observer,
                 grader=grader, should_stop=should_stop, repeat=args.repeat if ai else 1,
                 sample=args.sample, progress=progress,
+            )
+        else:
+            from evals.metrics.analyze import summarize
+            from evals.report import analyze_table as table
+            from evals.runners import analyze
+
+            outcome = analyze.run(
+                selected, manifest, BUILD_DIR, ai=ai, cache=cache, observer=observer,
+                should_stop=should_stop, repeat=args.repeat if ai else 1, sample=args.sample,
+                progress=progress,
             )
         result = result_document(
             suite=args.suite, config=config, ai=description, manifest=manifest,
@@ -372,6 +391,8 @@ def _run(args: argparse.Namespace) -> int:
         meta = result["meta"]
         meta["corpus"] = corpus
         meta["stopped"] = outcome["stopped"]
+        if args.suite == "analyze":
+            meta["analyze_hash"] = manifest["analyze"]["analyze_hash"]
         if args.suite == "generate":
             from evals.corpus.notes import load_notes, notes_hash
 

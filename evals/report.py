@@ -305,3 +305,76 @@ def generate_table(result: dict[str, Any]) -> str:
                          f" · values agree {_rate(stable['value_agreement'])} over "
                          f"{stable['cases']} cases × {stable['runs_per_case']} runs")
     return "\n".join(lines)
+
+
+def _f1(r: dict[str, Any] | None) -> str:
+    if not r or r["value"] is None:
+        return "—"
+    return f"{r['value']:.2f} (tp {r['tp']} fp {r['fp']} fn {r['fn']})"
+
+
+def analyze_table(result: dict[str, Any]) -> str:
+    """The console summary of an analyze run: quality by number of examples, then the rest."""
+    meta, agg = result["meta"], result["aggregates"]
+    lines = [
+        f"DocForge evals · analyze · {meta['config']} · {meta['cases']} templates · "
+        f"{len(meta['types'])} types · {meta['seconds']} s",
+        "",
+        f"{'examples':9}{'field F1':>27}{'boilerplate kept':>20}{'types right':>16}"
+        f"{'tables':>14}{'layout kept':>14}",
+    ]
+    for k, row in agg["by_k"].items():
+        if not row["cases"]:
+            continue
+        lines.append(f"{k:9}{_f1(row['field_f1']):>27}{_rate(row['boilerplate_kept']):>20}"
+                     f"{_rate(row['type_accuracy']):>16}{_rate(row['tables_detected']):>14}"
+                     f"{_rate(row['layout_preserved']):>14}")
+    pooled = agg["all_examples"]
+    blocks = " | ".join(f"{k}: " + (" · ".join(f"{o} {n}" for o, n in row["info_tables"].items())
+                                    or "—")
+                        for k, row in agg["by_k"].items() if row["cases"])
+    lines += [
+        "",
+        f"information blocks by examples  {blocks}",
+        "types right by kind             " + " · ".join(
+            f"{kind} {_rate(r)}" for kind, r in pooled["types_by_kind"].items()),
+        "types right by language         " + " · ".join(
+            f"{lang} {_rate(r)}" for lang, r in pooled["types_by_lang"].items()),
+        f"page numbers as auto fields     {_rate(pooled['auto_fields'])}",
+    ]
+    shared = agg.get("shared")
+    if shared:
+        missed = ", ".join(shared["missed"]) or "none"
+        lines.append(f"shared value still a field      {_rate(shared['shared_field_found'])}"
+                     f"   missed: {missed}")
+    lines += [
+        "classified by                   " + " · ".join(
+            f"{k} {v}" for k, v in agg["sources"].items()),
+        f"analyze latency                 p50 {_num(agg['analyze_ms_p50'], 0, ' ms')}"
+        f" · p95 {_num(agg['analyze_ms_p95'], 0, ' ms')}",
+        f"errors                          {_rate(agg['error_rate'])}",
+    ]
+    ai = agg.get("ai")
+    if ai:
+        cost = ai["cost_usd"]
+        unpriced = cost["unpriced_calls"] and not cost["total"]
+        failures = " · ".join(f"{kind} {_rate(r)}" for kind, r in ai["ai_call_failures"].items())
+        lines += [
+            "",
+            f"AI: {meta['ai'].get('model')} on {meta['ai'].get('host')}",
+            "  cost " + (f"$0 (no price for this model: {cost['unpriced_calls']} unpriced calls)"
+                         if unpriced else
+                         f"total {_usd(cost['total'])} (live {_usd(cost['live'])}, replayed "
+                         f"{_usd(cost['replayed'])}) · per analysis "
+                         f"{_usd(cost['per_analysis'])}"),
+            f"  fell back to the heuristic {_rate(ai['fallback_rate'])}",
+            f"  cache hit rate {_num(meta.get('cache_hit_rate'))}",
+            f"  failed AI calls by kind: {failures or '—'}",
+        ]
+        stable = ai.get("stability")
+        if stable:
+            lines.append(f"  stability: element outcomes agree "
+                         f"{_rate(stable['outcome_agreement'])} over {stable['cases']} cases × "
+                         f"{stable['runs_per_case']} runs")
+    return "\n".join(lines)
+

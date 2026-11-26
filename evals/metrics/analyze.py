@@ -160,11 +160,12 @@ def template_layout(truth: list[dict[str, Any]], source: list[tuple], template: 
                     outcomes: dict[str, dict[str, Any]]) -> list[str]:
     """What the published template lost of the representative's layout; empty when nothing.
 
-    ``source`` and ``template`` are skeletons (``evals.corpus.ground_truth.skeleton``). This
-    checks the template builder, not the classification: every block comes back in order with
-    its style; a block the analysis kept fixed keeps its exact text; a labelled field keeps its
-    label; a table keeps its column count and its first row. Extra paragraphs (the template's
-    ``{%p … %}`` markers) are allowed anywhere.
+    ``source`` and ``template`` are skeletons (``evals.corpus.ground_truth.skeleton``), and the
+    approach follows DocForge's own ``test_template_keeps_its_layout.py``. Every block comes back
+    in order with its style; a block the analysis kept fixed keeps its exact text; a labelled
+    field keeps its label; a table keeps its column count and its first row; and every row of
+    an information block survives, its label in place (a loop keeps only the first). Extra
+    paragraphs and rows (the template's ``{%p … %}`` and ``{%tr … %}`` markers) are allowed.
     """
     body = [item for item in template if item[0] == "body"]
     original = [item for item in source if item[0] == "body"]
@@ -195,9 +196,20 @@ def template_layout(truth: list[dict[str, Any]], source: list[tuple], template: 
         found = next((i for i in range(position, len(body)) if wanted(body[i])), None)
         if found is None:
             problems.append(f"{element['id']}: missing or out of order")
-        else:
-            position = found + 1
+            continue
+        position = found + 1
+        if element["kind"] == "info_table":
+            labels = [row[0] for row in element["rows"]]
+            kept = [row[0] for row in body[found][2]]
+            if not _in_order(labels, kept):
+                problems.append(f"{element['id']}: rows lost")
     return problems
+
+
+def _in_order(wanted: list[str], seen: list[str]) -> bool:
+    """Whether every item of ``wanted`` appears in ``seen``, in the same order."""
+    rest = iter(seen)
+    return all(any(item == other for other in rest) for item in wanted)
 
 
 # --- aggregates --------------------------------------------------------------------------
@@ -344,6 +356,7 @@ def summarize(records: Iterable[dict[str, Any]],
     return {
         "cases": len(records),
         "by_k": {str(k): quality([r for r in examples if r["k"] == k]) for k in KS},
+        "all_examples": quality(examples),
         "shared": shared_metrics(shared) if shared else None,
         "by_pair": by_pair(examples),
         "sources": dict(sorted(Counter(r.get("source") or "none" for r in ok).items())),
