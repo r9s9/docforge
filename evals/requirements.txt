@@ -1,0 +1,4 @@
+# Packages the eval suite needs on top of the DocForge backend.
+# Install the backend first, unchanged:   pip install -e backend
+# Then:                                   pip install -r evals/requirements.txt
+pyyaml>=6

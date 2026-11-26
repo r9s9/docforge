@@ -1,0 +1,4 @@
+# Built .docx files: rebuilt by `python -m evals corpus build`.
+corpus/build/
+# Cached model responses (M2). May hold large bodies; never committed.
+cache/

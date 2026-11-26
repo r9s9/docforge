@@ -1,0 +1,11 @@
+# Lint settings for the eval code. Run from the repo root:
+#   ruff check --config evals/ruff.toml evals tests/evals
+# Same rule set as the backend, but line length is enforced (E501 on) at 100.
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+
+[lint.isort]
+known-first-party = ["evals", "docforge"]
