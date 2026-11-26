@@ -179,13 +179,78 @@ def _generate_rows(agreement: dict[str, Any] | None) -> list[tuple[str, Callable
     ]
 
 
+def _by_k(result: dict[str, Any], k: str, key: str) -> Any:
+    return result["aggregates"]["by_k"][k][key]
+
+
+def _f1(r: dict[str, Any] | None) -> str:
+    if not r or r.get("value") is None:
+        return "n/a"
+    return f"{r['value']:.2f} (tp {r['tp']} · fp {r['fp']} · fn {r['fn']})"
+
+
+def _blocks(counts: dict[str, int]) -> str:
+    return " · ".join(f"{outcome} {n}" for outcome, n in counts.items()) or "n/a"
+
+
+def _analyze_sources(result: dict[str, Any]) -> str:
+    return " · ".join(f"{k} {v}" for k, v in result["aggregates"]["sources"].items()) or "n/a"
+
+
+def _shared(result: dict[str, Any]) -> str:
+    shared = result["aggregates"].get("shared")
+    return _rate(shared["shared_field_found"]) if shared else "n/a"
+
+
+def _pooled_type(result: dict[str, Any], group: str, key: str) -> str:
+    return _rate(result["aggregates"]["all_examples"][group].get(key))
+
+
+def _analyze_rows() -> list[tuple[str, Callable]]:
+    ks = (("1", "1 example"), ("2", "2 examples"), ("3", "3 examples"), ("5", "5 examples"))
+    per_k = (
+        ("field F1", lambda r, k: _f1(_by_k(r, k, "field_f1"))),
+        ("boilerplate kept", lambda r, k: _rate(_by_k(r, k, "boilerplate_kept"))),
+        ("field types right", lambda r, k: _rate(_by_k(r, k, "type_accuracy"))),
+        ("tables detected", lambda r, k: _rate(_by_k(r, k, "tables_detected"))),
+        ("information blocks", lambda r, k: _blocks(_by_k(r, k, "info_tables"))),
+        ("layout kept", lambda r, k: _rate(_by_k(r, k, "layout_preserved"))),
+    )
+    rows: list[tuple[str, Callable]] = [
+        (f"{name}, {label}", lambda r, k=k, render=render: render(r, k))
+        for name, render in per_k for k, label in ks
+    ]
+    return rows + [
+        ("shared value still a field (2 examples)", _shared),
+        ("amounts typed as numbers", lambda r: _pooled_type(r, "types_by_kind", "money")),
+        ("people typed as person", lambda r: _pooled_type(r, "types_by_kind", "person")),
+        ("field types right, German", lambda r: _pooled_type(r, "types_by_lang", "de")),
+        ("page numbers as auto fields",
+         lambda r: _rate(r["aggregates"]["all_examples"]["auto_fields"])),
+        ("classified by", _analyze_sources),
+        ("fell back to the heuristic",
+         lambda r: _rate(_ai(r)["fallback_rate"]) if _ai(r) else "n/a"),
+        ("stable across repeats",
+         lambda r: _rate((_ai(r)["stability"] or {}).get("outcome_agreement"))
+         if _ai(r) else "n/a"),
+        ("cost per analysis", lambda r: _cost(r, "per_analysis")),
+        ("total cost, repeats included", _total),
+        ("analyze latency p50 / p95",
+         lambda r: f"{_num(_gen(r, 'analyze_ms_p50'))} / {_num(_gen(r, 'analyze_ms_p95'))} ms"),
+        ("errors", lambda r: _rate(r["aggregates"]["error_rate"])),
+        ("run on", _machine),
+    ]
+
+
 def rows_for(results: list[dict[str, Any]],
              agreement: dict[str, Any] | None = None) -> list[tuple[str, Callable]]:
     """The table's rows for the results' suite."""
     suites = {r["meta"].get("suite", "comply") for r in results}
     if len(suites) > 1:
         raise ValueError(f"results of different suites can't be compared: {sorted(suites)}")
-    return _generate_rows(agreement) if suites == {"generate"} else ROWS
+    if suites == {"generate"}:
+        return _generate_rows(agreement)
+    return _analyze_rows() if suites == {"analyze"} else ROWS
 
 
 def _column_name(result: dict[str, Any]) -> str:
@@ -206,6 +271,10 @@ def corpus_note(results: list[dict[str, Any]]) -> str:
     if len(notes) > 1:
         return ("WARNING: these results were run on different notes cases; the cases are not "
                 "the same.")
+    analyze = {r["meta"].get("analyze_hash") for r in results}
+    if len(analyze) > 1:
+        return ("WARNING: these results were run on different analyze documents; the cases are "
+                "not the same.")
     if rebuilt:
         note += (f" {', '.join(rebuilt)} rebuilt the files locally with other library versions "
                  "(same ground truth and labels).")
@@ -274,16 +343,36 @@ def outcome_changes(base: dict[str, Any], other: dict[str, Any]) -> dict[str, li
     return dict(sorted(changes.items()))
 
 
+def element_changes(base: dict[str, Any], other: dict[str, Any]) -> dict[str, list[str]]:
+    """Analyze: the elements whose outcome differs between two results, by change."""
+    before = {c["id"]: c for c in base["cases"] if not c.get("error")}
+    changes: dict[str, list[str]] = defaultdict(list)
+    for case in other["cases"]:
+        old = before.get(case["id"])
+        if old is None or case.get("error"):
+            continue
+        for logical, outcome in (case.get("outcomes") or {}).items():
+            previous = (old.get("outcomes") or {}).get(logical)
+            if previous and previous["outcome"] != outcome["outcome"]:
+                changes[f"{previous['kind']} {previous['outcome']} → {outcome['outcome']}"].append(
+                    f"{case['id']} {logical}")
+    return dict(sorted(changes.items()))
+
+
 def report(results: list[dict[str, Any]], *, markdown: bool = False, show: int = 8,
            agreement: dict[str, Any] | None = None) -> str:
     """The whole comparison: corpus note, table, and what changed."""
-    generate = results[0]["meta"].get("suite") == "generate"
+    suite = results[0]["meta"].get("suite", "comply")
     lines = [corpus_note(results), "",
-             table(results, markdown=markdown, agreement=agreement if generate else None)]
+             table(results, markdown=markdown,
+                   agreement=agreement if suite == "generate" else None)]
     base = results[0]
+    changed, what = {
+        "generate": (outcome_changes, "Field outcome changes"),
+        "analyze": (element_changes, "Element outcome changes"),
+    }.get(suite, (flips, "Alarm changes"))
     for other in results[1:]:
-        changes = outcome_changes(base, other) if generate else flips(base, other)
-        what = "Field outcome changes" if generate else "Alarm changes"
+        changes = changed(base, other)
         lines += ["", f"{what}, {_column_name(base)} → {_column_name(other)}:"]
         if not changes:
             lines.append("  none")

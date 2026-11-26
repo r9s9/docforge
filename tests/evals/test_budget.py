@@ -114,3 +114,17 @@ def test_a_local_model_shows_no_price_even_with_an_earlier_result():
     text = cli._dry_run_text({"name": "local"}, ai, [{"id": "a", "pair": "nda_en"}], plan)
     assert "estimated cost            $0 (a local model has no price)" in text
     assert "$0.0000" not in text
+
+
+def test_cost_per_case_for_analyze_counts_every_analysis_that_called_a_model():
+    from evals.budget import cost_per_case
+
+    prior = {"cases": [
+        {"id": "invoice_en/k1", "ai": True, "error": None,
+         "spend_usd": {"live": 0.003, "replayed": 0.001}},
+        {"id": "invoice_en/k2", "ai": True, "error": None,
+         "spend_usd": {"live": 0.0, "replayed": 0.006}},
+        {"id": "invoice_en/k3", "ai": True, "error": "LLMError: boom", "spend_usd": None},
+    ]}
+    assert cost_per_case(prior, "analyze") == pytest.approx(0.005)  # (0.004 + 0.006) / 2
+    assert cost_per_case(None, "analyze") is None

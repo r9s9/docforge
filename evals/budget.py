@@ -64,7 +64,8 @@ def cost_per_case(prior: dict[str, Any] | None, suite: str) -> float | None:
     """Mean cost of one model-calling case in an earlier run of a suite, grading included.
 
     Comply counts the cases the judge saw. Generate counts every case that called a model:
-    all of them with AI on, and the graded ones with AI off.
+    all of them with AI on, and the graded ones with AI off. Analyze counts every analysis,
+    since with AI on each one calls the model.
     """
     if prior is None:
         return None

@@ -263,3 +263,42 @@ def test_results_of_different_suites_or_notes_are_flagged():
     other_notes = _generated("haiku", {"a": "correct"}, notes="m" * 64)
     assert compare.corpus_note([generated, other_notes]).startswith(
         "WARNING: these results were run on different notes cases")
+
+
+def _analyzed(config, clause_outcome, *, k=1, analyze="a" * 64):
+    from evals.metrics.analyze import summarize as summarize_analyze
+
+    records = [{
+        "id": f"invoice_en/k{k}", "pair": "invoice_en", "lang": "en", "k": k,
+        "group": "examples", "ai": False, "error": None, "analyze_ms": 80.0,
+        "source": "heuristic", "layout": {"preserved": True},
+        "outcomes": {
+            "clause.payment": {"kind": "fixed", "outcome": clause_outcome},
+            "field.total": {"kind": "field", "field_type": "money", "outcome": "found",
+                            "type_ok": True},
+        },
+    }]
+    return {"meta": {"config": config, "suite": "analyze", "corpus_hash": CORPUS,
+                     "analyze_hash": analyze, "ai": {"enabled": False}},
+            "aggregates": summarize_analyze(records), "cases": records}
+
+
+def test_analyze_results_get_a_row_per_metric_and_number_of_examples():
+    before = _analyzed("no-ai", "became_field")
+    after = _analyzed("haiku", "kept")
+    _header, rows = markdown_rows([before, after])
+    assert rows["field F1, 1 example"] == ["0.67 (tp 1 · fp 1 · fn 0)",
+                                           "1.00 (tp 1 · fp 0 · fn 0)"]
+    assert rows["boilerplate kept, 1 example"] == ["0.00 (0/1)", "1.00 (1/1)"]
+    assert rows["field F1, 2 examples"] == ["n/a", "n/a"]  # no case with 2 examples
+    assert rows["amounts typed as numbers"] == ["1.00 (1/1)", "1.00 (1/1)"]
+    assert rows["classified by"] == ["heuristic 1", "heuristic 1"]
+    assert compare.element_changes(before, after) == {
+        "fixed became_field → kept": ["invoice_en/k1 clause.payment"]}
+    assert "Element outcome changes, no-ai → haiku:" in compare.report([before, after])
+
+
+def test_analyze_results_on_different_documents_are_flagged():
+    note = compare.corpus_note([_analyzed("no-ai", "kept"),
+                                _analyzed("haiku", "kept", analyze="b" * 64)])
+    assert note.startswith("WARNING: these results were run on different analyze documents")
