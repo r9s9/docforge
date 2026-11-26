@@ -237,7 +237,11 @@ def same_cell(kind: str, actual: Any, expected: Any) -> bool:
 
 
 def appears_in(kind: str, value: Any, notes: str) -> bool:
-    """Whether the notes support a value: as text, or as an equal date or amount."""
+    """Whether the notes support a value: as text, or as an equal date or amount.
+
+    Text appears in one piece; a value of four or more words may also be put together from
+    words that are all in the notes.
+    """
     if is_empty(value):
         return False
     if kind == "date":
@@ -254,9 +258,12 @@ def appears_in(kind: str, value: Any, notes: str) -> bool:
     if not text:
         return False
     haystack = f" {norm_text(notes)} "
-    return f" {text} " in haystack or (
-        kind == "text" and f" {_without_legal_form(text)} " in haystack
-    )
+    if f" {text} " in haystack or (kind == "text" and f" {_without_legal_form(text)} " in haystack):
+        return True
+    # A longer value put together from several places in the notes (lines a router joined)
+    # states nothing new. A short one, such as an ID, must appear in one piece.
+    words = text.split()
+    return len(words) >= 4 and set(words) <= set(haystack.split())
 
 
 def appears_in_cell(kind: str, value: Any, notes: str) -> bool:

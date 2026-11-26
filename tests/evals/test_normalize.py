@@ -120,3 +120,11 @@ def test_appears_in_the_notes():
     assert appears_in("names", "Clara Haverkamp, Mira Ostwald", notes)
     assert not appears_in("names", "Clara Haverkamp, Ines Tamura", notes)
     assert not appears_in("text", "", notes)
+
+
+def test_a_longer_value_put_together_from_the_notes_is_in_the_notes():
+    notes = "Kunde: Calvenna Health Partners Ltd\nStart: 6. April 2026\nPreise / fees: on request"
+    joined = "Kunde: Calvenna Health Partners Ltd Preise / fees: on request"  # line 2 left out
+    assert appears_in("text", joined, notes)
+    assert not appears_in("text", "Kunde: Calvenna Health Partners Ltd pays monthly", notes)
+    assert not appears_in("text", "Calvenna Partners", notes)  # short: must be in one piece
