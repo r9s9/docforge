@@ -57,7 +57,8 @@ def test_amounts_in_prose_but_not_inside_dates():
 
 def test_quantities():
     assert parse_number("3") == 3.0 and parse_number("2,5") == 2.5
-    assert parse_number("3 days") is None
+    assert parse_number("11 Stunden") == 11.0 and parse_number("3 days") == 3.0  # one unit word
+    assert parse_number("3 days and 2 hours") is None
 
 
 def test_text_ignores_case_punctuation_spacing_and_a_trailing_legal_form():
@@ -128,3 +129,10 @@ def test_a_longer_value_put_together_from_the_notes_is_in_the_notes():
     assert appears_in("text", joined, notes)
     assert not appears_in("text", "Kunde: Calvenna Health Partners Ltd pays monthly", notes)
     assert not appears_in("text", "Calvenna Partners", notes)  # short: must be in one piece
+
+
+def test_a_role_in_brackets_is_not_part_of_a_name():
+    written = "Anika Brandauer (chair), Samuel Rinaldi (minute taker), Lukas Novak"
+    assert split_names(written) == {"anika brandauer", "samuel rinaldi", "lukas novak"}
+    notes = "Anika Brandauer chaired, Samuel Rinaldi took the minutes, and Lukas Novak joined."
+    assert appears_in("names", written, notes)

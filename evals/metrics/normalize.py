@@ -183,8 +183,8 @@ def parse_money(value: Any) -> int | None:
 
 
 def parse_number(value: Any) -> float | None:
-    """A quantity such as ``3``, ``2,5`` or ``12.0``."""
-    match = re.fullmatch(r"\s*(\d+)(?:[.,](\d+))?\s*", _base(value))
+    """A quantity such as ``3``, ``2,5`` or ``12.0``, also with one unit word (``11 Stunden``)."""
+    match = re.fullmatch(r"\s*(\d+)(?:[.,](\d+))?(?:\s*[^\W\d_]+\.?)?\s*", _base(value))
     if not match:
         return None
     return float(f"{match.group(1)}.{match.group(2) or 0}")
@@ -196,8 +196,12 @@ def norm_name(value: Any) -> str:
 
 
 def split_names(value: Any) -> set[str]:
-    """The people in a list such as ``A, B and C`` or ``A; B und C``."""
-    parts = re.split(r",|;|\n|&|\band\b|\bund\b|\bsowie\b", _base(value))
+    """The people in a list such as ``A, B and C`` or ``A; B und C``.
+
+    A note in brackets is a role, not part of the name: ``Anika Brandauer (chair)``.
+    """
+    text = re.sub(r"\([^)]*\)", " ", _base(value))
+    parts = re.split(r",|;|\n|&|\band\b|\bund\b|\bsowie\b", text)
     return {name for part in parts if (name := norm_name(part))}
 
 

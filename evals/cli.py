@@ -58,6 +58,9 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("results", nargs="*", type=Path,
                        help="generate result files (default: the newest of each config)")
 
+    rescore = sub.add_parser("rescore", help="recompute generate outcomes with today's metrics")
+    rescore.add_argument("results", nargs="+", type=Path, help="generate result files")
+
     compare = sub.add_parser("compare", help="compare result files side by side")
     compare.add_argument("results", nargs="+", type=Path, help="two or more result files")
     compare.add_argument("--markdown", action="store_true", help="print a Markdown table")
@@ -414,6 +417,24 @@ def _compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def _rescore(args: argparse.Namespace) -> int:
+    from evals import jsonfmt
+    from evals.compare import load
+    from evals.report import git_state
+    from evals.rescore import RescoreError, rescore
+
+    git = git_state()
+    for path in args.results:
+        try:
+            result = rescore(load(path), git)
+        except RescoreError as exc:
+            print(f"{path}: {exc}", file=sys.stderr)
+            return 2
+        Path(path).write_text(jsonfmt.dumps(result) + "\n", encoding="utf-8", newline="\n")
+        print(f"{path}: {result['meta']['rescored'][-1]['outcomes_changed']} outcomes changed")
+    return 0
+
+
 def _newest_generate_results() -> list[Path]:
     from evals.paths import RESULTS_DIR
 
@@ -478,4 +499,6 @@ def main(argv: list[str] | None = None) -> int:
         return _compare(args)
     if args.command == "labels":
         return _labels(args)
+    if args.command == "rescore":
+        return _rescore(args)
     return 2

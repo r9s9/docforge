@@ -135,6 +135,8 @@ class Grader:
                     "spend_usd": spend}
         return {
             "status": "graded",
+            # The model's own yes/no, kept so the rule below can be re-checked without regrading.
+            "verdict": {"faithful": verdict.faithful, "complete": verdict.complete},
             "faithful": verdict.faithful and not verdict.unsupported_claims,
             "unsupported_claims": verdict.unsupported_claims,
             "complete": (verdict.complete and not verdict.missing_points) if points else None,
