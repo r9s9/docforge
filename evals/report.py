@@ -17,24 +17,48 @@ from typing import Any
 from evals import jsonfmt
 from evals.paths import REPO_ROOT
 
+# What a run executes or reads. A change anywhere else (an editor's settings, a note file)
+# can't change a result. evals/results is left out of the status check altogether.
+RUN_CODE = ("backend/", "evals/")
+
 
 def git_state(repo: Path = REPO_ROOT) -> dict[str, Any]:
-    """The commit a run was made from, and whether the working tree had changes.
+    """The commit a run was made from, and what in the working tree differed from it.
 
-    Result files don't count as changes: a second run before the first one's result is committed
-    still ran the committed code.
+    - ``dirty``: any uncommitted change. Result files don't count: a second run before the first
+      one's result is committed still ran the committed code.
+    - ``dirty_code``: a change under ``backend/`` or ``evals/``, which a run executes or reads.
+    - ``changed_files``: the tracked files that differ. Untracked files are only counted
+      (``untracked_files``): their names are the owner's business, and result files are public.
     """
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
         ).stdout.strip()
         status = subprocess.run(
-            ["git", "status", "--porcelain", "--", ".", ":(exclude)evals/results"],
-            cwd=repo, capture_output=True, text=True, check=True,
-        ).stdout
+            ["git", "status", "--porcelain", "-z", "--", ".", ":(exclude)evals/results"],
+            cwd=repo, capture_output=True, check=True,
+        ).stdout.decode("utf-8", errors="replace")
     except (OSError, subprocess.CalledProcessError):
-        return {"git_sha": None, "dirty": None}
-    return {"git_sha": sha, "dirty": bool(status.strip())}
+        return {"git_sha": None, "dirty": None, "dirty_code": None, "changed_files": None,
+                "untracked_files": None}
+    tracked: list[str] = []
+    untracked: list[str] = []
+    entries = iter(status.split("\0"))
+    for entry in entries:
+        if not entry:
+            continue
+        code, path = entry[:2], entry[3:]
+        if code[0] in "RC":
+            next(entries, None)  # a rename or copy is followed by its original path
+        (untracked if code == "??" else tracked).append(path)
+    return {
+        "git_sha": sha,
+        "dirty": bool(tracked or untracked),
+        "dirty_code": any(path.startswith(RUN_CODE) for path in tracked + untracked),
+        "changed_files": sorted(tracked),
+        "untracked_files": len(untracked),
+    }
 
 
 def library_versions() -> dict[str, str | None]:

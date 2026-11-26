@@ -204,6 +204,9 @@ def _run(args: argparse.Namespace) -> int:
     from evals.report import git_state
 
     git = git_state()  # before anything is written
+    if git["dirty_code"]:
+        print(f"Note: backend/ or evals/ has uncommitted changes, so this result won't match "
+              f"commit {git['git_sha'][:7]} exactly.", file=sys.stderr)
     sandbox = prepare(keep=args.keep_sandbox)
     cache = observer = None
     try:

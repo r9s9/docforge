@@ -21,19 +21,38 @@ def test_library_versions_name_the_corpus_and_client_libraries():
     assert versions["python-docx"]
 
 
-def test_a_result_file_does_not_make_the_tree_dirty_but_a_code_change_does(tmp_path):
+def test_the_git_state_says_which_files_changed_and_whether_run_code_did(tmp_path):
     def git(*args):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
 
+    def write(path, text):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(text, encoding="utf-8")
+
     git("init", "-q")
-    (tmp_path / "evals" / "results").mkdir(parents=True)
-    (tmp_path / "evals" / "harness.py").write_text("x = 1\n", encoding="utf-8")
+    write("evals/harness.py", "x = 1\n")
+    write(".claude/launch.json", "{}\n")
     git("add", ".")
     git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", "c")
 
-    (tmp_path / "evals" / "results" / "2026-11-26_local_comply.json").write_text("{}\n")
+    write("evals/results/2026-11-26_local_comply.json", "{}\n")  # a result: not a change
     state = git_state(tmp_path)
-    assert state["dirty"] is False and len(state["git_sha"]) == 40
+    assert len(state["git_sha"]) == 40
+    assert (state["dirty"], state["dirty_code"], state["changed_files"],
+            state["untracked_files"]) == (False, False, [], 0)
 
-    (tmp_path / "evals" / "harness.py").write_text("x = 2\n", encoding="utf-8")
-    assert git_state(tmp_path)["dirty"] is True
+    # What the owner's PC had during M2: an editor setting and a note file. Not run code.
+    write(".claude/launch.json", '{"edited": true}\n')
+    write("my notes.txt", "private\n")
+    state = git_state(tmp_path)
+    assert (state["dirty"], state["dirty_code"], state["changed_files"],
+            state["untracked_files"]) == (True, False, [".claude/launch.json"], 1)
+    assert "my notes.txt" not in str(state)  # untracked names are never recorded
+
+    write("evals/harness.py", "x = 2\n")
+    state = git_state(tmp_path)
+    assert state["dirty_code"] is True
+    assert state["changed_files"] == [".claude/launch.json", "evals/harness.py"]
+
+    git("mv", "evals/harness.py", "evals/sandbox.py")  # a rename lists the new path only
+    assert git_state(tmp_path)["changed_files"] == [".claude/launch.json", "evals/sandbox.py"]

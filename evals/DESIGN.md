@@ -735,9 +735,16 @@ few cents for the run. Even if all 102 calls used the full 16,000 output tokens 
 (§1.2 #18), the run would cost about $0.83, under the $1.00 cap. Costs in results are
 DocForge's own estimates from `ai/pricing.py`, not the Anthropic invoice.
 
-**Same code, clean tree.** A result records the git SHA and whether the code had uncommitted
-changes. Result files don't count as changes, so the second run of the evening is still "clean"
-before the first one's result is committed.
+**Same code, clean tree.** A result records the git SHA and what in the working tree differed
+from it:
+- `dirty`: any uncommitted change
+- `dirty_code`: a change under `backend/` or `evals/`, which a run executes or reads
+- `changed_files`: the tracked files that differ
+- `untracked_files`: a count only, because untracked names are the owner's business and result
+  files are public
+
+Result files never count as changes, so a second run before the first one's result is committed
+is still clean.
 
 ## 7. Results, report, compare
 

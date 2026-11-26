@@ -304,10 +304,16 @@ Every rate shows its counts, as in `0.61 (62/102)`.
 
 ## What a result file holds
 
-Every result file records the git SHA (and whether the code had uncommitted changes; result
-files don't count), DocForge's version, the config, the corpus hash and every case's record. Any
-number can therefore be traced and reproduced. Numbers are only ever written by a run, never by
-hand.
+Every result file records the git SHA, DocForge's version, the config, the corpus hash and every
+case's record. Any number can therefore be traced and reproduced. Numbers are only ever written
+by a run, never by hand.
+
+It also records what in your working tree differed from that commit. Result files never count.
+- `dirty`: any uncommitted change.
+- `dirty_code`: a change under `backend/` or `evals/`, which a run executes or reads. When it's
+  `true`, the run says so before it starts, and the result doesn't match the commit exactly.
+- `changed_files`: the tracked files that differ, such as a locally edited editor setting.
+- `untracked_files`: how many untracked files there were. Their names are never recorded.
 
 AI runs also record:
 - the model and host, the efforts, and whether the temperature was sent at all
