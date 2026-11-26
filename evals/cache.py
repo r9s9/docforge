@@ -126,6 +126,22 @@ class ResponseCache:
         """Whether this thread's most recent model call went to the network."""
         return getattr(self._local, "live", True)
 
+    # --- cases completed in the cache ------------------------------------------------------
+
+    def _marker(self, case_id: str, repeat: int) -> Path:
+        name = hashlib.sha256(f"{case_id}\0{repeat}".encode()).hexdigest()
+        return self.dir / "cases" / f"{name}.done"
+
+    def mark_complete(self, case_id: str, repeat: int = 0) -> None:
+        """Note that every call of a case is in the cache (the runner calls this)."""
+        marker = self._marker(case_id, repeat)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(f"{case_id}\n{repeat}\n", encoding="utf-8")
+
+    def is_complete(self, case_id: str, repeat: int = 0) -> bool:
+        """Whether a case ran to the end with this cache (its replay will cost nothing)."""
+        return self._marker(case_id, repeat).exists()
+
     # --- the mechanism -------------------------------------------------------------------
 
     def key(self, request) -> str:
