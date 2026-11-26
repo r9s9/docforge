@@ -163,3 +163,116 @@ def test_a_mutator_with_mixed_materiality_gets_one_row_per_materiality():
         (False, 1, 94.0),
         (True, 1, 90.0),
     ]
+
+
+# --- AI modes --------------------------------------------------------------------------------
+
+from evals.metrics.comply import (  # noqa: E402
+    ai_call_failures,
+    cost_summary,
+    judge_matrix,
+    material_alarms_kept,
+    semantic_score,
+    stability,
+)
+
+
+def judged(mutator, *, material, targets=(), diffs=(), status="ran", semantic=None,
+           spend=None, calls=(), case_id="x"):
+    """A record from an AI run: diffs are (kind, severity, logical_id, verdict material|None)."""
+    r = record(mutator, material=material, targets=targets)
+    r["id"] = case_id
+    r["differences"] = [
+        {"kind": k, "severity": s, "logical_id": lid,
+         **({"verdict": {"material": v, "severity": s}} if v is not None else {})}
+        for k, s, lid, v in diffs
+    ]
+    r["judge"] = {"status": status}
+    r["dimensions"] = {"semantic": semantic} if semantic is not None else {}
+    r["spend_usd"] = spend or {"live": 0.0, "replayed": 0.0, "unpriced_calls": 0}
+    r["ai_calls"] = [{"kind": kind, "outcome": outcome} for kind, outcome in calls]
+    return r
+
+
+def test_judge_matrix_scores_verdicts_against_the_deviation_labels():
+    records = [
+        # material deviation called material: TP; a spurious difference called benign: TN
+        judged("change_liability_cap", material=True, targets=("c",),
+               diffs=(("changed_fixed", "error", "c", True),
+                      ("missing_fixed", "info", "z", False))),
+        # benign change called material: FP
+        judged("heading_caps", material=False, targets=("h",),
+               diffs=(("changed_fixed", "error", "h", True),)),
+        # material deviation called benign: FN; one difference never judged
+        judged("delete_clause", material=True, targets=("d",),
+               diffs=(("missing_fixed", "info", "d", False),
+                      ("missing_fixed", "error", "d", None))),
+        # judge failed: not counted
+        judged("delete_table", material=True, targets=("t",), status="failed",
+               diffs=(("missing_table", "error", "t", None),)),
+    ]
+    m = judge_matrix(records)
+    assert (m["tp"], m["fp"], m["fn"], m["tn"], m["not_judged"]) == (1, 1, 1, 1, 1)
+    assert m["precision"] == rate(1, 2) and m["recall"] == rate(1, 2)
+    assert m["accuracy"] == rate(2, 4)
+
+
+def test_semantic_score_is_100_with_nothing_to_judge_and_absent_when_the_judge_failed():
+    assert semantic_score(judged("x", material=False, semantic=50.0)) == 50.0
+    assert semantic_score(judged("none", material=False, status="not_needed")) == 100.0
+    assert semantic_score(judged("x", material=True, status="failed")) is None
+
+
+def test_material_alarms_kept_counts_downgrades_by_the_judge():
+    kept = judged("delete_clause", material=True, targets=("d",),
+                  diffs=(("missing_fixed", "error", "d", True),))
+    downgraded = judged("empty_field", material=True, targets=("f",),
+                        diffs=(("missing_field", "info", "f", False),))
+    missed = judged("remove_row", material=True, targets=("t",))
+    assert material_alarms_kept([kept, downgraded, missed]) == rate(1, 2)
+
+
+def test_cost_summary_per_document_and_per_judged_document():
+    records = [
+        judged("a", material=True, spend={"live": 0.002, "replayed": 0.0, "unpriced_calls": 0}),
+        judged("b", material=True, spend={"live": 0.0, "replayed": 0.004, "unpriced_calls": 0}),
+        judged("none", material=False, status="not_needed"),
+    ]
+    cost = cost_summary(records)
+    assert cost["total"] == pytest.approx(0.006) and cost["live"] == pytest.approx(0.002)
+    assert cost["per_document"] == pytest.approx(0.002)
+    assert cost["per_judged_document"] == pytest.approx(0.003)
+
+
+def test_ai_call_failures_by_kind():
+    records = [
+        judged("a", material=True, calls=(("LLMComplianceJudgement", "ok"),)),
+        judged("b", material=True, calls=(("LLMComplianceJudgement", "error"),)),
+    ]
+    assert ai_call_failures(records) == {"LLMComplianceJudgement": rate(1, 2)}
+
+
+def test_stability_compares_verdicts_and_semantic_scores_across_repeats():
+    base = judged("x", material=True, targets=("c",), semantic=50.0, case_id="case-1",
+                  diffs=(("changed_fixed", "error", "c", True),
+                         ("missing_fixed", "info", "z", False)))
+    repeats = [
+        {"id": "case-1", "repeat": 1, "error": None, "semantic": 50.0,
+         "verdicts": [{"material": True}, {"material": False}]},
+        {"id": "case-1", "repeat": 2, "error": None, "semantic": 100.0,
+         "verdicts": [{"material": False}, {"material": False}]},
+    ]
+    s = stability([base], repeats)
+    assert s["cases"] == 1 and s["runs_per_case"] == 3
+    assert s["verdict_agreement"] == rate(1, 2)  # difference 0 flipped once, 1 never did
+    assert s["semantic_spread_mean"] == 50.0
+    assert stability([base], []) is None
+
+
+def test_an_ai_run_has_no_fix_numbers_and_has_an_ai_section():
+    records = [judged("delete_clause", material=True, targets=("d",),
+                      diffs=(("missing_fixed", "error", "d", True),), semantic=0.0)]
+    records[0]["label"]["fixable"] = True
+    s = summarize(records)
+    assert s["fix_success"]["den"] == 0 and s["fix_success"]["value"] is None
+    assert s["ai"]["judge"]["tp"] == 1

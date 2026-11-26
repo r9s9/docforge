@@ -35,6 +35,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--out", type=Path, default=None, help="results directory")
     run.add_argument("--keep-sandbox", action="store_true", help="keep the temp directory")
     run.add_argument("--model", default=None, help="override the config's model id")
+    run.add_argument("--max-usd", type=float, default=None,
+                     help="spending cap in USD (default 3; a config's max_usd can only lower it)")
+    run.add_argument("--dry-run", action="store_true",
+                     help="check the setup and print the plan and estimate; call no model")
+    run.add_argument("--no-cache", action="store_true", help="always call the model live")
+    run.add_argument("--repeat", type=int, default=1,
+                     help="run a sample of judged cases this many times in total (stability)")
+    run.add_argument("--sample", type=int, default=10, help="how many cases --repeat re-runs")
+    run.add_argument("--cache-dir", type=Path, default=None, help="response cache directory")
     return parser
 
 
@@ -88,48 +97,171 @@ def _ensure_corpus() -> tuple[dict, dict]:
     return manifest, corpus
 
 
+def _money(value: float | None) -> str:
+    return "unknown" if value is None else f"${value:.4f}" if value < 0.1 else f"${value:.2f}"
+
+
+def _plan_budget(config: dict, args: argparse.Namespace, selected: list[dict], cache) -> dict:
+    """Cap, cases the judge will see, how many are cached, and the estimated cost."""
+    from evals import budget
+    from evals.paths import RESULTS_DIR
+
+    ids = {case["id"] for case in selected}
+    judged_all = budget.judged_case_ids(budget.latest_result(RESULTS_DIR, "no-ai", "comply"))
+    judged = judged_all & ids if judged_all is not None else None
+    cached = set() if args.no_cache else {c for c in (judged or ids) if cache.is_complete(c)}
+    per_case = budget.cost_per_judged_case(
+        budget.latest_result(RESULTS_DIR, config["name"], "comply")
+    )
+    return {
+        "cap_usd": budget.effective_cap(config, args.max_usd),
+        "judged_expected": len(judged) if judged is not None else None,
+        "cached": len(cached),
+        "cost_per_judged_case": per_case,
+        "estimate_usd": budget.estimate(judged, cached, per_case),
+    }
+
+
+def _dry_run_text(config: dict, ai: dict, selected: list[dict], plan: dict | None) -> str:
+    types = sorted({case["pair"] for case in selected})
+    lines = [f"Dry run: {config['name']} · comply — nothing is sent to a model."]
+    if ai.get("enabled"):
+        served = ai.get("served") or {}
+        detail = ", ".join(f"{k} {v}" for k, v in served.items() if k != "id")
+        lines.append(f"  model                     {ai['model']} on {ai['host']}"
+                     + (f" ({detail})" if detail else ""))
+        context = served.get("loaded_context_length") or served.get("max_context_length")
+        if context and int(context) < 16000:
+            lines.append(f"  WARNING                   context {context} tokens; load the model "
+                         "with at least 16k, or long judge prompts will fail")
+    else:
+        lines.append("  model                     none (AI off)")
+    lines.append(f"  cases to check            {len(selected)} ({len(types)} types)")
+    if plan:
+        judged = plan["judged_expected"]
+        lines.append("  cases the judge will see  "
+                     + (f"{judged} (from the no-AI result)" if judged is not None else "unknown"))
+        lines.append(f"  already in the cache      {plan['cached']}")
+        lines.append(f"  spending cap              {_money(plan['cap_usd'])}")
+        if plan["estimate_usd"] is not None:
+            lines.append(f"  estimated cost            {_money(plan['estimate_usd'])}")
+        elif ai.get("host", "").startswith(("127.0.0.1", "localhost")):
+            lines.append("  estimated cost            $0 (a local model has no price)")
+        else:
+            lines.append("  estimated cost            unknown: no earlier run of this config. The "
+                         "first 3 judged cases are a pilot; the run stops if they project past "
+                         "the cap.")
+    return "\n".join(lines)
+
+
+def _progress(record: dict, done: int, total: int) -> None:
+    status = (record.get("judge") or {}).get("status") or ""
+    seconds = (record.get("check_ms") or 0) / 1000
+    line = f"[{done:>3}/{total}] {record['id']:<56} {status:<10} {seconds:6.1f} s"
+    if record.get("error"):
+        line += f"  ERROR {record['error'][:70]}"
+    print(line, file=sys.stderr, flush=True)
+
+
 def _run(args: argparse.Namespace) -> int:
     import time
 
-    from evals.harness import ai_enabled, apply_config, load_config, prepare
-    from evals.paths import BUILD_DIR, RESULTS_DIR
+    from evals.corpus.build import select_cases
+    from evals.harness import ConfigError, ai_enabled, apply_config, load_config, prepare
+    from evals.paths import BUILD_DIR, CACHE_DIR, RESULTS_DIR
 
     if args.suite != "comply":
-        print(f"The {args.suite} suite arrives in M3/M4; only comply runs in M1.", file=sys.stderr)
+        print(f"The {args.suite} suite arrives in M3/M4; only comply runs so far.", file=sys.stderr)
         return 2
     config = load_config(args.config)
-    if ai_enabled(config):  # removed once the budget guard exists (M2, commit 3)
-        print("AI runs are not enabled yet: the budget guard arrives later in M2.", file=sys.stderr)
-        return 2
+    ai = ai_enabled(config)
     manifest, corpus = _ensure_corpus()
     if args.types:
         unknown = sorted(set(args.types) - set(manifest["types"]))
         if unknown:
             print(f"Unknown types: {', '.join(unknown)}", file=sys.stderr)
             return 2
+    selected = select_cases(manifest, args.types, args.limit)
 
     from evals.report import git_state
 
     git = git_state()  # before anything is written
     sandbox = prepare(keep=args.keep_sandbox)
+    cache = observer = None
     try:
-        ai = apply_config(config, model=args.model)
+        try:
+            description = apply_config(config, model=args.model)
+        except ConfigError as exc:
+            print(f"Can't start: {exc}", file=sys.stderr)
+            return 2
+        plan = None
+        if ai:
+            from evals.cache import ResponseCache
+
+            cache = ResponseCache(args.cache_dir or CACHE_DIR, config["name"],
+                                  refresh=args.no_cache)
+            plan = _plan_budget(config, args, selected, cache)
+        if args.dry_run:
+            print(_dry_run_text(config, description, selected, plan))
+            return 0
+        if plan and plan["estimate_usd"] is not None and plan["estimate_usd"] > plan["cap_usd"]:
+            print(f"Estimated {_money(plan['estimate_usd'])} is above the "
+                  f"{_money(plan['cap_usd'])} cap; not starting.", file=sys.stderr)
+            return 2
+
+        from evals import budget
         from evals.metrics.comply import summarize
+        from evals.observe import CallObserver
         from evals.report import comply_table, result_document, write_result
         from evals.runners import comply
 
+        should_stop = None
+        if ai:
+            cache.install()
+            observer = CallObserver(cache)
+            observer.install()
+            judged_total = plan["judged_expected"] or len(selected)
+
+            def should_stop(rows: list[dict]) -> str | None:
+                done = sum(1 for r in rows
+                           if (r.get("judge") or {}).get("status") in ("ran", "failed"))
+                return budget.stop_reason(observer.total_spend()["live"], plan["cap_usd"], done,
+                                          judged_total,
+                                          have_estimate=plan["estimate_usd"] is not None)
+
         started = time.perf_counter()
-        records, templates = comply.run(manifest, BUILD_DIR, types=args.types, limit=args.limit)
-        result = result_document(
-            suite="comply", config=config, ai=ai, manifest=manifest, records=records,
-            aggregates=summarize(records), templates=templates,
-            seconds=time.perf_counter() - started, git=git,
+        outcome = comply.run(
+            manifest, BUILD_DIR, types=args.types, limit=args.limit, ai=ai, cache=cache,
+            observer=observer, should_stop=should_stop, repeat=args.repeat if ai else 1,
+            sample=args.sample, progress=_progress if ai else None,
         )
-        result["meta"]["corpus"] = corpus
+        result = result_document(
+            suite="comply", config=config, ai=description, manifest=manifest,
+            records=outcome["records"],
+            aggregates=summarize(outcome["records"], outcome["repeats"]),
+            templates=outcome["templates"], seconds=time.perf_counter() - started, git=git,
+        )
+        meta = result["meta"]
+        meta["corpus"] = corpus
+        meta["stopped"] = outcome["stopped"]
+        if ai:
+            totals = cache.totals()
+            calls = totals.live_calls + totals.replayed_calls
+            meta["spend_usd"] = observer.total_spend()
+            meta["cache_hit_rate"] = totals.replayed_calls / calls if calls else None
+            meta["budget"] = plan
+        result["repeats"] = outcome["repeats"]
         path = write_result(result, args.out or RESULTS_DIR)
     finally:
+        if observer is not None:
+            observer.uninstall()
+        if cache is not None:
+            cache.uninstall()
         sandbox.close()
     print(comply_table(result))
+    if meta["stopped"]:
+        print(f"\nSTOPPED EARLY ({meta['stopped']}): live spend reached the cap or the pilot "
+              "projected past it. The result holds the cases checked so far.")
     print(f"\nResult written to {path}")
     if args.keep_sandbox:
         print(f"Sandbox kept at {sandbox.root}")

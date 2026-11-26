@@ -6,16 +6,21 @@ For each document type the runner first builds one **frozen template**:
 3. Run ``publish_template``.
 
 Every case of that type, in every mode, is then checked against that template, so modes differ
-only in the step being measured. This is the flow of
-``backend/tests/integration/test_flows.py``. Nothing from the pipeline is re-implemented here:
-the runner only records what DocForge returns.
+only in the step being measured. In AI runs, AI is switched off while the template is frozen.
+This is the flow of ``backend/tests/integration/test_flows.py``. Nothing from the pipeline is
+re-implemented here: the runner only records what DocForge returns.
+
+``fix_document`` is deterministic, so fixes are measured in the no-AI run only.
 
 Must be imported after ``evals.harness.prepare()`` has set up the sandbox.
 """
 
 from __future__ import annotations
 
+import hashlib
 import time
+from collections.abc import Callable
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +29,8 @@ from docforge.db.session import SessionLocal
 from docforge.document_ingest import store_source_document
 from docforge.services import analyze_documents, check_document, fix_document, publish_template
 from docforge.template_registry import TemplateRegistry
-from evals.corpus.build import truth_for
+from evals import scope
+from evals.corpus.build import select_cases, truth_for
 from evals.corpus.ground_truth import resolve, skeleton
 
 _EXPECTED_CLASS = {"fixed": "FIXED", "auto": "AUTO_FIELD", "table": "REPEATABLE_TABLE"}
@@ -32,6 +38,18 @@ _EXPECTED_CLASS = {"fixed": "FIXED", "auto": "AUTO_FIELD", "table": "REPEATABLE_
 
 def _filename(case_or_doc_id: str) -> str:
     return case_or_doc_id.replace("/", "__") + ".docx"
+
+
+@contextmanager
+def ai_off():
+    """Switch DocForge's AI off inside the block (the template is always frozen without AI)."""
+    settings = get_settings()
+    was = settings.ai_enabled
+    settings.ai_enabled = False
+    try:
+        yield
+    finally:
+        settings.ai_enabled = was
 
 
 def freeze_template(db, pair: str, manifest: dict[str, Any], build_dir: Path) -> dict[str, Any]:
@@ -119,29 +137,110 @@ def _fix(db, template, case: dict[str, Any], data: bytes, values_before: dict[st
     }
 
 
-def run(manifest: dict[str, Any], build_dir: Path, *, types: list[str] | None = None,
-        limit: int | None = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Check every selected case; return the case records and a summary of the templates."""
+def run(
+    manifest: dict[str, Any],
+    build_dir: Path,
+    *,
+    types: list[str] | None = None,
+    limit: int | None = None,
+    ai: bool = False,
+    cache=None,
+    observer=None,
+    should_stop: Callable[[list[dict[str, Any]]], str | None] | None = None,
+    repeat: int = 1,
+    sample: int = 0,
+    progress: Callable[[dict[str, Any], int, int], None] | None = None,
+) -> dict[str, Any]:
+    """Check every selected case and return ``records``, ``templates``, ``repeats``, ``stopped``.
+
+    With ``repeat`` > 1, ``sample`` judged cases are checked again ``repeat - 1`` times, each
+    under its own cache key, to measure how stable the judge is.
+    """
     db = SessionLocal()
     records: list[dict[str, Any]] = []
     templates: dict[str, Any] = {}
+    frozen_by_pair: dict[str, dict[str, Any]] = {}
+    repeats: list[dict[str, Any]] = []
+    stopped: str | None = None
+    selected = select_cases(manifest, types, limit)
     try:
-        for pair in manifest["types"]:
-            if types and pair not in types:
-                continue
-            frozen = freeze_template(db, pair, manifest, build_dir)
-            templates[pair] = {k: v for k, v in frozen.items()
-                               if k not in ("template", "node_to_logical")}
-            cases = [c for c in manifest["cases"] if c["pair"] == pair]
-            for case in cases[:limit] if limit else cases:
-                records.append(_run_case(db, frozen, case, manifest, build_dir))
+        for index, case in enumerate(selected):
+            pair = case["pair"]
+            if pair not in frozen_by_pair:
+                with ai_off():
+                    frozen_by_pair[pair] = freeze_template(db, pair, manifest, build_dir)
+                templates[pair] = {k: v for k, v in frozen_by_pair[pair].items()
+                                   if k not in ("template", "node_to_logical")}
+            record = _run_case(db, frozen_by_pair[pair], case, manifest, build_dir,
+                               ai=ai, cache=cache, observer=observer)
+            records.append(record)
+            if progress:
+                progress(record, index + 1, len(selected))
+            if should_stop and (stopped := should_stop(records)):
+                break
+        if not stopped and repeat > 1 and sample > 0:
+            stopped = _repeat_sample(db, records, frozen_by_pair, manifest, build_dir, repeats,
+                                     ai=ai, cache=cache, observer=observer, repeat=repeat,
+                                     sample=sample, should_stop=should_stop)
     finally:
         db.close()
-    return records, templates
+    return {"records": records, "templates": templates, "repeats": repeats, "stopped": stopped}
+
+
+def stability_sample(records: list[dict[str, Any]], sample: int) -> list[dict[str, Any]]:
+    """A fixed choice of judged cases: the first ``sample`` by a hash of their ID."""
+    judged = [r for r in records if (r.get("judge") or {}).get("status") == "ran"]
+    return sorted(judged, key=lambda r: hashlib.sha256(r["id"].encode()).hexdigest())[:sample]
+
+
+def _repeat_sample(db, records, frozen_by_pair, manifest, build_dir, repeats, *, ai, cache,
+                   observer, repeat, sample, should_stop) -> str | None:
+    cases = {case["id"]: case for case in manifest["cases"]}
+    for k in range(1, repeat):
+        for record in stability_sample(records, sample):
+            again = _run_case(db, frozen_by_pair[record["pair"]], cases[record["id"]], manifest,
+                              build_dir, ai=ai, cache=cache, observer=observer, repeat=k)
+            repeats.append({
+                "id": record["id"],
+                "repeat": k,
+                "error": again["error"],
+                "judge": again.get("judge"),
+                "semantic": (again.get("dimensions") or {}).get("semantic"),
+                "verdicts": [d.get("verdict") for d in again.get("differences") or []],
+                "spend_usd": again.get("spend_usd"),
+                "check_ms": again.get("check_ms"),
+            })
+            if should_stop and (reason := should_stop(records + repeats)):
+                return reason
+    return None
+
+
+def _judge_summary(record: dict[str, Any], observer, case_id: str, repeat: int,
+                   ai: bool) -> dict[str, Any]:
+    """Attach the judge's verdicts to the differences; say whether the judge ran."""
+    differences = record["differences"]
+    if not ai:
+        return {"status": "off"}
+    if not differences:
+        return {"status": "not_needed"}
+    judged = observer.verdicts(case_id, repeat) if observer else []
+    by_index = {v["index"]: v for v in (judged[-1] if judged else [])}
+    for index, difference in enumerate(differences):
+        verdict = by_index.get(index)
+        if verdict is not None:
+            difference["verdict"] = {"material": bool(verdict.get("material")),
+                                     "severity": verdict.get("severity")}
+    status = "ran" if "semantic" in record["dimensions"] else "failed"
+    return {
+        "status": status,
+        "judged": sum(1 for d in differences if "verdict" in d),
+        "not_judged": sum(1 for d in differences if "verdict" not in d),
+    }
 
 
 def _run_case(db, frozen: dict[str, Any], case: dict[str, Any], manifest: dict[str, Any],
-              build_dir: Path) -> dict[str, Any]:
+              build_dir: Path, *, ai: bool = False, cache=None, observer=None,
+              repeat: int = 0) -> dict[str, Any]:
     record: dict[str, Any] = {
         "id": case["id"],
         "pair": case["pair"],
@@ -153,18 +252,37 @@ def _run_case(db, frozen: dict[str, Any], case: dict[str, Any], manifest: dict[s
     }
     try:
         data = (build_dir / case["file"]).read_bytes()
-        started = time.perf_counter()
-        report = check_document(db, frozen["template"], filename=_filename(case["id"]), data=data)
-        record["check_ms"] = round((time.perf_counter() - started) * 1000, 1)
+        with scope.case(case["id"], repeat):
+            started = time.perf_counter()
+            report = check_document(db, frozen["template"], filename=_filename(case["id"]),
+                                    data=data)
+            wall_ms = (time.perf_counter() - started) * 1000
+        stats = cache.stats(case["id"], repeat) if cache else None
+        # A replayed call reports the time it took when it was recorded.
+        effective = wall_ms - stats.replay_ms + stats.recorded_ms if stats else wall_ms
+        record["check_ms"] = round(effective, 1)
+        record["wall_ms"] = round(wall_ms, 1)
         summary = _report_summary(report, frozen["node_to_logical"])
         values = summary.pop("field_values")  # only needed to judge a fix; not stored
         record.update(summary)
-        if case["label"]["fixable"]:
+        record["judge"] = _judge_summary(record, observer, case["id"], repeat, ai)
+        if ai:
+            record["ai_calls"] = observer.calls(case["id"], repeat) if observer else []
+            record["spend_usd"] = observer.spend(case["id"], repeat) if observer else None
+            record["live_calls"] = stats.live_calls if stats else None
+            record["replayed_calls"] = stats.replayed_calls if stats else None
+            if report.token_usage:
+                usage = report.token_usage
+                record["tokens"] = {k: usage.get(k) for k in ("in", "out", "calls", "cost_usd")}
+        elif case["label"]["fixable"]:
+            # The fixer is deterministic, so it is measured in the no-AI run only.
             base_file = manifest["types"][case["pair"]]["documents"][case["base"]]["file"]
             record["fix"] = _fix(
                 db, frozen["template"], case, data, values,
                 (build_dir / base_file).read_bytes(), frozen["node_to_logical"],
             )
+        if cache is not None:
+            cache.mark_complete(case["id"], repeat)
     except Exception as exc:  # a failing case is a result, not a crash
         record["error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
         record.setdefault("score", 0.0)

@@ -106,6 +106,45 @@ def _num(value: float | None, digits: int = 2, unit: str = "") -> str:
     return "—" if value is None else f"{value:.{digits}f}{unit}"
 
 
+def _usd(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"${value:.4f}" if value < 0.1 else f"${value:.2f}"
+
+
+def _ai_lines(meta: dict[str, Any], ai: dict[str, Any]) -> list[str]:
+    judge, cost, stable = ai["judge"], ai["cost_usd"], ai["stability"]
+    unpriced = cost["unpriced_calls"] and not cost["total"]
+    spend = (
+        f"$0 (no price for this model: {cost['unpriced_calls']} unpriced calls)"
+        if unpriced
+        else f"total {_usd(cost['total'])} (live {_usd(cost['live'])}, replayed "
+        f"{_usd(cost['replayed'])}) · per document {_usd(cost['per_document'])} · per judged "
+        f"document {_usd(cost['per_judged_document'])}"
+    )
+    failures = " · ".join(f"{kind} {_rate(r)}" for kind, r in ai["ai_call_failures"].items())
+    lines = [
+        "",
+        f"AI judge: {meta['ai'].get('model')} on {meta['ai'].get('host')}",
+        f"  verdicts: material precision {_rate(judge['precision'])} · recall "
+        f"{_rate(judge['recall'])} · accuracy {_rate(judge['accuracy'])} · not judged "
+        f"{judge['not_judged']}",
+        f"  judge fell back to no verdict {_rate(ai['judge_fallback_rate'])}",
+        f"  semantic AUC clean > material {_num(ai['semantic_auc_clean_vs_material'])}",
+        f"  material still alarming after the judge {_rate(ai['material_alarms_kept'])}",
+        f"  cost {spend}",
+        f"  cache hit rate {_num(meta.get('cache_hit_rate'))}",
+        f"  failed AI calls by kind: {failures or '—'}",
+    ]
+    if stable:
+        lines.append(
+            f"  stability: verdicts agree {_rate(stable['verdict_agreement'])} over "
+            f"{stable['cases']} cases × {stable['runs_per_case']} runs · semantic spread "
+            f"{_num(stable['semantic_spread_mean'])}"
+        )
+    return lines
+
+
 def comply_table(result: dict[str, Any]) -> str:
     """The console summary of a comply run."""
     meta, agg = result["meta"], result["aggregates"]
@@ -140,9 +179,14 @@ def comply_table(result: dict[str, Any]) -> str:
         f"   mean alarms per clean doc {_num(agg['mean_alarms_clean'])}",
         f"spurious differences / case   {_num(agg['spurious_per_mutated_case'])}",
         f"score AUC clean > material    {_num(agg['score_auc_clean_vs_material'])}",
-        f"fix success (material)        {_rate(agg['fix_success'])}"
-        f"   text {_rate(agg['fix_text_restored'])} · style {_rate(agg['fix_style_restored'])}"
-        f" · recheck {_rate(agg['fix_recheck_clean'])} · values {_rate(agg['fix_values_kept'])}",
+        (
+            f"fix success (material)        {_rate(agg['fix_success'])}"
+            f"   text {_rate(agg['fix_text_restored'])} · style "
+            f"{_rate(agg['fix_style_restored'])} · recheck {_rate(agg['fix_recheck_clean'])}"
+            f" · values {_rate(agg['fix_values_kept'])}"
+            if agg["fix_success"]["den"]
+            else "fix success (material)        n/a (measured in the no-AI run)"
+        ),
         f"check_document latency        p50 {_num(agg['check_ms_p50'], 0, ' ms')}"
         f" · p95 {_num(agg['check_ms_p95'], 0, ' ms')}",
         f"errors                        {_rate(agg['error_rate'])}",
@@ -150,4 +194,6 @@ def comply_table(result: dict[str, Any]) -> str:
         f"{len(result['templates']) - len(mismatched)}/{len(result['templates'])} classified "
         f"as intended" + (f" (mismatches: {', '.join(mismatched)})" if mismatched else ""),
     ]
+    if agg.get("ai"):
+        lines += _ai_lines(meta, agg["ai"])
     return "\n".join(lines)

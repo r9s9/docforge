@@ -147,6 +147,19 @@ def truth_for(pair: str, name: str) -> list[dict[str, Any]]:
     return build_document(SPECS[pair], doc_index(name))[1]
 
 
+def select_cases(
+    manifest: dict[str, Any], types: list[str] | None = None, limit: int | None = None
+) -> list[dict[str, Any]]:
+    """The cases a run checks: the chosen types (all by default), at most ``limit`` per type."""
+    selected: list[dict[str, Any]] = []
+    for pair in manifest["types"]:
+        if types and pair not in types:
+            continue
+        cases = [case for case in manifest["cases"] if case["pair"] == pair]
+        selected.extend(cases[:limit] if limit else cases)
+    return selected
+
+
 def same_cases(a: dict[str, Any], b: dict[str, Any]) -> bool:
     """Whether two manifests describe the same documents and cases, ignoring file bytes.
 
