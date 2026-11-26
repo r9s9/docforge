@@ -9,7 +9,7 @@ from functools import cache
 
 import pytest
 
-from evals.corpus.doc_types import SPECS
+from evals.corpus.doc_types import ALL_SPECS, SPECS
 from evals.corpus.generator import (
     EXAMPLES,
     HELD_OUT,
@@ -22,25 +22,35 @@ from evals.corpus.generator import (
 from evals.corpus.values import fmt_date, fmt_money, parse_date, pick
 
 PAIRS = sorted(SPECS)
+ALL_PAIRS = sorted(ALL_SPECS)  # the analyze-only types too
 
 
 @cache
 def _truths(pair: str) -> list[list[dict]]:
-    return [build_document(SPECS[pair], i)[1] for i in range(EXAMPLES + HELD_OUT)]
+    count = EXAMPLES + HELD_OUT if pair in SPECS else EXAMPLES  # analyze only: examples
+    return [build_document(ALL_SPECS[pair], i)[1] for i in range(count)]
 
 
-@pytest.mark.parametrize("pair", PAIRS)
+def _cells(truth: list[dict]) -> list[dict]:
+    """Every element, with an information block's cells in place of the block."""
+    out = []
+    for element in truth:
+        out.extend(element["cells"] if element["kind"] == "info_table" else [element])
+    return out
+
+
+@pytest.mark.parametrize("pair", ALL_PAIRS)
 def test_builds_are_byte_identical(pair):
-    first, truth_first = build_document(SPECS[pair], 3)
-    second, truth_second = build_document(SPECS[pair], 3)
+    first, truth_first = build_document(ALL_SPECS[pair], 3)
+    second, truth_second = build_document(ALL_SPECS[pair], 3)
     assert first == second
     assert truth_first == truth_second
     assert content_hash(first) == content_hash(second)
 
 
-@pytest.mark.parametrize("pair", PAIRS)
+@pytest.mark.parametrize("pair", ALL_PAIRS)
 def test_every_field_differs_in_every_example(pair):
-    examples = _truths(pair)[:EXAMPLES]
+    examples = [_cells(truth) for truth in _truths(pair)[:EXAMPLES]]
     for position, element in enumerate(examples[0]):
         if element["kind"] not in ("field", "table"):
             continue
@@ -49,12 +59,33 @@ def test_every_field_differs_in_every_example(pair):
         assert len(values) == EXAMPLES, f"{pair} {element['id']} repeats a value: {values}"
 
 
-@pytest.mark.parametrize("pair", PAIRS)
+@pytest.mark.parametrize("pair", ALL_PAIRS)
 def test_boilerplate_is_identical_in_every_document(pair):
-    truths = _truths(pair)
+    truths = [_cells(truth) for truth in _truths(pair)]
     for position, element in enumerate(truths[0]):
         if element["kind"] in ("fixed", "auto"):
             assert {truth[position]["text"] for truth in truths} == {element["text"]}
+
+
+@pytest.mark.parametrize("pair", sorted(set(ALL_SPECS) - set(SPECS)))
+def test_an_information_block_lists_each_cell_with_its_place(pair):
+    block = next(e for e in _truths(pair)[0] if e["kind"] == "info_table")
+    assert block["text"] == " | ".join(block["rows"][0])  # what DocForge reads as its header
+    assert [(c["cell"]["row"], c["cell"]["col"]) for c in block["cells"]] == [
+        (r, c) for r in range(len(block["rows"])) for c in (0, 1)]
+    assert [c["text"] for c in block["cells"]] == [text for row in block["rows"] for text in row]
+    labels = [c for c in block["cells"] if c["cell"]["col"] == 0]
+    assert all(c["kind"] == "fixed" and c["id"].endswith(".label") for c in labels)
+
+
+def test_overrides_replace_a_value_and_nothing_else():
+    spec = SPECS["invoice_en"]
+    plain = {e["id"]: e for e in build_document(spec, 1)[1]}
+    first = spec.values(0)["customer"]
+    shared = {e["id"]: e for e in build_document(spec, 1, {"customer": first})[1]}
+    assert shared["field.customer"]["value"] == first != plain["field.customer"]["value"]
+    assert {k: v for k, v in shared.items() if k != "field.customer"} == {
+        k: v for k, v in plain.items() if k != "field.customer"}
 
 
 @pytest.mark.parametrize("pair", PAIRS)

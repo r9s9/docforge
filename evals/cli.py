@@ -116,7 +116,8 @@ def _ensure_corpus() -> tuple[dict, dict]:
                 "local_corpus_hash": fresh["corpus_hash"],
                 "files_match_manifest": False,
             }
-            manifest = {**manifest, "types": fresh["types"], "cases": fresh["cases"]}
+            manifest = {**manifest, "types": fresh["types"], "cases": fresh["cases"],
+                        "analyze": fresh["analyze"]}
     return manifest, corpus
 
 

@@ -106,3 +106,42 @@ def test_same_cases_ignores_file_bytes_but_not_labels_or_truth(fresh):
     first = next(iter(retruthed["types"].values()))["documents"]["ex_01"]
     first["truth_hash"] = "f" * 64
     assert not same_cases(retruthed, manifest)
+
+
+def test_the_analyze_section_has_its_own_hash_and_leaves_the_corpus_hash_alone(fresh):
+    from evals.corpus.build import analyze_hash
+
+    _out, manifest = fresh
+    section = manifest["analyze"]
+    assert section["analyze_hash"] == analyze_hash(section)
+    without = {key: value for key, value in manifest.items() if key != "analyze"}
+    assert corpus_hash(without) == manifest["corpus_hash"]  # comply and generate: unchanged
+    tampered = copy.deepcopy(manifest)
+    tampered["analyze"]["types"]["dpia_en"]["documents"]["ex_01"]["truth_hash"] = "f" * 64
+    assert corpus_hash(tampered) == manifest["corpus_hash"]
+    assert analyze_hash(tampered["analyze"]) != section["analyze_hash"]
+
+
+def test_analyze_only_types_have_examples_and_no_comply_cases(fresh):
+    from evals.corpus.doc_types import ANALYZE_SPECS
+
+    _out, manifest = fresh
+    assert sorted(manifest["analyze"]["types"]) == sorted(ANALYZE_SPECS)
+    assert not set(ANALYZE_SPECS) & set(manifest["types"])
+    assert not {case["pair"] for case in manifest["cases"]} & set(ANALYZE_SPECS)
+    for pair, info in manifest["analyze"]["types"].items():
+        assert list(info["documents"]) == info["examples"] == [
+            f"ex_0{i}" for i in range(1, 6)]
+        recorded = info["documents"]["ex_03"]["truth_hash"]
+        assert truth_hash(truth_for(pair, "ex_03")) == recorded
+
+
+def test_every_committed_result_ran_on_this_corpus():
+    import json
+
+    from evals.paths import RESULTS_DIR
+
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    hashes = {path.name: json.loads(path.read_text(encoding="utf-8"))["meta"]["corpus_hash"]
+              for path in RESULTS_DIR.glob("*.json")}
+    assert hashes and set(hashes.values()) == {manifest["corpus_hash"]}, hashes

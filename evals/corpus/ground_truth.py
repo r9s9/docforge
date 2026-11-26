@@ -73,18 +73,39 @@ def skeleton(data: bytes) -> list[tuple]:
 
 
 def resolve(data: bytes, truth: list[dict[str, Any]]) -> dict[str, str]:
-    """Map every logical ID in ``truth`` to its DocForge node ID in the document ``data``."""
-    nodes = top_level_nodes(Document(BytesIO(data)))
+    """Map every logical ID in ``truth`` to its DocForge node ID in the document ``data``.
+
+    The cells of an information block resolve too: DocForge gives each cell's paragraph a node
+    of its own, whose parent is the table's node.
+    """
+    walk = list(walk_document(Document(BytesIO(data))))
+    nodes = {(node.scope or "body", node.position_index): node
+             for node in walk if node.parent_node_id is None}
+    cells: dict[tuple[str, int, int], Any] = {}
+    for node in walk:
+        if node.parent_node_id is not None and node.row is not None:
+            cells.setdefault((node.parent_node_id, node.row, node.col), node)
     resolved: dict[str, str] = {}
     for element in truth:
         locator = element["locator"]
         node = nodes.get((locator["scope"], locator["block"]))
         if node is None:
             raise GroundTruthError(f"{element['id']}: nothing at {locator}")
-        expected, actual = normalize_text(element_text(element)), normalize_text(node_text(node))
-        if expected != actual:
-            raise GroundTruthError(
-                f"{element['id']} at {locator}: expected {expected!r}, found {actual!r}"
-            )
+        _check_text(element["id"], locator, element_text(element), node_text(node))
         resolved[element["id"]] = node.node_id
+        for cell in element.get("cells", ()):
+            where = {**locator, **cell["cell"]}
+            found = cells.get((node.node_id, cell["cell"]["row"], cell["cell"]["col"]))
+            if found is None:
+                raise GroundTruthError(f"{cell['id']}: no cell at {where}")
+            _check_text(cell["id"], where, cell["text"], found.obj.text)
+            resolved[cell["id"]] = found.node_id
     return resolved
+
+
+def _check_text(element_id: str, where: dict[str, Any], expected: str, actual: str) -> None:
+    if normalize_text(expected) != normalize_text(actual):
+        raise GroundTruthError(
+            f"{element_id} at {where}: expected {normalize_text(expected)!r}, "
+            f"found {normalize_text(actual)!r}"
+        )

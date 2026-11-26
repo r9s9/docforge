@@ -29,6 +29,7 @@ from evals.corpus.model import (
     FixedLine,
     FreeText,
     Heading,
+    InfoTable,
     TableBlock,
     Title,
 )
@@ -58,9 +59,13 @@ def doc_index(name: str) -> int:
     return int(number) - 1 if kind == "ex" else EXAMPLES + int(number) - 1
 
 
-def build_document(spec: DocTypeSpec, index: int) -> tuple[bytes, GroundTruth]:
-    """Build document ``index`` of ``spec``; return its bytes and its ground truth."""
-    values = spec.values(index)
+def build_document(spec: DocTypeSpec, index: int,
+                   overrides: dict[str, Any] | None = None) -> tuple[bytes, GroundTruth]:
+    """Build document ``index`` of ``spec``; return its bytes and its ground truth.
+
+    ``overrides`` replaces values of the document's value set, by key.
+    """
+    values = {**spec.values(index), **(overrides or {})}
     doc = Document()
     truth: GroundTruth = []
     for block_index, block in enumerate(spec.blocks):
@@ -173,6 +178,8 @@ def _add_block(doc, block, values: dict[str, Any]) -> dict[str, Any]:
             "text": " | ".join(block.headers),
             "row_removal_material": block.row_removal_material,
         }
+    if isinstance(block, InfoTable):
+        return _info_table(doc, block, values)
     raise TypeError(f"unknown block {block!r}")
 
 
@@ -193,6 +200,42 @@ def _table(doc, headers: list[str], rows: list[list[str]]) -> None:
     for row in rows:
         for cell, value in zip(table.add_row().cells, row, strict=True):
             cell.text = value
+
+
+def _info_table(doc, block: InfoTable, values: dict[str, Any]) -> dict[str, Any]:
+    """A two-column "label | value" table: bold labels, no header row.
+
+    Its ground truth lists every cell: a label is fixed, and a value is a field when it changes
+    per document and fixed when it doesn't. Each cell has a ``cell`` locator (row, column)
+    inside the table.
+    """
+    table = doc.add_table(rows=0, cols=2)
+    table.style = "Table Grid"
+    rows, cells = [], []
+    for r, row in enumerate(block.rows):
+        value = values[row.key] if row.key else row.text
+        label_cell, value_cell = table.add_row().cells
+        label_cell.text = row.label
+        for run in label_cell.paragraphs[0].runs:
+            run.bold = True
+        value_cell.text = value
+        rows.append([row.label, value])
+        cells.append({"id": f"{row.id}.label", "kind": "fixed", "text": row.label,
+                      "cell": {"row": r, "col": 0}})
+        if row.key:
+            cells.append({"id": row.id, "kind": "field", "field_type": row.field_type,
+                          "label": row.label, "value": value, "required": True, "text": value,
+                          "cell": {"row": r, "col": 1}})
+        else:
+            cells.append({"id": row.id, "kind": "fixed", "text": value,
+                          "cell": {"row": r, "col": 1}})
+    return {
+        "id": block.id,
+        "kind": "info_table",
+        "rows": rows,
+        "text": " | ".join(rows[0]),
+        "cells": cells,
+    }
 
 
 def _add_footer(doc, text: str) -> dict[str, Any]:

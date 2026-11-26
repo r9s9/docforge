@@ -46,3 +46,7 @@ searched, and none refers to a real person.
 - **Bank details.** These are visibly fake: `GB00 TELL 0000 …`, `DE00 0000 …`.
 - **VAT IDs.** These follow the pattern `GB0000001nn` / `DE0000001nn` and are deliberately
   invalid.
+- **Analyze-only types (M4).** The DPIA and the project status report use only the companies
+  and people above. Their processing activities ("Customer support ticketing") and project
+  names ("Harbour data migration") are plain descriptions, not names of anything, so they weren't
+  searched.
