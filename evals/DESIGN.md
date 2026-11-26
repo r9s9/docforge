@@ -1,8 +1,8 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 and M2 are built. M1's
-> results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the no-AI run
-> confirmed. M2's two AI runs happen on the owner's PC (§6.6).
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 and M2 are done. Their
+> results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> confirmed. M2's two AI runs ran on the owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
 > brief's Sonnet and Gemini configs are out of scope.
 > **Decisions for M2:** Haiku 5.5 runs on the owner's PC with a €1 cap, set as `max_usd: 1.00`
@@ -108,6 +108,7 @@ Default severities set by `compliance/checker.py` (the judge may change them lat
 | 16 | `haiku.yaml` asks for `temperature: 0.0`. | DocForge sends no temperature to current Claude models. Its model profiles in `ai/anthropic_transport.py` mark them as taking no sampling parameters, because the API rejects them. The OpenAI-compatible path sends the temperature in every request. | The Haiku run uses the API's default sampling, so its verdicts can vary from run to run. Results record `temperature_sent`, and the repeats measure the variation (§5.4). |
 | 17 | The judge labels each difference. | The judge only runs on a report that has differences (`compliance/judge.py`), and it sees the first 40. In this corpus, 156 of the 238 cases have no differences, and no case has more than 3. | The judge sees 82 cases and about 114 differences per run. A case without differences gets semantic score 100 (§5.1). The 40-item cap never applies to this corpus. |
 | 18 | — | The judge's client uses DocForge's generation config, with a 300 s timeout (`ai_generation_timeout_seconds`). On Claude, DocForge asks for at least 16,000 output tokens per call (`MIN_MAX_TOKENS`); on the OpenAI-compatible path, 6,000. | A slow local model gets 300 s per judge call before the call counts as failed. The worst-case Haiku cost assumes 16,000 output tokens per call (§6.6). |
+| 19 | — | Both OpenAI-compatible call paths (`complete_json`, `_agentic_openai`) start with two system messages: the instructions, then `[developer instructions]`. Qwen 3.6's chat template in LM Studio raises "System message must be at the beginning" on the second, so every call fails before the model runs. The judge swallows the `LLMError`. | Out of the box, the local judge fails on every case, silently. The owner's local run used a one-line template change in LM Studio, which renders the second system message as a ChatML system turn instead of raising. DocForge is unchanged. The result can't see the template, so the CHANGELOG records it. |
 
 ### 1.3 Pre-existing state of master (not changed, by rule)
 
@@ -603,7 +604,8 @@ Notes on `local.yaml`:
   of that file.
 - DocForge sends local servers one call at a time (`ai/parallel.py`), so local runs are slower.
 - The owner's model is Qwen 3.6-27b with thinking off (`no_think: true`). It needs a context of
-  at least 16k tokens; the dry run warns below that.
+  at least 16k tokens; the dry run warns below that. Its LM Studio chat template needs the
+  one-line change in §1.2 #19, or every call fails.
 
 Model names live only in these files. By the owner's decision, the brief's `sonnet.yaml` and its
 optional `gemini.yaml` are out of scope, so every comparison is no AI vs. Haiku 5.5 vs. the local
@@ -795,12 +797,12 @@ rejected by a run.
 
 | # | Prediction | Where it comes from | Tested in | Status after M1 (no AI) |
 |---|---|---|---|---|
-| H1 | A one-number change in a long clause (liability cap, notice period, Gerichtsstand) is not reported, in any mode | 0.9 similarity threshold; the judge only sees reported differences | M1, M2 | Confirmed for no AI: liability 0/4, notice 0/8, payment terms 0/4, governing law 4/8 (shorter NDA clause only). M2 tests the AI modes. |
+| H1 | A one-number change in a long clause (liability cap, notice period, Gerichtsstand) is not reported, in any mode | 0.9 similarity threshold; the judge only sees reported differences | M1, M2 | Confirmed for no AI: liability 0/4, notice 0/8, payment terms 0/4, governing law 4/8 (shorter NDA clause only). Confirmed in M2 for both AI modes: detection is the same 62/102. |
 | H2 | Changing a heading to all caps is reported as `changed_fixed` (a benign alarm). A one-letter case change is not. | case-sensitive similarity after case-insensitive alignment | M1 | Confirmed: 14/14 alarms |
 | H3 | Removing one data row from a table with several rows is not reported | `_score_table` checks headers and "no data rows" only | M1 | Confirmed: 0/10 reported |
 | H4 | Removing a column is often not reported as `table_shape`. It is either silent (the remaining header is ≥ 0.8 similar) or `missing_table` (the tables aren't paired). | the header-row signature, and pairing by position in "replace" blocks | M1 | Confirmed, silent form: reported 2/10, only in the German fee table |
 | H5 | Reordering two sections raises `changed_fixed` or `missing_fixed` on a document that is fine | `SequenceMatcher` alignment keeps document order | M1 | Confirmed: 8/8 alarms |
-| H6 | An inserted material clause leaves the score unchanged and never reaches the judge | `extra` rows are outside `differences` | M1, M2 | Confirmed for no AI: 6/8 visible only as extra content; 2/8 misaligned onto the original clause |
+| H6 | An inserted material clause leaves the score unchanged and never reaches the judge | `extra` rows are outside `differences` | M1, M2 | Confirmed for no AI: 6/8 visible only as extra content; 2/8 misaligned onto the original clause. Confirmed in M2: the 6 never reach the judge; both judges call the 2 misaligned ones material. |
 | H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 | — |
 | H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 | — |
 | H9 | German amounts written `12.500,00 €` are typed as text, not number | `CURRENCY_RE` expects the symbol before the number or an ISO code after it | M4 | — (added in M1) |

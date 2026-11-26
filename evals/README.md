@@ -3,10 +3,10 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M2 built (2026-11-26). The **comply** suite runs in three modes: AI off, Claude
+**Status:** M2 done (2026-11-26). The **comply** suite runs in three modes: AI off, Claude
 Haiku 5.5, and a local model in LM Studio. The two AI runs happen on the owner's PC
-([guide below](#run-the-ai-modes-on-your-pc-windows-powershell)), and their results come with
-the M2 entry in the changelog. Generate and analyze arrive in M3 and M4.
+([guide below](#run-the-ai-modes-on-your-pc-windows-powershell)). The three-way comparison is in
+the changelog's M2 entry. Generate and analyze arrive in M3 and M4.
 
 - Design: [DESIGN.md](DESIGN.md)
 - What each milestone built and learned: [CHANGELOG.md](CHANGELOG.md)
@@ -137,6 +137,9 @@ first time takes a few minutes.
 ### 6. Start the model in LM Studio
 
 1. Load **Qwen 3.6-27b** with a **context length of at least 16384** (in the load settings).
+   Its chat template needs a one-line change first, or every judge call fails: in the template,
+   replace `{{- raise_exception('System message must be at the beginning.') }}` with
+   `{{- '<|im_start|>system\n' + message.content + '<|im_end|>\n' }}` (DESIGN.md §1.2 #19).
 2. Load only this model. The config uses the one model LM Studio has loaded.
 3. Start the server: Developer tab, Status: Running. It listens on `http://127.0.0.1:1234`.
 4. Keep the PC awake until the run ends: a call cut off by sleep counts as a failed judge call.
