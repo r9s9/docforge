@@ -1,6 +1,7 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted).
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 is built; its results are in
+> [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the no-AI run confirmed.
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
 > brief's Sonnet and Gemini configs are out of scope.
 > **Code checked:** DocForge v0.21.0, commit `4880faa` (master).
@@ -272,13 +273,19 @@ Next to every document it builds, the corpus generator writes ground truth: one 
 element.
 
 ```yaml
-- id: clause.liability_cap           # stable across every document of the type
+- id: clause.liability               # stable across every document of the type
   kind: fixed                        # fixed | field | table | auto
-  field_type: null                   # fields: text | multiline_text | date | money | number | person | enum
-  locator: {scope: body, block: 14}  # or {scope: body, block: 9, row: 2, col: 1}
-                                     # or {scope: "footer:0", block: 0}
-  text: "The total liability of the Supplier ... shall not exceed EUR 250,000."
+  locator: {scope: body, block: 14}  # or {scope: "footer:0", block: 0}
+  text: "Except in cases of intent or gross negligence, the total liability of the Supplier
+         under this Agreement shall not exceed EUR 250,000 per contract year."
   material_if_changed: true          # feeds the mutator labels and the judge's ground truth
+- id: field.date
+  kind: field
+  field_type: date                   # text | multiline_text | date | money | person
+  label: Date
+  value: 16 January 2026
+  text: "Date: 16 January 2026"
+  locator: {scope: body, block: 2}
 ```
 
 - **Tables** also record their header row, their data rows, and whether removing a row is
@@ -338,15 +345,24 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
 - **Engine.** `corpus/generator.py`. A document-type spec in `corpus/doc_types/` declares the
   blocks (title, labelled field, clause, heading, table, page-number footer) and their EN and DE
   text. The engine turns a spec plus a value set into a .docx and its ground truth.
-- **Values.** Value sets come from a seeded `random.Random(f"{doc_type}:{index}")`. String seeds
-  are hashed with SHA-512, so they're stable across runs and machines. There is no clock: dates
-  are drawn from fixed ranges.
+- **Values.** Value sets come from seeded generators (`values.seeded(pair, key, index)`, i.e.
+  `random.Random("<pair>:<key>:<index>")`). String seeds are hashed with SHA-512, so they're
+  stable across runs and machines. There is no clock: dates are drawn from fixed ranges. Every
+  field value differs across a type's 5 examples, and every boilerplate line is identical, which
+  is what DocForge's analyzer needs to tell them apart (a test checks both).
 - **Byte-identical builds.** python-docx writes zip entries with the current time. The generator
-  therefore re-zips each file with sorted entries and a fixed timestamp, so a rebuild is
-  byte-identical.
-- **Corpus hash.** sha256 over `manifest.json` and every built file, in sorted order.
-- **Manifest check.** `manifest.json` is committed. CI rebuilds the corpus and fails if the
-  manifest changed (`git diff --exit-code`).
+  therefore re-zips each file with a fixed timestamp and fixed attributes, so a rebuild on the
+  same machine is byte-identical.
+- **Content hash.** Compressed bytes can differ between zlib builds. A file is therefore
+  identified by `content_hash`: sha256 over its parts' names and uncompressed bytes.
+- **Manifest.** `manifest.json` is committed. Per document it holds the file, the content hash,
+  a hash of its ground truth, and its field values. Per case it holds the file, the content hash
+  and the label. The full ground truth isn't stored: `build.truth_for()` rebuilds it from the
+  generator, and the truth hash proves it is the same one.
+- **Corpus hash.** sha256 of the manifest's canonical JSON, without the hash field itself. It
+  covers every file, every ground truth and every label.
+- **Manifest check.** A test rebuilds the corpus and compares the result with the committed
+  manifest; in M5, CI does the same with `git diff --exit-code`.
 
 ### 4.2 Document types
 
@@ -373,9 +389,15 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
 - 3 or more notes cases (M3)
 - mutated copies of the held-out documents (§4.3), about 2 per applicable mutator
 
-**Case budget**
-- M1 aims at about 30 comply cases per type/language pair, at least 20% of them clean.
-- Exact counts are fixed in M1, and the total across all suites stays within the brief's 150–300.
+**Case budget** (as built in M1)
+- 7 type/language pairs, 91 documents, and 238 comply cases, 56 of them clean controls (24%).
+- Each applicable mutator is applied to 2 held-out bases, rotating through `held_01`–`held_08`.
+- Generate (M3) and analyze (M4) add about 60 cases, which keeps the total near the brief's
+  150–300.
+
+**Deferred to M4.** Key-value tables ("label | value" rows, as in a document-control block). When
+their values vary, DocForge may treat such a table as a repeating table. Leaving them out of M1
+keeps the comply ground truth clean, and M4 tests that behaviour on purpose.
 
 ### 4.3 Mutators
 
@@ -383,32 +405,37 @@ Each mutator takes a clean .docx (bytes) and its ground truth, and returns
 `(mutated_bytes, label)`:
 
 ```yaml
-case: service_agreement_de/held_03/change_liability_cap
+case: service_agreement_de/held_01/change_liability_cap
 mutator: change_liability_cap
-target: clause.liability_cap
+targets: [clause.liability]
 expected_kind: changed_fixed
 material: true
 rule_dependent: false
-detail: {before: "250.000 €", after: "25.000 €"}
+fixable: true
+detail:
+  before: "Außer bei Vorsatz und grober Fahrlässigkeit ist die Haftung … auf 250.000 € je Vertragsjahr beschränkt."
+  after:  "Außer bei Vorsatz und grober Fahrlässigkeit ist die Haftung … auf 25.000 € je Vertragsjahr beschränkt."
 ```
 
 | Mutator | Expected kind | Material | Applies to | Note |
 |---|---|---|---|---|
 | Change liability cap amount | `changed_fixed` | yes | agreements | A small edit in a long clause (H1) |
 | Change governing law / Gerichtsstand | `changed_fixed` | yes | agreements, NDA | H1 |
-| Change notice period | `changed_fixed` | yes | agreements | H1 |
-| Delete confidentiality clause | `missing_fixed` | yes | agreements, NDA, report | Fixable |
+| Change notice period / NDA term | `changed_fixed` | yes | agreements, NDA | H1 |
+| Change payment terms (30 → 90 days) | `changed_fixed` | yes | invoices | H1. Added in M1. |
+| Delete a clause (heading + body) | `missing_fixed` | from the spec (confidentiality: yes; the minutes' distribution note: no) | all | Fixable |
 | Fix a typo in boilerplate | `changed_fixed` or nothing | no | all | The spec plants one consistent typo per type, and the mutator corrects it |
 | Double space / punctuation / curly quotes | `changed_fixed` or nothing | no | all | |
 | Change heading capitalisation (to all caps) | `changed_fixed` | no | all | H2: likely reported |
 | Empty a required field | `missing_field` | yes | all | |
+| Invalid value in a typed field ("TBD", "offen") | `format` | yes | types with dates | Added in M1. A date-format change raises nothing, because dates are validated with `dateutil`, so this mutator is what covers `format`. |
 | Change date format (`23.11.2026` → `2026-11-23`) | `format` or nothing | no, `rule_dependent` | types with dates | Depends on the validation rules the analyzer derived |
 | Remove a table row | `table_shape` (only when the last row goes) or nothing | per table spec (an invoice line is material) | invoice, minutes, agreement | H3 |
 | Remove a table column | `table_shape` | yes | tables | H4: may go unreported, or come out as `missing_table` |
 | Delete a whole table | `missing_table` | yes | tables | |
 | Reorder two sections | nothing | no | agreements, NDA | Any report counts as a false alarm (H5) |
 | Insert a benign paragraph (a note) | nothing (only an `extra` row) | no | all | |
-| Insert a material paragraph ("liability is unlimited") | nothing (only an `extra` row) | yes | agreements | H6 |
+| Insert a material paragraph ("liability is unlimited") | nothing (only an `extra` row) | yes | agreements, NDA | H6 |
 | No change (clean control) | — | — | all | ≥ 20% of comply cases |
 
 **Notes on the table**
@@ -416,7 +443,9 @@ detail: {before: "250.000 €", after: "25.000 €"}
   alarm, not whether it is found.
 - **Tests.** Every mutator has a unit test. It applies the mutator to a small document, then
   compares the walks before and after: exactly the intended element changed, and nothing else.
-- **M1 scope.** M1 ships at least 10 of these mutators.
+- **As built in M1.** All 17 mutators exist (the 2 inserts count separately). Their parameters
+  (which clause, which words) live in each document-type spec, so a mutator applies only where
+  the spec defines it.
 
 ### 4.4 Notes for generate (M3)
 
@@ -470,7 +499,7 @@ template node the element came from.
 | Spurious differences | Differences not attributed to the injected deviation, per mutated case |
 | Judge confusion matrix | Over the differences the judge saw, predicted material vs. ground truth. An attributed difference takes its deviation's label; a spurious one is benign. Reports precision and recall on "material". Differences past the 40-item cap are counted as "not judged". |
 | Score separation | AUC: the chance that a random clean control scores higher than a random document with a material deviation (ties count half). Computed on `score` in every mode and on the semantic score in AI modes. Comes with a grade table: pass / warning / fail × clean / material / benign. |
-| Fix success | On cases whose deviation is a changed or missing FIXED paragraph: run `fix_document`, then check the result again. It succeeds when no `changed_fixed` or `missing_fixed` is left on the target, **and** every field value in the alignment matches the pre-fix check, **and** no new difference appeared. |
+| Fix success | On material cases whose deviation is a changed or missing FIXED paragraph: run `fix_document`, then check the result again. It succeeds when three things hold. (1) The re-check shows no `changed_fixed` or `missing_fixed` on the target. (2) Every field value in the alignment matches the pre-fix check. (3) The fixed document's text equals the clean original's. Part (3) is needed because a re-check uses the same 0.9 threshold as the check, so it can't see what the check missed. Restored paragraph styles are reported separately. |
 
 ### 5.2 Generate
 
@@ -702,16 +731,17 @@ commit.
 These come from reading the code. They are predictions, not results, and each one is confirmed or
 rejected by a run.
 
-| # | Prediction | Where it comes from | Tested in |
-|---|---|---|---|
-| H1 | A one-number change in a long clause (liability cap, notice period, Gerichtsstand) is not reported, in any mode | 0.9 similarity threshold; the judge only sees reported differences | M1, M2 |
-| H2 | Changing a heading to all caps is reported as `changed_fixed` (a benign alarm). A one-letter case change is not. | case-sensitive similarity after case-insensitive alignment | M1 |
-| H3 | Removing one data row from a table with several rows is not reported | `_score_table` checks headers and "no data rows" only | M1 |
-| H4 | Removing a column is often not reported as `table_shape`. It is either silent (the remaining header is ≥ 0.8 similar) or `missing_table` (the tables aren't paired). | the header-row signature, and pairing by position in "replace" blocks | M1 |
-| H5 | Reordering two sections raises `changed_fixed` or `missing_fixed` on a document that is fine | `SequenceMatcher` alignment keeps document order | M1 |
-| H6 | An inserted material clause leaves the score unchanged and never reaches the judge | `extra` rows are outside `differences` | M1, M2 |
-| H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 |
-| H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 |
+| # | Prediction | Where it comes from | Tested in | Status after M1 (no AI) |
+|---|---|---|---|---|
+| H1 | A one-number change in a long clause (liability cap, notice period, Gerichtsstand) is not reported, in any mode | 0.9 similarity threshold; the judge only sees reported differences | M1, M2 | Confirmed for no AI: liability 0/4, notice 0/8, payment terms 0/4, governing law 4/8 (shorter NDA clause only). M2 tests the AI modes. |
+| H2 | Changing a heading to all caps is reported as `changed_fixed` (a benign alarm). A one-letter case change is not. | case-sensitive similarity after case-insensitive alignment | M1 | Confirmed: 14/14 alarms |
+| H3 | Removing one data row from a table with several rows is not reported | `_score_table` checks headers and "no data rows" only | M1 | Confirmed: 0/10 reported |
+| H4 | Removing a column is often not reported as `table_shape`. It is either silent (the remaining header is ≥ 0.8 similar) or `missing_table` (the tables aren't paired). | the header-row signature, and pairing by position in "replace" blocks | M1 | Confirmed, silent form: reported 2/10, only in the German fee table |
+| H5 | Reordering two sections raises `changed_fixed` or `missing_fixed` on a document that is fine | `SequenceMatcher` alignment keeps document order | M1 | Confirmed: 8/8 alarms |
+| H6 | An inserted material clause leaves the score unchanged and never reaches the judge | `extra` rows are outside `differences` | M1, M2 | Confirmed for no AI: 6/8 visible only as extra content; 2/8 misaligned onto the original clause |
+| H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 | — |
+| H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 | — |
+| H9 | German amounts written `12.500,00 €` are typed as text, not number | `CURRENCY_RE` expects the symbol before the number or an ISO code after it | M4 | — (added in M1) |
 
 Confirmed blind spots are the M6 candidates.
 

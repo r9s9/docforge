@@ -17,3 +17,14 @@ This branch holds the DocForge evaluation suite. The project brief is
 - Ask before you: add a dependency, change anything under `backend/docforge/`, spend more than the budget cap, or delete files.
 - After each milestone, update `evals/README.md` and `evals/CHANGELOG.md`.
 - If the code doesn't match this brief (a function moved or a signature changed), follow the code, note the difference in `DESIGN.md`, and tell me.
+
+## Commands
+
+Run from the repo root.
+
+- Eval tests: `python -m pytest tests/evals -q`
+- Eval lint: `ruff check --config evals/ruff.toml evals tests/evals`
+- Build the corpus: `python -m evals corpus build` (commit `evals/corpus/manifest.json` if it changes)
+- Comply suite: `python -m evals run --suite comply --config evals/configs/no-ai.yaml`
+
+On unchanged master, the backend checks already report problems: `pytest -q` fails one test and `ruff check docforge` reports 6 findings (see `evals/DESIGN.md` §1.3). They are not ours to fix. Before a commit, just check that those results haven't changed.
