@@ -117,5 +117,5 @@ def test_haiku_dry_run_shows_the_cap_the_pilot_and_that_no_temperature_is_sent(t
     assert "temperature               not sent" in output
     assert "cases the judge will see  82 (from the no-AI result)" in output
     assert "spending cap              $1.00" in output
-    assert "first 3 judged cases are a pilot" in output
+    assert "first 3 cases that call a model are a pilot" in output
     assert key not in output and posts == 0

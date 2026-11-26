@@ -226,3 +226,82 @@ def comply_table(result: dict[str, Any]) -> str:
     if agg.get("ai"):
         lines += _ai_lines(meta, agg["ai"])
     return "\n".join(lines)
+
+
+def generate_table(result: dict[str, Any]) -> str:
+    """The console summary of a generate run."""
+    meta, agg = result["meta"], result["aggregates"]
+    fields, tables, free, pipeline = (agg["fields"], agg["tables"], agg["free_text"],
+                                      agg["pipeline"])
+    lines = [
+        f"DocForge evals · generate · {meta['config']} · {meta['cases']} notes cases · "
+        f"{len(meta['types'])} types · {meta['seconds']} s",
+        "",
+        f"{'notes style':14} {'short fields right':>22} {'hallucinated':>18}",
+    ]
+    for style, row in agg["by_style"].items():
+        lines.append(f"{style:14} {_rate(row['accuracy']):>22} "
+                     f"{_rate(row['hallucination_rate']):>18}")
+    lines += ["", f"{'kind of field':14} {'right':>22} {'hallucinated':>18}"]
+    for kind, row in agg["by_kind"].items():
+        lines.append(f"{kind:14} {_rate(row['accuracy']):>22} "
+                     f"{_rate(row['hallucination_rate']):>18}")
+    outcomes = fields["outcomes"]
+    graded = free["graded"]["num"]
+    lines += [
+        "",
+        f"short fields right            {_rate(fields['accuracy'])}",
+        f"  left empty though given     {_rate(fields['omission_rate'])}",
+        f"  hallucinated                {_rate(fields['hallucination_rate'])}"
+        f"   flagged as AI-drafted {_rate(fields['hallucinations_flagged'])}",
+        f"  from the notes, but wrong   {_rate(fields['grounded_wrong_rate'])}"
+        f"   a corrected value used {fields['superseded_used']}",
+        f"  empty where notes are silent {_rate(fields['correctly_empty_rate'])}"
+        f"   placeholders {fields['placeholders']}",
+        "  outcomes                    " + " · ".join(f"{k} {v}" for k, v in outcomes.items()),
+        f"dates/amounts in template form {_rate(fields['form_kept'])}",
+        f"tables: row count right       {_rate(tables['row_count_ok'])}   cells right "
+        f"{_rate(tables['cell_accuracy'])} · unsupported cells {_rate(tables['unsupported_cells'])}"
+        f" · tables invented {_rate(tables['invented_tables'])}",
+        f"free text written             {_rate(free['written'])}   left empty though given "
+        f"{_rate(free['omitted'])}",
+        (f"free text graded              {_rate(free['graded'])}   faithful "
+         f"{_rate(free['faithful'])} · complete {_rate(free['complete'])}"
+         if graded else "free text graded              not graded (no grader in this run)"),
+        f"layout kept                   {_rate(pipeline['layout_preserved'])}",
+        "written by                    " + " · ".join(
+            f"{k} {v}" for k, v in pipeline["routing_source"].items())
+        + f"   review ran {_rate(pipeline['review_ran'])} · rewrites "
+          f"{_rate(pipeline['rewrites'])}",
+        f"generate latency              p50 {_num(agg['generate_ms_p50'], 0, ' ms')}"
+        f" · p95 {_num(agg['generate_ms_p95'], 0, ' ms')}",
+        f"errors                        {_rate(agg['error_rate'])}",
+    ]
+    grader = meta.get("grader") or {}
+    if grader.get("status") == "on":
+        spent = grader.get("spend_usd") or {}
+        lines.append(f"grader                        {grader.get('model')} · spent "
+                     f"{_usd(spent.get('live', 0.0))} live, {_usd(spent.get('replayed', 0.0))}"
+                     " replayed")
+    ai = agg.get("ai")
+    if ai:
+        cost = ai["cost_usd"]
+        unpriced = cost["unpriced_calls"] and not cost["total"]
+        failures = " · ".join(f"{kind} {_rate(r)}" for kind, r in ai["ai_call_failures"].items())
+        lines += [
+            "",
+            f"AI: {meta['ai'].get('model')} on {meta['ai'].get('host')}",
+            "  cost " + (f"$0 (no price for this model: {cost['unpriced_calls']} unpriced calls)"
+                         if unpriced else
+                         f"total {_usd(cost['total'])} (live {_usd(cost['live'])}, replayed "
+                         f"{_usd(cost['replayed'])}) · per document {_usd(cost['per_document'])}"),
+            f"  writer fell back (route or heuristic) {_rate(ai['fallback_rate'])}",
+            f"  cache hit rate {_num(meta.get('cache_hit_rate'))}",
+            f"  failed AI calls by kind: {failures or '—'}",
+        ]
+        stable = ai.get("stability")
+        if stable:
+            lines.append(f"  stability: field outcomes agree {_rate(stable['outcome_agreement'])}"
+                         f" · values agree {_rate(stable['value_agreement'])} over "
+                         f"{stable['cases']} cases × {stable['runs_per_case']} runs")
+    return "\n".join(lines)

@@ -60,6 +60,26 @@ def cost_per_judged_case(prior: dict[str, Any] | None) -> float | None:
     return sum(costs) / len(costs) if costs else None
 
 
+def cost_per_case(prior: dict[str, Any] | None, suite: str) -> float | None:
+    """Mean cost of one model-calling case in an earlier run of a suite, grading included.
+
+    Comply counts the cases the judge saw. Generate counts every case that called a model:
+    all of them with AI on, and the graded ones with AI off.
+    """
+    if prior is None:
+        return None
+    if suite == "comply":
+        return cost_per_judged_case(prior)
+    costs = []
+    for case in prior["cases"]:
+        spend = case.get("spend_usd") or {}
+        grading = case.get("grader_spend_usd") or {}
+        if case.get("error") or not (case.get("ai") or grading):
+            continue
+        costs.append(sum(spend.get(k, 0.0) + grading.get(k, 0.0) for k in ("live", "replayed")))
+    return sum(costs) / len(costs) if costs else None
+
+
 def estimate(judged: set[str] | None, cached: set[str], per_case: float | None) -> float | None:
     """Projected live spend: judged cases not yet cached, times the cost of one."""
     if judged is None or per_case is None:

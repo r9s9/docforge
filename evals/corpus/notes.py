@@ -137,6 +137,18 @@ def load_notes(pairs: list[str] | None = None, root: Path = NOTES_DIR) -> list[N
     return cases
 
 
+def select_notes(cases: list[NotesCase], types: list[str] | None,
+                 limit: int | None) -> list[NotesCase]:
+    """The notes cases a run uses: the chosen types (all by default), at most ``limit`` each."""
+    chosen: list[NotesCase] = []
+    for pair in SPECS:
+        if types and pair not in types:
+            continue
+        pair_cases = [case for case in cases if case.pair == pair]
+        chosen.extend(pair_cases[:limit] if limit else pair_cases)
+    return chosen
+
+
 def problems(case: NotesCase) -> list[str]:
     """Everything wrong with a notes case; empty when it is consistent."""
     issues: list[str] = []
