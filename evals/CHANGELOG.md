@@ -26,8 +26,11 @@ One entry per milestone: what was built, what was learned, what comes next.
   | `results/2026-11-26_haiku_comply.json` | 292 s | 0/238 | no |
   | `results/2026-11-26_local_comply.json` | 1,510 s | 0/238 | no |
 
-  Both files record `dirty: true`: the owner's tree had uncommitted changes outside
-  `evals/results` during the runs. What they were is being checked.
+  Both files record `dirty: true`. The owner's `git status` showed the cause: a locally edited
+  `.claude/launch.json` (the Claude app's launch settings for dev-server previews) and one
+  untracked text file at the repo root. DocForge and the evals read neither, so both runs ran
+  the committed code. Result files now say this themselves: they list the tracked files that
+  differ and record whether any of them is run code (`dirty_code`).
 
 **The M2 table** (`python -m evals compare`; every number comes from the three result files)
 
@@ -95,7 +98,6 @@ One entry per milestone: what was built, what was learned, what comes next.
   run. Qwen wrote about 910 output tokens per call against Haiku's 370, despite thinking off.
 
 **Next**
-- Find out what made the owner's tree dirty during the runs, and record it.
 - **M3**, in plan mode: notes, expected values and the generate runner, with field outcomes and
   the hallucination rate per mode.
 
