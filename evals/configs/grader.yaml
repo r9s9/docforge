@@ -5,7 +5,7 @@ name: grader
 provider: anthropic
 model: claude-haiku-5-5
 effort: medium
-max_tokens: 4000
+max_tokens: 8000  # room for thinking; a cut-off answer would be a failed grade
 api_key_env: ANTHROPIC_API_KEY
 # What grading may spend in one run, on top of the run's own cap (the owner's €1 rule).
 max_usd: 1.00
