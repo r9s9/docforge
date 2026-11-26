@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from evals import jsonfmt
+from evals.corpus.doc_types import SPECS
 from evals.corpus.notes import load_notes
 from evals.metrics.comply import rate
 from evals.paths import EVALS_DIR
@@ -81,10 +82,24 @@ def _quotas(pools: dict[str, list[dict[str, Any]]], per_mode: int) -> dict[str, 
     return quota
 
 
-def sheet(results: list[dict[str, Any]], per_mode: int = 10) -> dict[str, Any]:
-    """The items to label, without the grader's verdicts, in a mixed but fixed order."""
+def readable(case_id: str, languages: tuple[str, ...] | None) -> bool:
+    """Whether the owner can judge an item: its document and its notes are in one of
+    ``languages`` (mixed-language notes count as not readable). None: every item."""
+    if languages is None:
+        return True
+    pair, style = case_id.split("/", 1)
+    return SPECS[pair].lang in languages and style != "mixed"
+
+
+def sheet(results: list[dict[str, Any]], per_mode: int = 10,
+          languages: tuple[str, ...] | None = None) -> dict[str, Any]:
+    """The items to label, without the grader's verdicts, in a mixed but fixed order.
+
+    ``languages`` keeps only items the owner can read (see ``readable``)."""
     notes = {case.id: case for case in load_notes()}
-    pools = {result["meta"]["config"]: graded_items(result) for result in results}
+    pools = {result["meta"]["config"]: [i for i in graded_items(result)
+                                         if readable(i["case"], languages)]
+             for result in results}
     quota = _quotas(pools, per_mode)
     chosen = [item for config, pool in pools.items() for item in _pick(pool, quota[config])]
     items = []
@@ -99,7 +114,8 @@ def sheet(results: list[dict[str, Any]], per_mode: int = 10) -> dict[str, Any]:
             "points": item["points"],
             "value": item["value"],
         })
-    return {"results": sorted(r["meta"]["config"] for r in results), "items": items}
+    return {"results": sorted(r["meta"]["config"] for r in results),
+            "languages": list(languages) if languages else None, "items": items}
 
 
 def write_sheet(data: dict[str, Any], path: Path = SHEET_PATH) -> Path:

@@ -76,3 +76,15 @@ def test_a_mode_with_too_few_graded_values_gives_its_share_to_the_others():
     counts = {c: sum(i["source"]["config"] == c for i in data["items"])
               for c in ("no-ai", "haiku", "local")}
     assert counts == {"no-ai": 2, "haiku": 5, "local": 5} and len(data["items"]) == 12
+
+
+def test_items_can_be_limited_to_what_the_owner_reads():
+    from evals.graders.labels import readable
+
+    assert readable("nda_en/email", ("en",)) and not readable("nda_de/email", ("en",))
+    assert not readable("nda_en/mixed", ("en",))  # German in the notes
+    assert readable("nda_de/mixed", None)
+    data = sheet([_result("haiku", [(True, True)] * 6)], per_mode=10, languages=("en",))
+    assert data["languages"] == ["en"]
+    assert all("_en/" in i["source"]["case"] and "/mixed" not in i["source"]["case"]
+               for i in data["items"])

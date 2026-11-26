@@ -54,6 +54,9 @@ def build_parser() -> argparse.ArgumentParser:
     sheet = labels_sub.add_parser("sheet", help="pick the 30 items to label from generate results")
     sheet.add_argument("results", nargs="*", type=Path,
                        help="generate result files (default: the newest of each config)")
+    sheet.add_argument("--languages", nargs="+", default=None,
+                       help="only items whose document and notes are in these languages, "
+                            "e.g. en (mixed-language notes are left out)")
     check = labels_sub.add_parser("check", help="how often the grader agrees with the labels")
     check.add_argument("results", nargs="*", type=Path,
                        help="generate result files (default: the newest of each config)")
@@ -456,7 +459,7 @@ def _labels(args: argparse.Namespace) -> int:
         return 2
     results = [load(path) for path in paths]
     if args.labels_command == "sheet":
-        data = labels.sheet(results)
+        data = labels.sheet(results, languages=tuple(args.languages) if args.languages else None)
         path = labels.write_sheet(data)
         print(f"{len(data['items'])} items from {', '.join(data['results'])} written to {path}")
         return 0
