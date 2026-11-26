@@ -51,6 +51,27 @@ def element_text(element: dict[str, Any]) -> str:
     return element["text"]
 
 
+def skeleton(data: bytes) -> list[tuple]:
+    """Top-level elements in walk order: (scope, kind, text or table cells, style).
+
+    Two documents with equal skeletons have the same paragraphs, tables, cell texts and
+    paragraph styles in the same order. Used to check that a fixed document is back to its
+    clean original, and by the mutator tests.
+    """
+    items: list[tuple] = []
+    for node in walk_document(Document(BytesIO(data))):
+        if node.parent_node_id is not None:
+            continue
+        scope = node.scope or "body"
+        if node.kind == "table":
+            cells = tuple(tuple(cell.text for cell in row.cells) for row in node.obj.rows)
+            items.append((scope, "table", cells, ""))
+        else:
+            style = node.obj.style.name if node.obj.style is not None else ""
+            items.append((scope, "paragraph", node.obj.text, style))
+    return items
+
+
 def resolve(data: bytes, truth: list[dict[str, Any]]) -> dict[str, str]:
     """Map every logical ID in ``truth`` to its DocForge node ID in the document ``data``."""
     nodes = top_level_nodes(Document(BytesIO(data)))

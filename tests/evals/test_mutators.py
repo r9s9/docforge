@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import dataclasses
 from functools import cache
-from io import BytesIO
 
 import pytest
-from docx import Document
 
-from docforge.structure_normalizer import build_extraction, walk_document
+from docforge.structure_normalizer import build_extraction
 from evals.corpus.doc_types import SPECS
 from evals.corpus.generator import build_document
+from evals.corpus.ground_truth import skeleton
 from evals.corpus.mutators import MUTATORS, MutationError, applicable, clean_label, mutate
 from evals.corpus.values import parse_date
 
@@ -35,23 +34,6 @@ TEXT_EDITS = {
 @cache
 def _base(pair: str) -> tuple[bytes, list[dict]]:
     return build_document(SPECS[pair], BASE)
-
-
-@cache
-def skeleton(data: bytes) -> list[tuple]:
-    """Top-level elements in walk order: (scope, kind, text or table cells, style)."""
-    items = []
-    for node in walk_document(Document(BytesIO(data))):
-        if node.parent_node_id is not None:
-            continue
-        scope = node.scope or "body"
-        if node.kind == "table":
-            cells = tuple(tuple(cell.text for cell in row.cells) for row in node.obj.rows)
-            items.append((scope, "table", cells, ""))
-        else:
-            style = node.obj.style.name if node.obj.style is not None else ""
-            items.append((scope, "paragraph", node.obj.text, style))
-    return items
 
 
 def expected_skeleton(before: list[tuple], truth: list[dict], name: str, spec) -> list[tuple]:
