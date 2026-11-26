@@ -7,6 +7,8 @@ This branch holds the DocForge evaluation suite. The project brief is
 ## Working rules for Claude Code
 
 - Never change the app or the master branch. Nothing under `backend/` or `frontend/` is edited, and master stays as it is. All eval work happens on the `evals` branch, and the evals look at the app from outside: they call the real service functions, and any wrapping happens in memory in the eval process. This rule comes first: it replaces "ask before you change anything under `backend/docforge/`" below.
+- Commit as the owner, with Claude as co-author. Every commit's author is the owner's GitHub account, through its noreply address so no private email is exposed: `git commit --author="Reza.Ks <286807569+r9s9@users.noreply.github.com>"`. The message ends with the `Co-Authored-By` trailer for Claude.
+- AI evals use only Claude Haiku 5.5 (`configs/haiku.yaml`). Local evals use LM Studio (`configs/local.yaml`).
 - Start every milestone in **plan mode**. Show the plan and wait for approval before writing code.
 - Work on the `evals` branch. Make small commits with clear messages, one logical change each.
 - Before each commit, run `cd backend && pytest -q` and `ruff check docforge`. Also run the eval tests under `tests/evals/`.

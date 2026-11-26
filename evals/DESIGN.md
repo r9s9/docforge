@@ -1,6 +1,8 @@
 # DocForge evaluation suite: design
 
-> **Status:** M0 draft, waiting for approval.
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted).
+> **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
+> brief's Sonnet and Gemini configs are out of scope.
 > **Code checked:** DocForge v0.21.0, commit `4880faa` (master).
 > **Brief:** [`docs/projects/eval-suite.md`](../docs/projects/eval-suite.md).
 
@@ -136,7 +138,7 @@ evals/
   harness.py         sandbox: environment, database, AI settings
   cache.py           HTTP record/replay
   observe.py         in-memory wrappers: AI call outcomes, judge verdicts, spend
-  configs/           no-ai.yaml, haiku.yaml, sonnet.yaml, local.yaml (+ gemini.yaml)
+  configs/           no-ai.yaml, haiku.yaml, local.yaml (LM Studio)
   corpus/
     generator.py     deterministic builder engine + ground truth
     doc_types/       one spec per document type, EN/DE text
@@ -548,21 +550,29 @@ ai:
 pipeline:
   writer_enabled: true
   verify_enabled: true
-grader:                         # M3: a different model from the one under test
+grader:                         # M3: Haiku 5.5 is the only cloud model in scope (§6.5)
   provider: anthropic
-  model: claude-sonnet-5-5
+  model: claude-haiku-5-5
   api_key_env: ANTHROPIC_API_KEY
 ```
 
 | Config | Purpose |
 |---|---|
 | `no-ai.yaml` | `enabled: false`. The deterministic baseline: free, and it runs in CI. |
-| `haiku.yaml` | The shipped default. It matches `config.py`: Haiku 5.5, efforts low and medium. |
-| `sonnet.yaml` | `claude-sonnet-5-5` on both tiers |
-| `local.yaml` | Provider `openai` (OpenAI-compatible) at Ollama (`http://localhost:11434/v1`) or LM Studio. The model is still to be chosen. DocForge only switches AI on with a non-empty key, so the config sets `api_key_placeholder: local`, which isn't a secret. Runs on the owner's machine. |
-| `gemini.yaml` (optional) | Gemini's OpenAI-compatible endpoint (`settings_store.GEMINI_DEFAULT_BASE`) |
+| `haiku.yaml` | The shipped default, and the only cloud model in scope. It matches `config.py`: Haiku 5.5, efforts low and medium. |
+| `local.yaml` | LM Studio's OpenAI-compatible server (`provider: openai`, default base URL `http://localhost:1234/v1`), running whatever model the owner loads, named in the config. See the notes below the table. Runs on the owner's machine. |
 
-Model names live only in these files.
+Notes on `local.yaml`:
+- DocForge only switches AI on with a non-empty key, so the config sets
+  `api_key_placeholder: local`, which isn't a secret.
+- DocForge's `no_think` option (for Qwen3 models in LM Studio) is read only from
+  `app_settings.json`. When the config asks for it, the harness writes it into the sandbox's copy
+  of that file.
+- DocForge sends local servers one call at a time (`ai/parallel.py`), so local runs are slower.
+
+Model names live only in these files. By the owner's decision, the brief's `sonnet.yaml` and its
+optional `gemini.yaml` are out of scope, so every comparison is no AI vs. Haiku 5.5 vs. the local
+model.
 
 ### 6.2 Response cache (`evals/cache.py`)
 
@@ -633,8 +643,12 @@ and results are never changed, and no source file is edited.
 - **When it's used.** Only for free-text fields, where exact match can't work: summaries and
   descriptions. It scores two things against the notes and the expected points: faithful (no
   unsupported claims) and complete.
-- **Which model.** A different model from the one under test, set by the config's `grader:`
-  block. The grader's own cost is reported apart from the mode's cost.
+- **Which model.** Claude Haiku 5.5, the only cloud model in scope, set by the config's
+  `grader:` block.
+  - For local runs, it is a different model from the one under test, as the brief asks.
+  - For Haiku runs, it grades its own model's output, which the brief warns against. The
+    agreement gate below therefore decides whether its grades are used at all.
+  - The grader's own cost is reported apart from the mode's cost.
 - **Agreement gate.**
   - The owner hand-labels 30 items. Agreement with those labels is reported.
   - Below 85%, the grader is not used, and a sample goes to manual review instead (brief §6.4).
@@ -703,10 +717,11 @@ Confirmed blind spots are the M6 candidates.
 
 ## 10. Open questions
 
-1. **Local model.** Which runtime (Ollama or LM Studio), which model, which hardware? Needed for
-   `local.yaml` in M2. It runs on the owner's machine, because the cloud container has neither.
-2. **Grader.** Which grader model for each tested model? When will the owner's 30 hand labels
-   come? (M3)
+1. **Local model.** LM Studio is decided. Still open: which model, on what hardware? Needed for
+   `local.yaml` in M2. It runs on the owner's machine, because the cloud container has no
+   LM Studio.
+2. **Grader labels.** The grader is Haiku 5.5 (§6.5). When will the owner's 30 hand labels come?
+   (M3)
 3. **Money.** Does an amount like `1.234,56 €` count as `number` or `text` in field type accuracy?
    The proposal is `number`.
 4. **Date format.** Is a date-format change material "by rule" for any document type? The
@@ -725,9 +740,9 @@ Each milestone starts in plan mode and ends with an entry in `evals/CHANGELOG.md
 
 | M | Builds | Done when |
 |---|---|---|
-| M0 | this design, `CLAUDE.md`, the brief in `docs/projects/` | the owner approves this file |
+| M0 | this design, `CLAUDE.md`, the brief in `docs/projects/` | the owner approves this file (done, 2026-11-26) |
 | M1 | harness; corpus (4 types, 3 in German); ≥ 10 mutators; manifest; comply runner + metrics; `no-ai.yaml`; `corpus build` and `run` | `python -m evals run --suite comply --config configs/no-ai.yaml` runs in under 2 minutes and prints a table; mutator and metric tests pass |
-| M2 | haiku, sonnet and local configs; cache; budget guard; observer; judge matrix; cost, latency, fallback | one results table compares 4 modes on the same cases |
+| M2 | haiku and local (LM Studio) configs; cache; budget guard; observer; judge matrix; cost, latency, fallback | one results table compares 3 modes (no AI, Haiku 5.5, local) on the same cases |
 | M3 | notes + expected values; generate runner; field outcomes; rubric grader + agreement check | hallucination rate per mode, with 5 example failures written up |
 | M4 | analyze runner; k = 1/2/3/5 | a table or chart shows quality by number of examples |
 | M5 | `evals.yml`, `thresholds.yaml`, `report`, README "How well does it work?" (on `evals`) | a PR into `evals` that breaks a detected case fails CI |

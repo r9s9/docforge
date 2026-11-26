@@ -32,7 +32,14 @@ One entry per milestone: what was built, what was learned, what comes next.
   ruff 0.17.6. One backend test needs `DOCFORGE_AUTH_REQUIRED=false`, which comes from `.env`.
   With that setting: 422 passed, 1 xfailed. Neither is fixed, because the app is never changed.
 
+**Accepted** on 2026-11-26. The owner approved DESIGN.md and decided:
+- AI runs use only Claude Haiku 5.5. The brief's Sonnet and Gemini configs are out of scope, so
+  the comparison is no AI vs. Haiku 5.5 vs. a local model.
+- Local runs use LM Studio.
+- From here on, commits are authored by the owner's GitHub account, with Claude as co-author.
+  The two earlier M0 commits keep Claude as author. Changing them would need a force push, which
+  is the owner's call.
+
 **Next**
-- The owner reviews and approves DESIGN.md.
 - M1, in plan mode: the harness, the corpus (4 types, 3 of them in German), at least 10
   mutators, the manifest, and the comply runner with `no-ai.yaml`.
