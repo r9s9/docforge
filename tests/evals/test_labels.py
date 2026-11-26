@@ -67,3 +67,12 @@ def test_agreement_per_question_and_the_gate():
     unlabelled = agreement(data, {"labels": {}}, results)
     assert unlabelled["faithful"]["agreement"] == rate(0, 0)
     assert unlabelled["faithful"]["used"] is False
+
+
+def test_a_mode_with_too_few_graded_values_gives_its_share_to_the_others():
+    few = _result("no-ai", [(True, True)] * 2)  # only 2 graded values
+    data = sheet([few, _result("haiku", [(True, True)] * 6), _result("local", [(True, True)] * 6)],
+                 per_mode=4)
+    counts = {c: sum(i["source"]["config"] == c for i in data["items"])
+              for c in ("no-ai", "haiku", "local")}
+    assert counts == {"no-ai": 2, "haiku": 5, "local": 5} and len(data["items"]) == 12

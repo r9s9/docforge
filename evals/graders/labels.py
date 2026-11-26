@@ -3,8 +3,9 @@
 The brief (§6.4) trusts the grader only where it agrees with the owner on at least 85% of 30
 hand-labelled items. This module:
 - picks the 30 items from the generate results (``sheet``): 10 per mode, across the free-text
-  fields, and, where there are enough, half from items the grader answered "no" on, so the
-  check isn't all easy "yes" items. The choice is a hash, so it is the same every time.
+  fields (a mode with fewer graded values gives its share to the others), and, where there are
+  enough, half from items the grader answered "no" on, so the check isn't all easy "yes" items.
+  The choice is a hash, so it is the same every time.
 - leaves the grader's verdict and the mode out of what the owner sees, so the labels are blind.
 - compares the owner's answers with the grader's, per question (``agreement``). A question whose
   agreement is below 85% is not used: its numbers are reported as "not graded".
@@ -66,10 +67,26 @@ def _pick(items: list[dict[str, Any]], n: int) -> list[dict[str, Any]]:
     return chosen
 
 
+def _quotas(pools: dict[str, list[dict[str, Any]]], per_mode: int) -> dict[str, int]:
+    """``per_mode`` items from each mode; a mode with fewer gives its share to the others, one
+    item at a time, the modes with the most items first."""
+    quota = {config: min(per_mode, len(pool)) for config, pool in pools.items()}
+    spare = per_mode * len(pools) - sum(quota.values())
+    order = sorted(pools, key=lambda c: (-len(pools[c]), c))
+    while spare > 0 and any(quota[c] < len(pools[c]) for c in order):
+        for config in order:  # one at a time, so the share is spread evenly
+            if spare > 0 and quota[config] < len(pools[config]):
+                quota[config] += 1
+                spare -= 1
+    return quota
+
+
 def sheet(results: list[dict[str, Any]], per_mode: int = 10) -> dict[str, Any]:
     """The items to label, without the grader's verdicts, in a mixed but fixed order."""
     notes = {case.id: case for case in load_notes()}
-    chosen = [item for result in results for item in _pick(graded_items(result), per_mode)]
+    pools = {result["meta"]["config"]: graded_items(result) for result in results}
+    quota = _quotas(pools, per_mode)
+    chosen = [item for config, pool in pools.items() for item in _pick(pool, quota[config])]
     items = []
     for item in sorted(chosen, key=lambda i: _hash("order", i["config"], i["case"], i["field"])):
         case = notes[item["case"]]
