@@ -18,7 +18,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from evals.metrics.comply import ALARM_SEVERITIES, material_alarms_kept
+from evals.metrics.comply import ALARM_SEVERITIES, material_alarms_kept, percentile
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -56,8 +56,35 @@ def _cost(result: dict[str, Any], key: str) -> str:
     return _usd(cost[key])
 
 
+def _total(result: dict[str, Any]) -> str:
+    """Everything the run spent, repeats included (the per-document rows cover one pass)."""
+    ai = _ai(result)
+    if ai is None:
+        return "$0 (no AI)"
+    if ai["cost_usd"]["unpriced_calls"] and not ai["cost_usd"]["total"]:
+        return "$0 (hardware)"
+    spend = result["meta"].get("spend_usd") or {}
+    if "live" not in spend:
+        return _usd(ai["cost_usd"]["total"])
+    return _usd(spend["live"] + spend.get("replayed", 0.0))
+
+
 def _ok(result: dict[str, Any]) -> list[dict[str, Any]]:
     return [case for case in result["cases"] if not case.get("error")]
+
+
+def _latency(result: dict[str, Any], *, judged: bool) -> str:
+    """p50 / p95 of check_document; ``judged``: only cases with differences (the judge's)."""
+    times = [c["check_ms"] for c in _ok(result)
+             if c.get("check_ms") is not None and (c.get("differences") or not judged)]
+    return f"{_num(percentile(times, 0.50))} / {_num(percentile(times, 0.95))} ms"
+
+
+def _machine(result: dict[str, Any]) -> str:
+    meta = result["meta"]
+    if not meta.get("platform"):
+        return "n/a"
+    return f"{meta['platform']}, Python {meta.get('python', '?')}"
 
 
 ROWS: list[tuple[str, Callable[[dict[str, Any]], str]]] = [
@@ -79,11 +106,11 @@ ROWS: list[tuple[str, Callable[[dict[str, Any]], str]]] = [
      lambda r: _num(_ai(r)["semantic_auc_clean_vs_material"]) if _ai(r) else "n/a"),
     ("cost per document", lambda r: _cost(r, "per_document")),
     ("cost per judged document", lambda r: _cost(r, "per_judged_document")),
-    ("total cost of the run", lambda r: _cost(r, "total")),
-    ("check latency p50 / p95",
-     lambda r: f"{_num(r['aggregates']['check_ms_p50'])} / "
-     f"{_num(r['aggregates']['check_ms_p95'])} ms"),
+    ("total cost, repeats included", _total),
+    ("check latency p50 / p95, all cases", lambda r: _latency(r, judged=False)),
+    ("check latency p50 / p95, cases with differences", lambda r: _latency(r, judged=True)),
     ("errors", lambda r: _rate(r["aggregates"]["error_rate"])),
+    ("run on", _machine),
 ]
 
 

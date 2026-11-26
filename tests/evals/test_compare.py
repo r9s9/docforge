@@ -111,9 +111,23 @@ def test_the_table_has_one_column_per_result_and_says_what_a_mode_does_not_measu
     assert rows["semantic AUC clean > material"] == ["n/a", "1.00", "0.50"]
     assert rows["cost per document"] == ["$0 (no AI)", "$0.0010", "$0 (hardware)"]
     assert rows["cost per judged document"] == ["$0 (no AI)", "$0.0013", "$0 (hardware)"]
-    assert rows["total cost of the run"] == ["$0 (no AI)", "$0.0040", "$0 (hardware)"]
-    assert rows["check latency p50 / p95"][0] == "10.00 / 10.00 ms"
+    assert rows["total cost, repeats included"] == ["$0 (no AI)", "$0.0040", "$0 (hardware)"]
+    assert rows["check latency p50 / p95, all cases"][0] == "10.00 / 10.00 ms"
     assert rows["errors"] == ["0.00 (0/4)", "0.00 (0/4)", "0.25 (1/4)"]
+    assert rows["run on"] == ["n/a", "n/a", "n/a"]
+
+
+def test_total_cost_includes_the_repeats_and_latency_can_be_limited_to_judged_cases():
+    run = haiku()
+    run["meta"].update(spend_usd={"live": 0.005, "replayed": 0.001}, platform="Windows",
+                       python="3.13.17")
+    for record, ms in zip(run["cases"], (100.0, 300.0, 5.0, 200.0), strict=True):
+        record["check_ms"] = ms
+    _header, rows = markdown_rows([run])
+    assert rows["total cost, repeats included"] == ["$0.0060"]  # the per-pass total is $0.0040
+    # Cases with differences: 100, 200 and 300 ms; p95 is at position 1.9 of 0..2.
+    assert rows["check latency p50 / p95, cases with differences"] == ["200.00 / 290.00 ms"]
+    assert rows["run on"] == ["Windows, Python 3.13.17"]
 
 
 def test_the_plain_table_lines_every_value_up_under_its_column():
