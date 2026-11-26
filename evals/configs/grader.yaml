@@ -1,0 +1,11 @@
+# The rubric grader for free-text fields (DESIGN.md §6.5). Claude Haiku 5.5, the only cloud model
+# in scope. Every generate run uses it when ANTHROPIC_API_KEY is set; `--no-grade` turns it off.
+# The key comes from the environment of the shell you run in; it is never printed or saved.
+name: grader
+provider: anthropic
+model: claude-haiku-5-5
+effort: medium
+max_tokens: 4000
+api_key_env: ANTHROPIC_API_KEY
+# What grading may spend in one run, on top of the run's own cap (the owner's €1 rule).
+max_usd: 1.00
