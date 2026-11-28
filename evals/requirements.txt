@@ -2,6 +2,8 @@
 # Install the backend first, unchanged:   pip install -e backend
 # Then:                                   pip install -r evals/requirements.txt
 pyyaml>=6
-# The version that built evals/corpus/manifest.json. Another version can write different .docx
-# bytes, and then the corpus check stops a run (or warns, if only the packaging differs).
+# The versions that built evals/corpus/manifest.json and every committed result. Another version
+# can write different .docx bytes, and then the corpus check stops a run (or warns, if only the
+# packaging differs). lxml is already a DocForge dependency; this only fixes its version.
 python-docx==1.2.0
+lxml==6.1.3
