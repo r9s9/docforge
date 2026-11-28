@@ -67,6 +67,13 @@ def build_parser() -> argparse.ArgumentParser:
     rescore = sub.add_parser("rescore", help="recompute generate outcomes with today's metrics")
     rescore.add_argument("results", nargs="+", type=Path, help="generate result files")
 
+    gate = sub.add_parser("gate", help="check no-AI results against evals/thresholds.yaml (CI)")
+    gate.add_argument("results", nargs="*", type=Path,
+                      help="no-AI result files, one per suite (default: the newest committed)")
+    gate.add_argument("--thresholds", type=Path, default=None, help="thresholds file")
+    gate.add_argument("--update", action="store_true",
+                      help="write the thresholds from these results instead of checking them")
+
     compare = sub.add_parser("compare", help="compare result files side by side")
     compare.add_argument("results", nargs="+", type=Path, help="two or more result files")
     compare.add_argument("--markdown", action="store_true", help="print a Markdown table")
@@ -561,6 +568,61 @@ def _rescore(args: argparse.Namespace) -> int:
     return 0
 
 
+def _newest_no_ai_results() -> list[Path]:
+    from evals.paths import RESULTS_DIR
+
+    paths = []
+    for suite in ("comply", "generate", "analyze"):
+        found = sorted(RESULTS_DIR.glob(f"*_no-ai_{suite}.json"))
+        if found:
+            paths.append(found[-1])  # sorted by date, so the last one is the newest
+    return paths
+
+
+def _gate(args: argparse.Namespace) -> int:
+    import yaml
+
+    from evals import gate
+    from evals.compare import load
+    from evals.paths import THRESHOLDS_PATH
+
+    paths = args.results or _newest_no_ai_results()
+    results: dict[str, dict] = {}
+    names: dict[str, str] = {}
+    for path in paths:
+        result = load(path)
+        suite = result["meta"].get("suite", "comply")
+        if suite in results:
+            print(f"Two {suite} results given: {names[suite]} and {Path(path).name}",
+                  file=sys.stderr)
+            return 2
+        results[suite], names[suite] = result, Path(path).name
+    target = args.thresholds or THRESHOLDS_PATH
+    if args.update:
+        missing = [suite for suite in gate.SUITES if suite not in results]
+        if missing:
+            print(f"--update needs a result for every suite; missing: {', '.join(missing)}",
+                  file=sys.stderr)
+            return 2
+        ai = [suite for suite, r in results.items() if (r["meta"].get("ai") or {}).get("enabled")]
+        if ai:
+            print(f"--update takes no-AI results only; AI results given for {', '.join(ai)}",
+                  file=sys.stderr)
+            return 2
+        target.write_text(gate.to_yaml(gate.thresholds_from(results, names)), encoding="utf-8",
+                          newline="\n")
+        print(f"Thresholds written to {target}, from "
+              f"{', '.join(names[s] for s in gate.SUITES)}.")
+        return 0
+    if not target.exists():
+        print(f"No thresholds at {target}: run `python -m evals gate --update` first.",
+              file=sys.stderr)
+        return 2
+    report = gate.check(yaml.safe_load(target.read_text(encoding="utf-8")), results)
+    print(gate.render(report, target.name))
+    return 0 if report["passed"] else 1
+
+
 def _newest_generate_results() -> list[Path]:
     from evals.paths import RESULTS_DIR
 
@@ -627,4 +689,6 @@ def main(argv: list[str] | None = None) -> int:
         return _labels(args)
     if args.command == "rescore":
         return _rescore(args)
+    if args.command == "gate":
+        return _gate(args)
     return 2

@@ -1,0 +1,120 @@
+# The CI gate's thresholds (DESIGN.md §8), set at the committed no-AI results named below.
+# Written by `python -m evals gate --update`; don't edit by hand. A run fails when it ran on
+# other cases (the hashes), when a value falls below its `min` threshold (or rises above a `max`
+# one), or when a deviation listed under `detected` is no longer found.
+
+comply:
+  from: "2026-11-26_no-ai_comply.json"
+  corpus_hash: "d2f7d14ee960fd92374380432df56971527a98dfb991ea42575dd890ac128b97"
+  metrics:
+    detection_recall: {"value": 0.6078431372549019, "num": 62, "den": 102}  # min
+    kind_accuracy: {"value": 1.0, "num": 56, "den": 56}  # min
+    fix_success: {"value": 0.4444444444444444, "num": 16, "den": 36}  # min
+    benign_alarm_rate: {"value": 0.3, "num": 24, "den": 80}  # max
+    false_alarm_rate_clean: {"value": 0.0, "num": 0, "den": 56}  # max
+    score_auc: {"value": 0.7843137254901961}  # min
+    errors: {"value": 0.0, "num": 0, "den": 238}  # max
+  detected:  # 62 material deviations
+    - "invoice_de/held_03/delete_clause"
+    - "invoice_de/held_03/empty_field"
+    - "invoice_de/held_04/delete_clause"
+    - "invoice_de/held_04/empty_field"
+    - "invoice_de/held_05/delete_table"
+    - "invoice_de/held_06/delete_table"
+    - "invoice_de/held_07/invalid_value"
+    - "invoice_de/held_08/invalid_value"
+    - "invoice_en/held_03/delete_clause"
+    - "invoice_en/held_03/empty_field"
+    - "invoice_en/held_04/delete_clause"
+    - "invoice_en/held_04/empty_field"
+    - "invoice_en/held_05/delete_table"
+    - "invoice_en/held_06/delete_table"
+    - "invoice_en/held_07/invalid_value"
+    - "invoice_en/held_08/invalid_value"
+    - "minutes_en/held_01/empty_field"
+    - "minutes_en/held_02/empty_field"
+    - "minutes_en/held_03/delete_table"
+    - "minutes_en/held_04/delete_table"
+    - "minutes_en/held_05/invalid_value"
+    - "minutes_en/held_06/invalid_value"
+    - "nda_de/held_01/change_governing_law"
+    - "nda_de/held_01/invalid_value"
+    - "nda_de/held_02/change_governing_law"
+    - "nda_de/held_02/invalid_value"
+    - "nda_de/held_05/delete_clause"
+    - "nda_de/held_05/empty_field"
+    - "nda_de/held_06/delete_clause"
+    - "nda_de/held_06/empty_field"
+    - "nda_de/held_07/insert_material"
+    - "nda_de/held_08/insert_material"
+    - "nda_en/held_01/change_governing_law"
+    - "nda_en/held_01/invalid_value"
+    - "nda_en/held_02/change_governing_law"
+    - "nda_en/held_02/invalid_value"
+    - "nda_en/held_05/delete_clause"
+    - "nda_en/held_05/empty_field"
+    - "nda_en/held_06/delete_clause"
+    - "nda_en/held_06/empty_field"
+    - "service_agreement_de/held_01/delete_table"
+    - "service_agreement_de/held_02/delete_table"
+    - "service_agreement_de/held_03/invalid_value"
+    - "service_agreement_de/held_04/invalid_value"
+    - "service_agreement_de/held_07/delete_clause"
+    - "service_agreement_de/held_07/empty_field"
+    - "service_agreement_de/held_07/insert_material"
+    - "service_agreement_de/held_07/remove_column"
+    - "service_agreement_de/held_08/delete_clause"
+    - "service_agreement_de/held_08/empty_field"
+    - "service_agreement_de/held_08/insert_material"
+    - "service_agreement_de/held_08/remove_column"
+    - "service_agreement_en/held_01/delete_table"
+    - "service_agreement_en/held_02/delete_table"
+    - "service_agreement_en/held_03/invalid_value"
+    - "service_agreement_en/held_04/invalid_value"
+    - "service_agreement_en/held_07/delete_clause"
+    - "service_agreement_en/held_07/empty_field"
+    - "service_agreement_en/held_07/insert_material"
+    - "service_agreement_en/held_08/delete_clause"
+    - "service_agreement_en/held_08/empty_field"
+    - "service_agreement_en/held_08/insert_material"
+
+generate:
+  from: "2026-11-26_no-ai_generate.json"
+  corpus_hash: "d2f7d14ee960fd92374380432df56971527a98dfb991ea42575dd890ac128b97"
+  notes_hash: "078da46a400b4254edb3ad08c01ae5b01e87c0ca634bf18c188cf76474ced3da"
+  metrics:
+    fields_right: {"value": 0.24096385542168675, "num": 40, "den": 166}  # min
+    hallucinated: {"value": 0.0, "num": 0, "den": 69}  # max
+    grounded_wrong: {"value": 0.42028985507246375, "num": 29, "den": 69}  # max
+    correctly_empty: {"value": 0.5555555555555556, "num": 5, "den": 9}  # min
+    cells_right: {"value": 0.0, "num": 0, "den": 263}  # min
+    layout_kept: {"value": 1.0, "num": 35, "den": 35}  # min
+    errors: {"value": 0.0, "num": 0, "den": 35}  # max
+
+analyze:
+  from: "2026-11-28_no-ai_analyze.json"
+  corpus_hash: "d2f7d14ee960fd92374380432df56971527a98dfb991ea42575dd890ac128b97"
+  analyze_hash: "bcbd09c7d6607e2c050bb63b4825c70c0cbd235f03a8c29fe4ade0e8c40d5382"
+  metrics:
+    field_f1_k1: {"value": 0.6838709677419355, "tp": 53, "fp": 45, "fn": 4}  # min
+    boilerplate_kept_k1: {"value": 0.5673076923076923, "num": 59, "den": 104}  # min
+    types_right_k1: {"value": 0.8775510204081632, "num": 43, "den": 49}  # min
+    tables_detected_k1: {"value": 1.0, "num": 7, "den": 7}  # min
+    layout_kept_k1: {"value": 0.8888888888888888, "num": 8, "den": 9}  # min
+    field_f1_k2: {"value": 0.9333333333333333, "tp": 56, "fp": 7, "fn": 1}  # min
+    boilerplate_kept_k2: {"value": 0.9326923076923077, "num": 97, "den": 104}  # min
+    types_right_k2: {"value": 0.8775510204081632, "num": 43, "den": 49}  # min
+    tables_detected_k2: {"value": 1.0, "num": 7, "den": 7}  # min
+    layout_kept_k2: {"value": 0.7777777777777778, "num": 7, "den": 9}  # min
+    field_f1_k3: {"value": 0.9333333333333333, "tp": 56, "fp": 7, "fn": 1}  # min
+    boilerplate_kept_k3: {"value": 0.9326923076923077, "num": 97, "den": 104}  # min
+    types_right_k3: {"value": 0.8775510204081632, "num": 43, "den": 49}  # min
+    tables_detected_k3: {"value": 1.0, "num": 7, "den": 7}  # min
+    layout_kept_k3: {"value": 0.7777777777777778, "num": 7, "den": 9}  # min
+    field_f1_k5: {"value": 0.9333333333333333, "tp": 56, "fp": 7, "fn": 1}  # min
+    boilerplate_kept_k5: {"value": 0.9326923076923077, "num": 97, "den": 104}  # min
+    types_right_k5: {"value": 0.8775510204081632, "num": 43, "den": 49}  # min
+    tables_detected_k5: {"value": 1.0, "num": 7, "den": 7}  # min
+    layout_kept_k5: {"value": 0.7777777777777778, "num": 7, "den": 9}  # min
+    shared_value_found: {"value": 0.0, "num": 0, "den": 9}  # min
+    errors: {"value": 0.0, "num": 0, "den": 45}  # max
