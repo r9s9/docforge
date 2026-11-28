@@ -140,17 +140,3 @@ def test_analyze_dry_run_lists_the_templates_to_build(tmp_path):
     assert "templates to build        45 (9 types)" in output
     assert "cases that call a model   45" in output
     assert posts == 0 and not (tmp_path / "results").exists()
-
-
-def test_all_suites_at_once_is_refused(tmp_path):
-    code, output, _posts = subprocess_run_all(tmp_path)
-    assert code == 2 and "one suite at a time" in output
-
-
-def subprocess_run_all(tmp_path) -> tuple[int, str, int]:
-    env = {k: v for k, v in os.environ.items() if not k.startswith("DOCFORGE_")}
-    env.update(PYTHONPATH=str(REPO_ROOT), PYTHONDONTWRITEBYTECODE="1")
-    done = subprocess.run([sys.executable, "-m", "evals", "run", "--suite", "all", "--config",
-                           "evals/configs/no-ai.yaml", "--out", str(tmp_path / "results")],
-                          cwd=REPO_ROOT, env=env, capture_output=True, text=True, timeout=120)
-    return done.returncode, done.stdout + done.stderr, 0

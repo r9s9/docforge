@@ -26,6 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
     build = corpus_sub.add_parser("build", help="build every document and write manifest.json")
     build.add_argument("--out", type=Path, default=None, help="build directory")
     build.add_argument("--manifest", type=Path, default=None, help="manifest path")
+    corpus_check = corpus_sub.add_parser(
+        "check", help="rebuild the corpus in a temp folder and compare it with the manifest")
+    corpus_check.add_argument("--manifest", type=Path, default=None, help="manifest path")
 
     run = sub.add_parser("run", help="run a suite against DocForge")
     run.add_argument("--suite", required=True, choices=SUITES)
@@ -79,6 +82,38 @@ def _corpus_build(args: argparse.Namespace) -> int:
     started = time.perf_counter()
     manifest = build_corpus(args.out or BUILD_DIR, args.manifest or MANIFEST_PATH)
     print(f"{summary(manifest)} Built in {time.perf_counter() - started:.1f} s.")
+    return 0
+
+
+def _corpus_check(args: argparse.Namespace) -> int:
+    """Whether the corpus code still builds what the committed manifest says (CI's first step).
+
+    Fails when a document's ground truth or values, or a case's label, differ. Files whose bytes
+    alone differ (another python-docx or lxml version) are only noted: the cases are the same.
+    """
+    import tempfile
+
+    from evals.corpus.build import build_corpus, load_manifest, manifest_differences
+    from evals.paths import MANIFEST_PATH
+
+    path = args.manifest or MANIFEST_PATH
+    committed = load_manifest(path)
+    with tempfile.TemporaryDirectory() as tmp:
+        fresh = build_corpus(Path(tmp) / "build")
+    if fresh == committed:
+        print(f"The corpus matches {path} exactly (corpus {committed['corpus_hash'][:12]}).")
+        return 0
+    differences = manifest_differences(committed, fresh)
+    if differences:
+        print(f"The corpus code no longer builds what {path} says:", file=sys.stderr)
+        for line in differences[:20]:
+            print(f"  {line}", file=sys.stderr)
+        if len(differences) > 20:
+            print(f"  … and {len(differences) - 20} more", file=sys.stderr)
+        print("Run `python -m evals corpus build` and commit the manifest.", file=sys.stderr)
+        return 1
+    print(f"The corpus matches {path}: every ground truth, value and label is the same. Only the "
+          "files' bytes differ, as another python-docx or lxml version writes them.")
     return 0
 
 
@@ -244,6 +279,73 @@ def _grading(args: argparse.Namespace) -> tuple[dict | None, str]:
     return config, f"{config['model']} (grading may spend up to {_money(config['max_usd'])})"
 
 
+def _suite_command(args: argparse.Namespace, suite: str, types: list[str] | None,
+                   max_usd: float | None) -> list[str]:
+    """The ``python -m evals run`` command for one suite of ``--suite all``."""
+    command = [sys.executable, "-m", "evals", "run", "--suite", suite, "--config",
+               str(args.config), "--repeat", str(args.repeat), "--sample", str(args.sample)]
+    for flag, value in (("--limit", args.limit), ("--out", args.out), ("--model", args.model),
+                        ("--max-usd", max_usd), ("--cache-dir", args.cache_dir),
+                        ("--grader", args.grader)):
+        if value is not None:
+            command += [flag, str(value)]
+    for flag, on in (("--keep-sandbox", args.keep_sandbox), ("--dry-run", args.dry_run),
+                     ("--no-cache", args.no_cache), ("--no-grade", args.no_grade)):
+        if on:
+            command.append(flag)
+    if types:
+        command += ["--types", *types]
+    return command
+
+
+def _run_all(args: argparse.Namespace) -> int:
+    """Every suite in turn, one result file each. With AI, one spending cap covers all three:
+    each suite may spend what the earlier ones left.
+
+    Each suite runs in a process of its own, as a run must: the sandbox is set up before
+    anything imports DocForge, once per process.
+    """
+    import subprocess
+
+    from evals import budget
+    from evals.corpus.build import all_types, load_manifest
+    from evals.harness import ai_enabled, load_config
+    from evals.paths import MANIFEST_PATH, RESULTS_DIR
+
+    config = load_config(args.config)
+    manifest = load_manifest(MANIFEST_PATH)
+    if args.types:
+        unknown = sorted(set(args.types) - set(all_types(manifest)))
+        if unknown:
+            print(f"Unknown types: {', '.join(unknown)}", file=sys.stderr)
+            return 2
+    cap = budget.effective_cap(config, args.max_usd) if ai_enabled(config) else None
+    spent = 0.0
+    for suite in ("comply", "generate", "analyze"):
+        known = all_types(manifest) if suite == "analyze" else manifest["types"]
+        types = [t for t in args.types if t in known] if args.types else None
+        if args.types and not types:
+            print(f"== {suite}: none of the given types; skipped", file=sys.stderr, flush=True)
+            continue
+        left = None
+        if cap is not None:
+            left = round(cap - spent, 6)
+            if left <= 0:
+                print(f"The {_money(cap)} cap is used up; {suite} was not started.",
+                      file=sys.stderr)
+                return 2
+        print(f"== {suite} ==", file=sys.stderr, flush=True)
+        code = subprocess.run(_suite_command(args, suite, types, left)).returncode
+        if code:
+            return code
+        if cap is not None and not args.dry_run:
+            result = budget.latest_result(args.out or RESULTS_DIR, config["name"], suite) or {}
+            meta = result.get("meta") or {}
+            grading = (meta.get("grader") or {}).get("spend_usd") or {}
+            spent += (meta.get("spend_usd") or {}).get("live", 0.0) + grading.get("live", 0.0)
+    return 0
+
+
 def _run(args: argparse.Namespace) -> int:
     import time
 
@@ -251,8 +353,7 @@ def _run(args: argparse.Namespace) -> int:
     from evals.paths import BUILD_DIR, CACHE_DIR, RESULTS_DIR
 
     if args.suite == "all":
-        print("Run one suite at a time: comply, generate or analyze.", file=sys.stderr)
-        return 2
+        return _run_all(args)
     config = load_config(args.config)
     ai = ai_enabled(config)
     manifest, corpus = _ensure_corpus()
@@ -517,7 +618,7 @@ def main(argv: list[str] | None = None) -> int:
     _tolerant_output()
     args = build_parser().parse_args(argv)
     if args.command == "corpus":
-        return _corpus_build(args)
+        return _corpus_check(args) if args.corpus_command == "check" else _corpus_build(args)
     if args.command == "run":
         return _run(args)
     if args.command == "compare":

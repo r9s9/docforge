@@ -227,6 +227,39 @@ def select_cases(
     return selected
 
 
+def manifest_differences(committed: dict[str, Any], fresh: dict[str, Any]) -> list[str]:
+    """What differs between two manifests, ignoring file bytes: one line per difference.
+
+    A document differs when its ground truth or its values do; a case, when it is new, gone,
+    or has another base or label.
+    """
+    def documents(m: dict[str, Any]) -> dict[tuple[str, str], Any]:
+        return {(pair, name): (doc["truth_hash"], doc["values"])
+                for pair, name, doc in all_documents(m)}
+
+    def cases(m: dict[str, Any]) -> dict[str, Any]:
+        return {case["id"]: (case["base"], case["label"]) for case in m["cases"]}
+
+    lines = []
+    old_docs, new_docs = documents(committed), documents(fresh)
+    for key in sorted(set(old_docs) | set(new_docs)):
+        if key not in new_docs:
+            lines.append(f"document {key[0]}/{key[1]}: no longer built")
+        elif key not in old_docs:
+            lines.append(f"document {key[0]}/{key[1]}: new")
+        elif old_docs[key] != new_docs[key]:
+            lines.append(f"document {key[0]}/{key[1]}: ground truth or values changed")
+    old_cases, new_cases = cases(committed), cases(fresh)
+    for case_id in sorted(set(old_cases) | set(new_cases)):
+        if case_id not in new_cases:
+            lines.append(f"case {case_id}: no longer built")
+        elif case_id not in old_cases:
+            lines.append(f"case {case_id}: new")
+        elif old_cases[case_id] != new_cases[case_id]:
+            lines.append(f"case {case_id}: base or label changed")
+    return lines
+
+
 def same_cases(a: dict[str, Any], b: dict[str, Any]) -> bool:
     """Whether two manifests describe the same documents and cases, ignoring file bytes.
 
