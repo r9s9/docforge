@@ -232,4 +232,15 @@ def test_every_row_of_an_information_block_must_survive_in_the_template():
                                   ("{{ item.classification }}", "{{ item.confidential }}"),
                                   ("{%tr endfor %}", "")), ""))
     assert template_layout([block], source, frozen, {}) == []
-    assert template_layout([block], source, looped, {}) == ["info.doc: rows lost"]
+    assert template_layout([block], source, looped, {}) == ["info.doc: rows or labels lost"]
+
+
+def test_an_information_block_may_template_its_values_but_not_its_labels():
+    block = {**_info(block=0), "rows": [["Report date", "2 March 2026"], ["Owner", "x"]]}
+    source = _skeleton(("table", (("Report date", "2 March 2026"), ("Owner", "Ines Tamura")), ""))
+    form = _skeleton(("table", (("Report date", "{{ report_date }}"), ("Owner", "{{ owner }}")),
+                      ""))
+    label_lost = _skeleton(("table", (("Report date", "{{ report_date }}"),
+                                      ("{{ owner_label }}", "{{ owner }}")), ""))
+    assert template_layout([block], source, form, {}) == []
+    assert template_layout([block], source, label_lost, {}) == ["info.doc: rows or labels lost"]

@@ -95,7 +95,7 @@ def test_no_ai_analyze_builds_a_template_per_number_of_examples(tmp_path):
     assert shared["outcomes"]["field.customer"]["outcome"] == "missed"  # identical in both
     report = cases["status_report_en/k1"], cases["status_report_en/k2"]
     assert [r["outcomes"]["info.project"]["outcome"] for r in report] == ["frozen", "looped"]
-    assert report[1]["layout"]["problems"] == ["info.project: rows lost"]
+    assert report[1]["layout"]["problems"] == ["info.project: rows or labels lost"]
     assert any("section toggle" in w for w in cases["status_report_en/k2"]["warnings"])
     by_k = result["aggregates"]["by_k"]
     assert by_k["1"]["cases"] == by_k["5"]["cases"] == 2

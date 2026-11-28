@@ -163,9 +163,11 @@ def template_layout(truth: list[dict[str, Any]], source: list[tuple], template: 
     ``source`` and ``template`` are skeletons (``evals.corpus.ground_truth.skeleton``), and the
     approach follows DocForge's own ``test_template_keeps_its_layout.py``. Every block comes back
     in order with its style; a block the analysis kept fixed keeps its exact text; a labelled
-    field keeps its label; a table keeps its column count and its first row; and every row of
-    an information block survives, its label in place (a loop keeps only the first). Extra
-    paragraphs and rows (the template's ``{%p … %}`` and ``{%tr … %}`` markers) are allowed.
+    field keeps its label; a data table keeps its column count and its header row; and an
+    information block keeps its column count and every row's label, in order (a loop keeps only
+    the first). An information block's values may turn into tags, its first row's too: that is
+    what a form looks like. Extra paragraphs and rows (the template's ``{%p … %}`` and
+    ``{%tr … %}`` markers) are allowed.
     """
     body = [item for item in template if item[0] == "body"]
     original = [item for item in source if item[0] == "body"]
@@ -176,11 +178,15 @@ def template_layout(truth: list[dict[str, Any]], source: list[tuple], template: 
         block = original[element["locator"]["block"]]
         kept = (outcomes.get(element["id"]) or {}).get("outcome") == "kept"
         if block[1] == "table":
-            first, width = tuple(block[2][0]), len(block[2][0])
+            width = len(block[2][0])
+            # A data table's header row stays as it is; an information block's first row is a
+            # label and a value, and only the label is fixed.
+            first = (block[2][0][:1] if element["kind"] == "info_table"
+                     else tuple(block[2][0]))
 
             def wanted(item, first=first, width=width):
                 return (item[1] == "table" and bool(item[2]) and len(item[2][0]) == width
-                        and tuple(item[2][0]) == first)
+                        and tuple(item[2][0][:len(first)]) == tuple(first))
         elif kept:
             def wanted(item, block=block):
                 return item[1:] == block[1:]
@@ -202,7 +208,7 @@ def template_layout(truth: list[dict[str, Any]], source: list[tuple], template: 
             labels = [row[0] for row in element["rows"]]
             kept = [row[0] for row in body[found][2]]
             if not _in_order(labels, kept):
-                problems.append(f"{element['id']}: rows lost")
+                problems.append(f"{element['id']}: rows or labels lost")
     return problems
 
 
