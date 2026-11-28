@@ -1,0 +1,918 @@
+{
+ "meta": {
+  "suite": "analyze",
+  "config": "no-ai",
+  "ai": {
+   "enabled": false
+  },
+  "models": {},
+  "date": "2026-11-27",
+  "finished_at": "2026-11-27T15:36:27+00:00",
+  "git_sha": "ca68a4275b49e80b55678cf2d156c665688e8bca",
+  "dirty": true,
+  "dirty_code": false,
+  "changed_files": [".claude/launch.json"],
+  "untracked_files": 0,
+  "docforge_version": "0.21.0",
+  "corpus_hash": "d2f7d14ee960fd92374380432df56971527a98dfb991ea42575dd890ac128b97",
+  "cases": 45,
+  "types": ["dpia_en", "invoice_de", "invoice_en", "minutes_en", "nda_de", "nda_en", "service_agreement_de", "service_agreement_en", "status_report_en"],
+  "cache_hit_rate": null,
+  "spend_usd": {
+   "live": 0.0,
+   "replayed": 0.0
+  },
+  "stopped": null,
+  "seconds": 11.4,
+  "python": "3.13.17",
+  "platform": "Windows",
+  "libraries": {
+   "python-docx": "1.2.0",
+   "lxml": "6.1.3",
+   "anthropic": "1.17.0",
+   "httpx": "0.28.1",
+   "httpx2": "2.16.2"
+  },
+  "corpus": {
+   "corpus_hash": "d2f7d14ee960fd92374380432df56971527a98dfb991ea42575dd890ac128b97",
+   "files_match_manifest": true
+  },
+  "analyze_hash": "bcbd09c7d6607e2c050bb63b4825c70c0cbd235f03a8c29fe4ade0e8c40d5382"
+ },
+ "templates": {
+  "service_agreement_en": {
+   "cases": ["service_agreement_en/k1", "service_agreement_en/k2", "service_agreement_en/k3", "service_agreement_en/k5", "service_agreement_en/shared"],
+   "representatives": {
+    "service_agreement_en/k1": "ex_01",
+    "service_agreement_en/k2": "ex_01",
+    "service_agreement_en/k3": "ex_01",
+    "service_agreement_en/k5": "ex_01",
+    "service_agreement_en/shared": "ex_01"
+   }
+  },
+  "service_agreement_de": {
+   "cases": ["service_agreement_de/k1", "service_agreement_de/k2", "service_agreement_de/k3", "service_agreement_de/k5", "service_agreement_de/shared"],
+   "representatives": {
+    "service_agreement_de/k1": "ex_01",
+    "service_agreement_de/k2": "ex_01",
+    "service_agreement_de/k3": "ex_01",
+    "service_agreement_de/k5": "ex_01",
+    "service_agreement_de/shared": "ex_01"
+   }
+  },
+  "nda_en": {
+   "cases": ["nda_en/k1", "nda_en/k2", "nda_en/k3", "nda_en/k5", "nda_en/shared"],
+   "representatives": {
+    "nda_en/k1": "ex_01",
+    "nda_en/k2": "ex_01",
+    "nda_en/k3": "ex_01",
+    "nda_en/k5": "ex_01",
+    "nda_en/shared": "ex_01"
+   }
+  },
+  "nda_de": {
+   "cases": ["nda_de/k1", "nda_de/k2", "nda_de/k3", "nda_de/k5", "nda_de/shared"],
+   "representatives": {
+    "nda_de/k1": "ex_01",
+    "nda_de/k2": "ex_01",
+    "nda_de/k3": "ex_01",
+    "nda_de/k5": "ex_01",
+    "nda_de/shared": "ex_01"
+   }
+  },
+  "invoice_en": {
+   "cases": ["invoice_en/k1", "invoice_en/k2", "invoice_en/k3", "invoice_en/k5", "invoice_en/shared"],
+   "representatives": {
+    "invoice_en/k1": "ex_01",
+    "invoice_en/k2": "ex_01",
+    "invoice_en/k3": "ex_01",
+    "invoice_en/k5": "ex_01",
+    "invoice_en/shared": "ex_01"
+   }
+  },
+  "invoice_de": {
+   "cases": ["invoice_de/k1", "invoice_de/k2", "invoice_de/k3", "invoice_de/k5", "invoice_de/shared"],
+   "representatives": {
+    "invoice_de/k1": "ex_01",
+    "invoice_de/k2": "ex_01",
+    "invoice_de/k3": "ex_01",
+    "invoice_de/k5": "ex_01",
+    "invoice_de/shared": "ex_01"
+   }
+  },
+  "minutes_en": {
+   "cases": ["minutes_en/k1", "minutes_en/k2", "minutes_en/k3", "minutes_en/k5", "minutes_en/shared"],
+   "representatives": {
+    "minutes_en/k1": "ex_01",
+    "minutes_en/k2": "ex_01",
+    "minutes_en/k3": "ex_01",
+    "minutes_en/k5": "ex_01",
+    "minutes_en/shared": "ex_01"
+   }
+  },
+  "dpia_en": {
+   "cases": ["dpia_en/k1", "dpia_en/k2", "dpia_en/k3", "dpia_en/k5", "dpia_en/shared"],
+   "representatives": {
+    "dpia_en/k1": "ex_01",
+    "dpia_en/k2": "ex_01",
+    "dpia_en/k3": "ex_01",
+    "dpia_en/k5": "ex_01",
+    "dpia_en/shared": "ex_01"
+   }
+  },
+  "status_report_en": {
+   "cases": ["status_report_en/k1", "status_report_en/k2", "status_report_en/k3", "status_report_en/k5", "status_report_en/shared"],
+   "representatives": {
+    "status_report_en/k1": "ex_01",
+    "status_report_en/k2": "ex_01",
+    "status_report_en/k3": "ex_01",
+    "status_report_en/k5": "ex_01",
+    "status_report_en/shared": "ex_01"
+   }
+  }
+ },
+ "aggregates": {
+  "cases": 45,
+  "by_k": {
+   "1": {
+    "cases": 9,
+    "field_precision": {
+     "value": 0.5408163265306123,
+     "num": 53,
+     "den": 98
+    },
+    "field_recall": {
+     "value": 0.9298245614035088,
+     "num": 53,
+     "den": 57
+    },
+    "field_f1": {
+     "value": 0.6838709677419355,
+     "tp": 53,
+     "fp": 45,
+     "fn": 4
+    },
+    "boilerplate_kept": {
+     "value": 0.5673076923076923,
+     "num": 59,
+     "den": 104
+    },
+    "type_accuracy": {
+     "value": 0.8775510204081632,
+     "num": 43,
+     "den": 49
+    },
+    "types_by_kind": {
+     "date": {
+      "value": 1.0,
+      "num": 11,
+      "den": 11
+     },
+     "money": {
+      "value": 0.5,
+      "num": 4,
+      "den": 8
+     },
+     "multiline_text": {
+      "value": 1.0,
+      "num": 7,
+      "den": 7
+     },
+     "person": {
+      "value": 0.5,
+      "num": 2,
+      "den": 4
+     },
+     "text": {
+      "value": 1.0,
+      "num": 19,
+      "den": 19
+     }
+    },
+    "types_by_lang": {
+     "de": {
+      "value": 0.7647058823529411,
+      "num": 13,
+      "den": 17
+     },
+     "en": {
+      "value": 0.9375,
+      "num": 30,
+      "den": 32
+     }
+    },
+    "tables_detected": {
+     "value": 1.0,
+     "num": 7,
+     "den": 7
+    },
+    "info_tables": {
+     "frozen": 1,
+     "looped": 1
+    },
+    "info_values_found": {
+     "value": 0.5,
+     "num": 4,
+     "den": 8
+    },
+    "auto_fields": {
+     "value": 1.0,
+     "num": 9,
+     "den": 9
+    },
+    "layout_preserved": {
+     "value": 0.8888888888888888,
+     "num": 8,
+     "den": 9
+    }
+   },
+   "2": {
+    "cases": 9,
+    "field_precision": {
+     "value": 0.8888888888888888,
+     "num": 56,
+     "den": 63
+    },
+    "field_recall": {
+     "value": 0.9824561403508771,
+     "num": 56,
+     "den": 57
+    },
+    "field_f1": {
+     "value": 0.9333333333333333,
+     "tp": 56,
+     "fp": 7,
+     "fn": 1
+    },
+    "boilerplate_kept": {
+     "value": 0.9326923076923077,
+     "num": 97,
+     "den": 104
+    },
+    "type_accuracy": {
+     "value": 0.8775510204081632,
+     "num": 43,
+     "den": 49
+    },
+    "types_by_kind": {
+     "date": {
+      "value": 1.0,
+      "num": 11,
+      "den": 11
+     },
+     "money": {
+      "value": 0.5,
+      "num": 4,
+      "den": 8
+     },
+     "multiline_text": {
+      "value": 1.0,
+      "num": 7,
+      "den": 7
+     },
+     "person": {
+      "value": 0.5,
+      "num": 2,
+      "den": 4
+     },
+     "text": {
+      "value": 1.0,
+      "num": 19,
+      "den": 19
+     }
+    },
+    "types_by_lang": {
+     "de": {
+      "value": 0.7647058823529411,
+      "num": 13,
+      "den": 17
+     },
+     "en": {
+      "value": 0.9375,
+      "num": 30,
+      "den": 32
+     }
+    },
+    "tables_detected": {
+     "value": 1.0,
+     "num": 7,
+     "den": 7
+    },
+    "info_tables": {
+     "looped": 2
+    },
+    "info_values_found": {
+     "value": 0.875,
+     "num": 7,
+     "den": 8
+    },
+    "auto_fields": {
+     "value": 1.0,
+     "num": 9,
+     "den": 9
+    },
+    "layout_preserved": {
+     "value": 0.7777777777777778,
+     "num": 7,
+     "den": 9
+    }
+   },
+   "3": {
+    "cases": 9,
+    "field_precision": {
+     "value": 0.8888888888888888,
+     "num": 56,
+     "den": 63
+    },
+    "field_recall": {
+     "value": 0.9824561403508771,
+     "num": 56,
+     "den": 57
+    },
+    "field_f1": {
+     "value": 0.9333333333333333,
+     "tp": 56,
+     "fp": 7,
+     "fn": 1
+    },
+    "boilerplate_kept": {
+     "value": 0.9326923076923077,
+     "num": 97,
+     "den": 104
+    },
+    "type_accuracy": {
+     "value": 0.8775510204081632,
+     "num": 43,
+     "den": 49
+    },
+    "types_by_kind": {
+     "date": {
+      "value": 1.0,
+      "num": 11,
+      "den": 11
+     },
+     "money": {
+      "value": 0.5,
+      "num": 4,
+      "den": 8
+     },
+     "multiline_text": {
+      "value": 1.0,
+      "num": 7,
+      "den": 7
+     },
+     "person": {
+      "value": 0.5,
+      "num": 2,
+      "den": 4
+     },
+     "text": {
+      "value": 1.0,
+      "num": 19,
+      "den": 19
+     }
+    },
+    "types_by_lang": {
+     "de": {
+      "value": 0.7647058823529411,
+      "num": 13,
+      "den": 17
+     },
+     "en": {
+      "value": 0.9375,
+      "num": 30,
+      "den": 32
+     }
+    },
+    "tables_detected": {
+     "value": 1.0,
+     "num": 7,
+     "den": 7
+    },
+    "info_tables": {
+     "looped": 2
+    },
+    "info_values_found": {
+     "value": 0.875,
+     "num": 7,
+     "den": 8
+    },
+    "auto_fields": {
+     "value": 1.0,
+     "num": 9,
+     "den": 9
+    },
+    "layout_preserved": {
+     "value": 0.7777777777777778,
+     "num": 7,
+     "den": 9
+    }
+   },
+   "5": {
+    "cases": 9,
+    "field_precision": {
+     "value": 0.8888888888888888,
+     "num": 56,
+     "den": 63
+    },
+    "field_recall": {
+     "value": 0.9824561403508771,
+     "num": 56,
+     "den": 57
+    },
+    "field_f1": {
+     "value": 0.9333333333333333,
+     "tp": 56,
+     "fp": 7,
+     "fn": 1
+    },
+    "boilerplate_kept": {
+     "value": 0.9326923076923077,
+     "num": 97,
+     "den": 104
+    },
+    "type_accuracy": {
+     "value": 0.8775510204081632,
+     "num": 43,
+     "den": 49
+    },
+    "types_by_kind": {
+     "date": {
+      "value": 1.0,
+      "num": 11,
+      "den": 11
+     },
+     "money": {
+      "value": 0.5,
+      "num": 4,
+      "den": 8
+     },
+     "multiline_text": {
+      "value": 1.0,
+      "num": 7,
+      "den": 7
+     },
+     "person": {
+      "value": 0.5,
+      "num": 2,
+      "den": 4
+     },
+     "text": {
+      "value": 1.0,
+      "num": 19,
+      "den": 19
+     }
+    },
+    "types_by_lang": {
+     "de": {
+      "value": 0.7647058823529411,
+      "num": 13,
+      "den": 17
+     },
+     "en": {
+      "value": 0.9375,
+      "num": 30,
+      "den": 32
+     }
+    },
+    "tables_detected": {
+     "value": 1.0,
+     "num": 7,
+     "den": 7
+    },
+    "info_tables": {
+     "looped": 2
+    },
+    "info_values_found": {
+     "value": 0.875,
+     "num": 7,
+     "den": 8
+    },
+    "auto_fields": {
+     "value": 1.0,
+     "num": 9,
+     "den": 9
+    },
+    "layout_preserved": {
+     "value": 0.7777777777777778,
+     "num": 7,
+     "den": 9
+    }
+   }
+  },
+  "all_examples": {
+   "cases": 36,
+   "field_precision": {
+    "value": 0.7700348432055749,
+    "num": 221,
+    "den": 287
+   },
+   "field_recall": {
+    "value": 0.9692982456140351,
+    "num": 221,
+    "den": 228
+   },
+   "field_f1": {
+    "value": 0.858252427184466,
+    "tp": 221,
+    "fp": 66,
+    "fn": 7
+   },
+   "boilerplate_kept": {
+    "value": 0.8413461538461539,
+    "num": 350,
+    "den": 416
+   },
+   "type_accuracy": {
+    "value": 0.8775510204081632,
+    "num": 172,
+    "den": 196
+   },
+   "types_by_kind": {
+    "date": {
+     "value": 1.0,
+     "num": 44,
+     "den": 44
+    },
+    "money": {
+     "value": 0.5,
+     "num": 16,
+     "den": 32
+    },
+    "multiline_text": {
+     "value": 1.0,
+     "num": 28,
+     "den": 28
+    },
+    "person": {
+     "value": 0.5,
+     "num": 8,
+     "den": 16
+    },
+    "text": {
+     "value": 1.0,
+     "num": 76,
+     "den": 76
+    }
+   },
+   "types_by_lang": {
+    "de": {
+     "value": 0.7647058823529411,
+     "num": 52,
+     "den": 68
+    },
+    "en": {
+     "value": 0.9375,
+     "num": 120,
+     "den": 128
+    }
+   },
+   "tables_detected": {
+    "value": 1.0,
+    "num": 28,
+    "den": 28
+   },
+   "info_tables": {
+    "frozen": 1,
+    "looped": 7
+   },
+   "info_values_found": {
+    "value": 0.78125,
+    "num": 25,
+    "den": 32
+   },
+   "auto_fields": {
+    "value": 1.0,
+    "num": 36,
+    "den": 36
+   },
+   "layout_preserved": {
+    "value": 0.8055555555555556,
+    "num": 29,
+    "den": 36
+   }
+  },
+  "shared": {
+   "shared_field_found": {
+    "value": 0.0,
+    "num": 0,
+    "den": 9
+   },
+   "missed": ["dpia_en", "invoice_de", "invoice_en", "minutes_en", "nda_de", "nda_en", "service_agreement_de", "service_agreement_en", "status_report_en"],
+   "quality": {
+    "cases": 9,
+    "field_precision": {
+     "value": 0.8703703703703703,
+     "num": 47,
+     "den": 54
+    },
+    "field_recall": {
+     "value": 0.8245614035087719,
+     "num": 47,
+     "den": 57
+    },
+    "field_f1": {
+     "value": 0.8468468468468469,
+     "tp": 47,
+     "fp": 7,
+     "fn": 10
+    },
+    "boilerplate_kept": {
+     "value": 0.9326923076923077,
+     "num": 97,
+     "den": 104
+    },
+    "type_accuracy": {
+     "value": 0.85,
+     "num": 34,
+     "den": 40
+    },
+    "types_by_kind": {
+     "date": {
+      "value": 1.0,
+      "num": 11,
+      "den": 11
+     },
+     "money": {
+      "value": 0.5,
+      "num": 4,
+      "den": 8
+     },
+     "multiline_text": {
+      "value": 1.0,
+      "num": 7,
+      "den": 7
+     },
+     "person": {
+      "value": 0.0,
+      "num": 0,
+      "den": 2
+     },
+     "text": {
+      "value": 1.0,
+      "num": 12,
+      "den": 12
+     }
+    },
+    "types_by_lang": {
+     "de": {
+      "value": 0.7142857142857143,
+      "num": 10,
+      "den": 14
+     },
+     "en": {
+      "value": 0.9230769230769231,
+      "num": 24,
+      "den": 26
+     }
+    },
+    "tables_detected": {
+     "value": 1.0,
+     "num": 7,
+     "den": 7
+    },
+    "info_tables": {
+     "looped": 2
+    },
+    "info_values_found": {
+     "value": 0.875,
+     "num": 7,
+     "den": 8
+    },
+    "auto_fields": {
+     "value": 1.0,
+     "num": 9,
+     "den": 9
+    },
+    "layout_preserved": {
+     "value": 0.7777777777777778,
+     "num": 7,
+     "den": 9
+    }
+   }
+  },
+  "by_pair": {
+   "dpia_en": {
+    "1": {
+     "field_f1": 0.72,
+     "boilerplate_kept": 0.5
+    },
+    "2": {
+     "field_f1": 0.8181818181818182,
+     "boilerplate_kept": 0.7142857142857143
+    },
+    "3": {
+     "field_f1": 0.8181818181818182,
+     "boilerplate_kept": 0.7142857142857143
+    },
+    "5": {
+     "field_f1": 0.8181818181818182,
+     "boilerplate_kept": 0.7142857142857143
+    }
+   },
+   "invoice_de": {
+    "1": {
+     "field_f1": 0.8,
+     "boilerplate_kept": 0.42857142857142855
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "invoice_en": {
+    "1": {
+     "field_f1": 0.8,
+     "boilerplate_kept": 0.42857142857142855
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "minutes_en": {
+    "1": {
+     "field_f1": 0.9333333333333333,
+     "boilerplate_kept": 0.8333333333333334
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "nda_de": {
+    "1": {
+     "field_f1": 0.46153846153846156,
+     "boilerplate_kept": 0.5
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "nda_en": {
+    "1": {
+     "field_f1": 0.46153846153846156,
+     "boilerplate_kept": 0.5
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "service_agreement_de": {
+    "1": {
+     "field_f1": 0.631578947368421,
+     "boilerplate_kept": 0.5625
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "service_agreement_en": {
+    "1": {
+     "field_f1": 0.631578947368421,
+     "boilerplate_kept": 0.5625
+    },
+    "2": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "3": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    },
+    "5": {
+     "field_f1": 1.0,
+     "boilerplate_kept": 1.0
+    }
+   },
+   "status_report_en": {
+    "1": {
+     "field_f1": 0.5454545454545454,
+     "boilerplate_kept": 0.9
+    },
+    "2": {
+     "field_f1": 0.75,
+     "boilerplate_kept": 0.7
+    },
+    "3": {
+     "field_f1": 0.75,
+     "boilerplate_kept": 0.7
+    },
+    "5": {
+     "field_f1": 0.75,
+     "boilerplate_kept": 0.7
+    }
+   }
+  },
+  "sources": {
+   "heuristic": 45
+  },
+  "analyze_ms_p50": 92.4,
+  "analyze_ms_p95": 212.17999999999995,
+  "error_rate": {
+   "value": 0.0,
+   "num": 0,
+   "den": 45
+  },
+  "ai": null
+ },
+ "cases": [
+  {"id": "service_agreement_en/k1", "pair": "service_agreement_en", "lang": "en", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 50.3, "wall_ms": 50.3, "publish_ms": 63.0, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Service Agreement", "fields": 14, "warnings": ["skipping section toggle for 'n0010' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "multiline_text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Service", "Unit", "Price"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_en/k2", "pair": "service_agreement_en", "lang": "en", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 84.5, "wall_ms": 84.5, "publish_ms": 59.4, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Service Agreement", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Service", "Unit", "Price"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_en/k3", "pair": "service_agreement_en", "lang": "en", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 124.8, "wall_ms": 124.8, "publish_ms": 61.4, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Service Agreement", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Service", "Unit", "Price"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_en/k5", "pair": "service_agreement_en", "lang": "en", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 216.7, "wall_ms": 216.7, "publish_ms": 63.1, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Service Agreement", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Service", "Unit", "Price"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_en/shared", "pair": "service_agreement_en", "lang": "en", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.customer", "analyze_ms": 85.8, "wall_ms": 85.8, "publish_ms": 57.3, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Service Agreement", "fields": 6, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Service", "Unit", "Price"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_de/k1", "pair": "service_agreement_de", "lang": "de", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 50.8, "wall_ms": 50.8, "publish_ms": 59.5, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Dienstleistungsvertrag", "fields": 14, "warnings": ["skipping section toggle for 'n0010' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "multiline_text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Leistung", "Einheit", "Preis"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_de/k2", "pair": "service_agreement_de", "lang": "de", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 93.0, "wall_ms": 93.0, "publish_ms": 58.8, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Dienstleistungsvertrag", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Leistung", "Einheit", "Preis"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_de/k3", "pair": "service_agreement_de", "lang": "de", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 135.1, "wall_ms": 135.1, "publish_ms": 69.1, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Dienstleistungsvertrag", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Leistung", "Einheit", "Preis"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_de/k5", "pair": "service_agreement_de", "lang": "de", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 243.3, "wall_ms": 243.3, "publish_ms": 70.7, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Dienstleistungsvertrag", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Leistung", "Einheit", "Preis"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "service_agreement_de/shared", "pair": "service_agreement_de", "lang": "de", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.customer", "analyze_ms": 87.2, "wall_ms": 87.2, "publish_ms": 63.7, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Dienstleistungsvertrag", "fields": 6, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.agreement_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.supplier": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.customer": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.start_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.monthly_fee": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.services": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.services": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.fees": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.fees": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Leistung", "Einheit", "Preis"], "outcome": "detected"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.liability": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.data_protection": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_en/k1", "pair": "nda_en", "lang": "en", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 32.9, "wall_ms": 32.9, "publish_ms": 57.4, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Mutual Non-Disclosure Agreement", "fields": 10, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_en/k2", "pair": "nda_en", "lang": "en", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 89.5, "wall_ms": 89.5, "publish_ms": 46.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Mutual Non-Disclosure Agreement", "fields": 3, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_en/k3", "pair": "nda_en", "lang": "en", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 101.3, "wall_ms": 101.3, "publish_ms": 46.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Mutual Non-Disclosure Agreement", "fields": 3, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_en/k5", "pair": "nda_en", "lang": "en", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 158.3, "wall_ms": 158.3, "publish_ms": 49.3, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Mutual Non-Disclosure Agreement", "fields": 3, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_en/shared", "pair": "nda_en", "lang": "en", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.party_b", "analyze_ms": 83.4, "wall_ms": 83.4, "publish_ms": 45.0, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Mutual Non-Disclosure Agreement", "fields": 2, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_de/k1", "pair": "nda_de", "lang": "de", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 30.8, "wall_ms": 30.8, "publish_ms": 69.9, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Geheimhaltungsvereinbarung", "fields": 10, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_de/k2", "pair": "nda_de", "lang": "de", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 55.9, "wall_ms": 55.9, "publish_ms": 49.7, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Geheimhaltungsvereinbarung", "fields": 3, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_de/k3", "pair": "nda_de", "lang": "de", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 130.1, "wall_ms": 130.1, "publish_ms": 46.0, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Geheimhaltungsvereinbarung", "fields": 3, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_de/k5", "pair": "nda_de", "lang": "de", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 172.0, "wall_ms": 172.0, "publish_ms": 50.1, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Geheimhaltungsvereinbarung", "fields": 3, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "nda_de/shared", "pair": "nda_de", "lang": "de", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.party_b", "analyze_ms": 76.2, "wall_ms": 76.2, "publish_ms": 43.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Geheimhaltungsvereinbarung", "fields": 2, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.effective_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "line.party_a": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.party_b": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.definition": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.obligations": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.exclusions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.term": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.governing_law": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signatures": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_en/k1", "pair": "invoice_en", "lang": "en", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 56.0, "wall_ms": 56.0, "publish_ms": 55.0, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Invoice", "fields": 13, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Description", "Qty", "Unit Price", "Amount"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.vat": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.total": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "line.bank": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "clause.thanks": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_en/k2", "pair": "invoice_en", "lang": "en", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 92.4, "wall_ms": 92.4, "publish_ms": 58.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Invoice", "fields": 9, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Description", "Qty", "Unit Price", "Amount"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.vat": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.total": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_en/k3", "pair": "invoice_en", "lang": "en", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 125.9, "wall_ms": 125.9, "publish_ms": 60.5, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Invoice", "fields": 9, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Description", "Qty", "Unit Price", "Amount"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.vat": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.total": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_en/k5", "pair": "invoice_en", "lang": "en", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 199.3, "wall_ms": 199.3, "publish_ms": 67.5, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Invoice", "fields": 9, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Description", "Qty", "Unit Price", "Amount"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.vat": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.total": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_en/shared", "pair": "invoice_en", "lang": "en", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.customer", "analyze_ms": 94.5, "wall_ms": 94.5, "publish_ms": 57.6, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Invoice", "fields": 8, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Description", "Qty", "Unit Price", "Amount"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.vat": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "field.total": {"kind": "field", "class": "DYNAMIC_NUMBER", "field_type": "money", "outcome": "found", "predicted_type": "number", "type_ok": true}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_de/k1", "pair": "invoice_de", "lang": "de", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 39.3, "wall_ms": 39.3, "publish_ms": 67.8, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Rechnung", "fields": 13, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.vat": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.total": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "line.bank": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "clause.thanks": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_de/k2", "pair": "invoice_de", "lang": "de", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 85.9, "wall_ms": 85.9, "publish_ms": 58.6, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Rechnung", "fields": 9, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.vat": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.total": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_de/k3", "pair": "invoice_de", "lang": "de", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 128.4, "wall_ms": 128.4, "publish_ms": 59.9, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Rechnung", "fields": 9, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.vat": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.total": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_de/k5", "pair": "invoice_de", "lang": "de", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 198.3, "wall_ms": 198.3, "publish_ms": 65.9, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Rechnung", "fields": 9, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.vat": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.total": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "invoice_de/shared", "pair": "invoice_de", "lang": "de", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.customer", "analyze_ms": 85.4, "wall_ms": 85.4, "publish_ms": 74.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Rechnung", "fields": 8, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.issuer": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.invoice_no": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.invoice_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.due_date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.customer": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.vat_id": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.items": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.items": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Beschreibung", "Menge", "Einzelpreis", "Betrag"], "outcome": "detected"}, "field.subtotal": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.vat": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.total": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "money", "outcome": "found", "predicted_type": "text", "type_ok": false}, "heading.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.payment": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "line.bank": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.thanks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "minutes_en/k1", "pair": "minutes_en", "lang": "en", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 34.4, "wall_ms": 34.4, "publish_ms": 65.3, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Meeting Minutes", "fields": 9, "warnings": ["skipping section toggle for 'n0011' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.meeting": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.chair": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.minute_taker": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.attendees": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.agenda": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.agenda": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.decisions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.decisions": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.actions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.actions": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Action", "Owner", "Due Date"], "outcome": "detected"}, "heading.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.distribution": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "minutes_en/k2", "pair": "minutes_en", "lang": "en", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 78.0, "wall_ms": 78.0, "publish_ms": 53.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Meeting Minutes", "fields": 8, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.meeting": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.chair": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.minute_taker": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.attendees": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.agenda": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.agenda": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.decisions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.decisions": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.actions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.actions": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Action", "Owner", "Due Date"], "outcome": "detected"}, "heading.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "minutes_en/k3", "pair": "minutes_en", "lang": "en", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 121.2, "wall_ms": 121.2, "publish_ms": 61.6, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Meeting Minutes", "fields": 8, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.meeting": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.chair": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.minute_taker": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.attendees": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.agenda": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.agenda": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.decisions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.decisions": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.actions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.actions": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Action", "Owner", "Due Date"], "outcome": "detected"}, "heading.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "minutes_en/k5", "pair": "minutes_en", "lang": "en", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 173.5, "wall_ms": 173.5, "publish_ms": 63.2, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Meeting Minutes", "fields": 8, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.meeting": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.chair": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.minute_taker": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.attendees": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.agenda": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.agenda": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.decisions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.decisions": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.actions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.actions": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Action", "Owner", "Due Date"], "outcome": "detected"}, "heading.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "minutes_en/shared", "pair": "minutes_en", "lang": "en", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.meeting", "analyze_ms": 75.7, "wall_ms": 75.7, "publish_ms": 51.1, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Meeting Minutes", "fields": 7, "warnings": [], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.meeting": {"kind": "field", "class": "FIXED", "field_type": "text", "outcome": "missed", "predicted_type": null, "type_ok": null}, "field.date": {"kind": "field", "class": "DYNAMIC_DATE", "field_type": "date", "outcome": "found", "predicted_type": "date", "type_ok": true}, "field.chair": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.minute_taker": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "person", "outcome": "found", "predicted_type": "text", "type_ok": false}, "field.attendees": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.agenda": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.agenda": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.decisions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.decisions": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.actions": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.actions": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Action", "Owner", "Due Date"], "outcome": "detected"}, "heading.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.distribution": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "dpia_en/k1", "pair": "dpia_en", "lang": "en", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 56.3, "wall_ms": 56.3, "publish_ms": 64.1, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Data Protection Impact Assessment", "fields": 10, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded", "skipping section toggle for 'n0021' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.classification.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.classification": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.reference.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.reference": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.version.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.version": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "text", "outcome": "found"}, "cell.date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.date": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "date", "outcome": "found"}, "cell.owner.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 4, "outcome": "became_field"}, "cell.owner": {"kind": "field", "cell": true, "class": "FIXED", "row": 4, "field_type": "person", "outcome": "found"}, "info.document": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "fixed.controller": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.description": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.activity": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "text.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.data_categories": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.legal_basis": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.necessity": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.risks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Risk", "Likelihood", "Severity", "Mitigation"], "outcome": "detected"}, "heading.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signoff": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "field.dpo": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.document: rows lost"]}},
+  {"id": "dpia_en/k2", "pair": "dpia_en", "lang": "en", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 92.8, "wall_ms": 92.8, "publish_ms": 80.4, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Data Protection Impact Assessment", "fields": 7, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.classification.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.classification": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.reference.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.reference": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.version.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.version": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "text", "outcome": "found"}, "cell.date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.date": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "date", "outcome": "found"}, "cell.owner.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 4, "outcome": "became_field"}, "cell.owner": {"kind": "field", "cell": true, "class": "FIXED", "row": 4, "field_type": "person", "outcome": "found"}, "info.document": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "fixed.controller": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.description": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.activity": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "text.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.data_categories": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.legal_basis": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.risks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Risk", "Likelihood", "Severity", "Mitigation"], "outcome": "detected"}, "heading.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.dpo": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.document: rows lost"]}},
+  {"id": "dpia_en/k3", "pair": "dpia_en", "lang": "en", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 136.8, "wall_ms": 136.8, "publish_ms": 64.0, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Data Protection Impact Assessment", "fields": 7, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.classification.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.classification": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.reference.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.reference": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.version.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.version": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "text", "outcome": "found"}, "cell.date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.date": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "date", "outcome": "found"}, "cell.owner.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 4, "outcome": "became_field"}, "cell.owner": {"kind": "field", "cell": true, "class": "FIXED", "row": 4, "field_type": "person", "outcome": "found"}, "info.document": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "fixed.controller": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.description": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.activity": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "text.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.data_categories": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.legal_basis": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.risks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Risk", "Likelihood", "Severity", "Mitigation"], "outcome": "detected"}, "heading.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.dpo": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.document: rows lost"]}},
+  {"id": "dpia_en/k5", "pair": "dpia_en", "lang": "en", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 215.4, "wall_ms": 215.4, "publish_ms": 68.3, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Data Protection Impact Assessment", "fields": 7, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.classification.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.classification": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.reference.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.reference": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.version.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.version": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "text", "outcome": "found"}, "cell.date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.date": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "date", "outcome": "found"}, "cell.owner.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 4, "outcome": "became_field"}, "cell.owner": {"kind": "field", "cell": true, "class": "FIXED", "row": 4, "field_type": "person", "outcome": "found"}, "info.document": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "fixed.controller": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.description": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.activity": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "text.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.data_categories": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.legal_basis": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.risks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Risk", "Likelihood", "Severity", "Mitigation"], "outcome": "detected"}, "heading.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.dpo": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.document: rows lost"]}},
+  {"id": "dpia_en/shared", "pair": "dpia_en", "lang": "en", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.dpo", "analyze_ms": 98.2, "wall_ms": 98.2, "publish_ms": 75.7, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Data Protection Impact Assessment", "fields": 6, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.classification.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.classification": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.reference.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.reference": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.version.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.version": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "text", "outcome": "found"}, "cell.date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.date": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "date", "outcome": "found"}, "cell.owner.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 4, "outcome": "became_field"}, "cell.owner": {"kind": "field", "cell": true, "class": "FIXED", "row": 4, "field_type": "person", "outcome": "found"}, "info.document": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "fixed.controller": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.description": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.activity": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "text.purpose": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.data_categories": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "field.legal_basis": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.necessity": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.risks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Risk", "Likelihood", "Severity", "Mitigation"], "outcome": "detected"}, "heading.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.signoff": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "field.dpo": {"kind": "field", "class": "FIXED", "field_type": "person", "outcome": "missed", "predicted_type": null, "type_ok": null}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.document: rows lost"]}},
+  {"id": "status_report_en/k1", "pair": "status_report_en", "lang": "en", "k": 1, "group": "examples", "documents": ["ex_01"], "ai": false, "error": null, "analyze_ms": 49.9, "wall_ms": 49.9, "publish_ms": 53.9, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Project Status Report", "fields": 5, "warnings": ["skipping section toggle for 'n0014' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.report_date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.report_date": {"kind": "field", "cell": true, "class": "FIXED", "row": 0, "field_type": "date", "outcome": "missed"}, "cell.project.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "kept"}, "cell.project": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "missed"}, "cell.manager.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "kept"}, "cell.manager": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "person", "outcome": "missed"}, "cell.status.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "kept"}, "cell.status": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "text", "outcome": "missed"}, "info.project": {"kind": "info_table", "class": "FIXED", "outcome": "frozen"}, "field.prepared_by": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "heading.summary": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.summary": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "multiline_text", "type_ok": true}, "heading.tasks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.tasks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Task", "Owner", "Due", "Status"], "outcome": "detected"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.risks": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "DYNAMIC_TEXT", "outcome": "became_field"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": true, "problems": []}},
+  {"id": "status_report_en/k2", "pair": "status_report_en", "lang": "en", "k": 2, "group": "examples", "documents": ["ex_01", "ex_02"], "ai": false, "error": null, "analyze_ms": 87.8, "wall_ms": 87.8, "publish_ms": 132.7, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Project Status Report", "fields": 5, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded", "skipping section toggle for 'n0014' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.report_date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.report_date": {"kind": "field", "cell": true, "class": "FIXED", "row": 0, "field_type": "date", "outcome": "missed"}, "cell.project.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.project": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.manager.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.manager": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "person", "outcome": "found"}, "cell.status.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.status": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "text", "outcome": "found"}, "info.project": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "field.prepared_by": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "heading.summary": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.summary": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.tasks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.tasks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Task", "Owner", "Due", "Status"], "outcome": "detected"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.risks": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.project: rows lost"]}},
+  {"id": "status_report_en/k3", "pair": "status_report_en", "lang": "en", "k": 3, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03"], "ai": false, "error": null, "analyze_ms": 123.6, "wall_ms": 123.6, "publish_ms": 61.3, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Project Status Report", "fields": 5, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded", "skipping section toggle for 'n0014' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.report_date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.report_date": {"kind": "field", "cell": true, "class": "FIXED", "row": 0, "field_type": "date", "outcome": "missed"}, "cell.project.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.project": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.manager.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.manager": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "person", "outcome": "found"}, "cell.status.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.status": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "text", "outcome": "found"}, "info.project": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "field.prepared_by": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "heading.summary": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.summary": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.tasks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.tasks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Task", "Owner", "Due", "Status"], "outcome": "detected"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.risks": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.project: rows lost"]}},
+  {"id": "status_report_en/k5", "pair": "status_report_en", "lang": "en", "k": 5, "group": "examples", "documents": ["ex_01", "ex_02", "ex_03", "ex_04", "ex_05"], "ai": false, "error": null, "analyze_ms": 199.1, "wall_ms": 199.1, "publish_ms": 67.5, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Project Status Report", "fields": 5, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded", "skipping section toggle for 'n0014' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.report_date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.report_date": {"kind": "field", "cell": true, "class": "FIXED", "row": 0, "field_type": "date", "outcome": "missed"}, "cell.project.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.project": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.manager.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.manager": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "person", "outcome": "found"}, "cell.status.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.status": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "text", "outcome": "found"}, "info.project": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "field.prepared_by": {"kind": "field", "class": "DYNAMIC_PERSON", "field_type": "person", "outcome": "found", "predicted_type": "person", "type_ok": true}, "heading.summary": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.summary": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.tasks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.tasks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Task", "Owner", "Due", "Status"], "outcome": "detected"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.risks": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.project: rows lost"]}},
+  {"id": "status_report_en/shared", "pair": "status_report_en", "lang": "en", "k": 2, "group": "shared", "documents": ["ex_01", "shared_02"], "ai": false, "error": null, "shared_field": "field.prepared_by", "analyze_ms": 83.4, "wall_ms": 83.4, "publish_ms": 61.3, "representative": "ex_01", "source": "heuristic", "model": null, "ai_warning": null, "document_type_guess": "Project Status Report", "fields": 4, "warnings": ["skipping section toggle for 'preamble' — span is not paragraph-bounded", "skipping section toggle for 'n0014' — span is not paragraph-bounded"], "outcomes": {"title": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "cell.report_date.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 0, "outcome": "kept"}, "cell.report_date": {"kind": "field", "cell": true, "class": "FIXED", "row": 0, "field_type": "date", "outcome": "missed"}, "cell.project.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 1, "outcome": "became_field"}, "cell.project": {"kind": "field", "cell": true, "class": "FIXED", "row": 1, "field_type": "text", "outcome": "found"}, "cell.manager.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 2, "outcome": "became_field"}, "cell.manager": {"kind": "field", "cell": true, "class": "FIXED", "row": 2, "field_type": "person", "outcome": "found"}, "cell.status.label": {"kind": "fixed", "cell": true, "class": "FIXED", "row": 3, "outcome": "became_field"}, "cell.status": {"kind": "field", "cell": true, "class": "FIXED", "row": 3, "field_type": "text", "outcome": "found"}, "info.project": {"kind": "info_table", "class": "REPEATABLE_TABLE", "outcome": "looped"}, "field.prepared_by": {"kind": "field", "class": "FIXED", "field_type": "person", "outcome": "missed", "predicted_type": null, "type_ok": null}, "heading.summary": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.summary": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.tasks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "table.tasks": {"kind": "table", "class": "REPEATABLE_TABLE", "columns": ["Task", "Owner", "Due", "Status"], "outcome": "detected"}, "heading.risks": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "text.risks": {"kind": "field", "class": "DYNAMIC_TEXT", "field_type": "multiline_text", "outcome": "found", "predicted_type": "text", "type_ok": true}, "heading.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "clause.confidentiality": {"kind": "fixed", "class": "FIXED", "outcome": "kept"}, "footer.page": {"kind": "auto", "class": "AUTO_FIELD", "outcome": "auto"}}, "layout": {"preserved": false, "problems": ["info.project: rows lost"]}}
+ ],
+ "repeats": []
+}
