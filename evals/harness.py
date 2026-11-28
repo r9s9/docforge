@@ -112,6 +112,12 @@ def prepare(root: Path | None = None, *, keep: bool = False) -> Sandbox:
 
     init_db()
     logging.getLogger("docforge").setLevel(logging.WARNING)
+    # CI demo, never to be merged: a simulated regression in DocForge's checker, made in this
+    # process only, to show that the gate fails when detections are lost. DocForge's code is
+    # unchanged; its changed-text threshold goes from 0.9 to 0.5 in memory.
+    import docforge.compliance.checker as checker
+
+    checker._FIXED_MATCH_THRESHOLD = 0.5
     return Sandbox(root=root, data_dir=data_dir, database_url=database_url, keep=keep)
 
 
