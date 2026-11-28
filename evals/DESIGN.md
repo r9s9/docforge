@@ -964,6 +964,12 @@ environment variables, never interpolated into them. The result is kept as the `
 artifact for the owner to commit. LM Studio can't run on a CI runner, so local runs stay on the
 owner's PC.
 
+**GitHub can't start the `ai` job from `evals`.** GitHub runs `workflow_dispatch` only for a
+workflow on the default branch. That is `master`, which stays unchanged, so no "Run workflow"
+button appears. Starting it through the API with `ref: evals` is untested. This differs from the
+brief, which asks for a manual trigger that runs an AI config. The AI runs stay on the owner's PC
+(§6.6), as in M2 to M4.
+
 **Permissions** are read-only, and the actions are pinned to version tags.
 
 **The demo.** The brief's test is "a PR that breaks a mutator-detected case fails CI". It was

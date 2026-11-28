@@ -157,11 +157,15 @@ python -m evals gate --update
 python -m evals report
 ```
 
-**The Haiku job, by hand.** On GitHub, Actions → evals → Run workflow runs Claude Haiku 5.5 on the
-suite you pick, with the spending cap you give (`max_usd`; the Haiku config never allows more
-than 1.00). It needs your Anthropic key as the `ANTHROPIC_API_KEY` repository secret; without
-it, the job stops before calling anything. The result file comes back as an artifact named
-`haiku-results`, to download and commit.
+**The Haiku job, by hand.** The workflow also has a job that runs Claude Haiku 5.5 on one suite,
+with the spending cap you give (`max_usd`; the Haiku config never allows more than 1.00). It
+needs your Anthropic key as the `ANTHROPIC_API_KEY` repository secret; without it, the job stops
+before calling anything. Its result file would come back as an artifact named `haiku-results`.
+But GitHub offers a by-hand run only for a workflow on the repository's default branch. That is
+`master`, which the evals never change, so GitHub shows no "Run workflow" button for this job.
+Its API may still start the job on `evals` (as `gh workflow run evals.yml --ref evals` does), but
+that hasn't been tried. The AI runs happen on your PC instead
+([guide below](#run-the-ai-modes-on-your-pc-windows-powershell)).
 
 ## Run the AI modes on your PC (Windows, PowerShell)
 

@@ -3,9 +3,11 @@
 # gate: on every pull request into `evals` and every push to it. Builds the corpus, runs the
 #   eval tests and all three suites without AI (free and deterministic), and fails if a key
 #   metric falls below evals/thresholds.yaml or a deviation found before is no longer found.
-# ai: by hand only (Actions → evals → Run workflow). Runs Claude Haiku 5.5 on one suite with a
-#   hard spending cap, and keeps the result as an artifact to commit. It needs the
-#   ANTHROPIC_API_KEY repository secret; without it, the job stops before calling anything.
+# ai: by hand only (workflow_dispatch). Runs Claude Haiku 5.5 on one suite with a hard spending
+#   cap, and keeps the result as an artifact to commit. It needs the ANTHROPIC_API_KEY repository
+#   secret; without it, the job stops before calling anything. GitHub shows a "Run workflow"
+#   button only for workflows on the default branch (master, never changed by the evals), so the
+#   job can only be started through the API on `evals`, which is untested (DESIGN.md §8).
 name: evals
 
 on:

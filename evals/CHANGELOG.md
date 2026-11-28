@@ -9,9 +9,10 @@ One entry per milestone: what was built, what was learned, what comes next.
   every push to it, the `gate (no AI)` job runs on Python 3.11, the project's minimum. It
   installs DocForge and the eval suite, checks the corpus, lints, runs the eval tests, runs all
   three suites without AI, gates the results and checks the results page. The result files are
-  kept as an artifact. A second job runs Claude Haiku 5.5 on one suite, by hand only, capped by a
-  required `max_usd`. Without the `ANTHROPIC_API_KEY` repository secret (not set), it stops
-  before calling anything. Permissions are read-only.
+  kept as an artifact. A second job runs Claude Haiku 5.5 on one suite when started by hand,
+  capped by a required `max_usd`. Without the `ANTHROPIC_API_KEY` repository secret (not set),
+  it stops before calling anything. GitHub doesn't offer to start it from `evals`, though (see
+  Learned). Permissions are read-only.
 - **`python -m evals gate`** (`gate.py`) checks no-AI results against `evals/thresholds.yaml`:
   - 36 key metrics of the three suites, each with a floor or a ceiling
   - the 62 material deviations comply finds today, each of which must still be found
@@ -86,13 +87,17 @@ The gate listed the lost detections by name: `nda_de/held_01/change_governing_la
 - **One sandbox per process.** Run in one process, `run --suite all` tripped the harness's guard
   on the second suite: DocForge reads its settings once, at import (DESIGN.md §2.2). Each suite
   now runs in a process of its own.
+- **GitHub won't start the Haiku job by hand from `evals`.** GitHub offers a by-hand run only for
+  a workflow on the default branch. That is `master`, which stays unchanged, so the job's "Run
+  workflow" button never appears, and starting it through GitHub's API on `evals` is untested.
+  The brief asked for this manual trigger. The AI runs stay on the owner's PC, as in M2 to M4.
 - **GitHub warns about Node.js 20.** `actions/checkout@v4`, `actions/setup-python@v5` and
   `actions/upload-artifact@v4` target Node.js 20, which GitHub has deprecated. For now it runs
   them on Node.js 24, so nothing fails.
 
 **Next**
-- **Optional, for the owner:** make `gate (no AI)` a required check on `evals`, so a PR that fails
-  it can't be merged. Add the `ANTHROPIC_API_KEY` secret only if the by-hand Haiku job is wanted.
+- **Optional, for the owner:** make `gate (no AI)` a required check on `evals`, so that a PR that
+  fails it can't be merged unless the owner overrides it.
 - **M6**, in plan mode: the weakest result from M2–M4, written up, with the fix handled as decided
   then (DESIGN.md §10.6). The candidates are listed in the M4 entry. The demo's method fits the
   first option there: an in-memory change on a throwaway branch, measured by the gate and
