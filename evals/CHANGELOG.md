@@ -68,9 +68,10 @@ The gate listed the lost detections by name: `nda_de/held_01/change_governing_la
 
 **Learned**
 - **Without AI, the numbers are the same on every machine so far.** The GitHub runner (Ubuntu,
-  Python 3.11.18) matched the owner's PC (Windows, Python 3.13.17) on every gated value and every
-  detection. So the thresholds sit exactly at the baseline, with no tolerance, and any change in
-  the gate's output is a real one.
+  Python 3.11.18) matched every gated value and every detection of the committed baselines.
+  Comply's came from the Linux cloud container (Python 3.13.18), and generate's and analyze's from
+  the owner's PC (Windows, Python 3.13.17). So the thresholds sit exactly at the baseline, with no
+  tolerance, and any change in the gate's output is a real one.
 - **The governing-law clause is where the 0.9 threshold matters.** The demo lost exactly the four
   governing-law changes M1 found, those in the NDAs' shorter clause (H1: 4/8). Their similarity to
   the template's clause lies between 0.5 and 0.9, so a lower threshold hides them. Whether a
