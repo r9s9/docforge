@@ -74,6 +74,11 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--update", action="store_true",
                       help="write the thresholds from these results instead of checking them")
 
+    report = sub.add_parser("report",
+                            help="rebuild evals/RESULTS.md and the README's results block")
+    report.add_argument("--check", action="store_true",
+                        help="only check that both are up to date, as CI does")
+
     compare = sub.add_parser("compare", help="compare result files side by side")
     compare.add_argument("results", nargs="+", type=Path, help="two or more result files")
     compare.add_argument("--markdown", action="store_true", help="print a Markdown table")
@@ -568,6 +573,37 @@ def _rescore(args: argparse.Namespace) -> int:
     return 0
 
 
+def _report(args: argparse.Namespace) -> int:
+    from evals.compare import load
+    from evals.graders.labels import AGREEMENT_PATH
+    from evals.paths import README_PATH, RESULTS_DIR, RESULTS_PAGE_PATH
+    from evals.report import newest_results, readme_block, results_page, with_block
+
+    newest = newest_results(RESULTS_DIR)
+    agreement = load(AGREEMENT_PATH) if AGREEMENT_PATH.exists() else None
+    try:
+        readme = with_block(README_PATH.read_text(encoding="utf-8"), readme_block(newest))
+    except ValueError as exc:
+        print(f"{README_PATH}: {exc}", file=sys.stderr)
+        return 2
+    targets = [(RESULTS_PAGE_PATH, results_page(newest, agreement)), (README_PATH, readme)]
+    if args.check:
+        stale = [path.name for path, text in targets
+                 if not path.exists() or path.read_text(encoding="utf-8") != text]
+        if stale:
+            print(f"Out of date: {', '.join(stale)}. Run `python -m evals report` and commit "
+                  "the result.", file=sys.stderr)
+            return 1
+        print("evals/RESULTS.md and the README's results block are up to date.")
+        return 0
+    for path, text in targets:
+        path.write_text(text, encoding="utf-8", newline="\n")
+    count = sum(len(pairs) for pairs in newest.values())
+    print(f"Wrote {RESULTS_PAGE_PATH.name} and the README's results block from {count} result "
+          "files.")
+    return 0
+
+
 def _newest_no_ai_results() -> list[Path]:
     from evals.paths import RESULTS_DIR
 
@@ -691,4 +727,6 @@ def main(argv: list[str] | None = None) -> int:
         return _rescore(args)
     if args.command == "gate":
         return _gate(args)
+    if args.command == "report":
+        return _report(args)
     return 2

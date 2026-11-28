@@ -76,11 +76,18 @@ def _ok(result: dict[str, Any]) -> list[dict[str, Any]]:
     return [case for case in result["cases"] if not case.get("error")]
 
 
+def _replayed(result: dict[str, Any], text: str) -> str:
+    """A latency, marked when every call came from the cache: a replay adds up the recorded
+    times of calls DocForge made at the same time (DESIGN.md §6.2)."""
+    return f"{text} (replayed)" if result["meta"].get("cache_hit_rate") == 1.0 else text
+
+
 def _latency(result: dict[str, Any], *, judged: bool) -> str:
     """p50 / p95 of check_document; ``judged``: only cases with differences (the judge's)."""
     times = [c["check_ms"] for c in _ok(result)
              if c.get("check_ms") is not None and (c.get("differences") or not judged)]
-    return f"{_num(percentile(times, 0.50))} / {_num(percentile(times, 0.95))} ms"
+    return _replayed(result, f"{_num(percentile(times, 0.50))} / "
+                             f"{_num(percentile(times, 0.95))} ms")
 
 
 def _machine(result: dict[str, Any]) -> str:
@@ -173,7 +180,8 @@ def _generate_rows(agreement: dict[str, Any] | None) -> list[tuple[str, Callable
         ("total cost, repeats included", _total),
         ("grading cost", _grading_cost),
         ("generate latency p50 / p95",
-         lambda r: f"{_num(_gen(r, 'generate_ms_p50'))} / {_num(_gen(r, 'generate_ms_p95'))} ms"),
+         lambda r: _replayed(r, f"{_num(_gen(r, 'generate_ms_p50'))} / "
+                                f"{_num(_gen(r, 'generate_ms_p95'))} ms")),
         ("errors", lambda r: _rate(r["aggregates"]["error_rate"])),
         ("run on", _machine),
     ]
@@ -236,7 +244,8 @@ def _analyze_rows() -> list[tuple[str, Callable]]:
         ("cost per analysis", lambda r: _cost(r, "per_analysis")),
         ("total cost, repeats included", _total),
         ("analyze latency p50 / p95",
-         lambda r: f"{_num(_gen(r, 'analyze_ms_p50'))} / {_num(_gen(r, 'analyze_ms_p95'))} ms"),
+         lambda r: _replayed(r, f"{_num(_gen(r, 'analyze_ms_p50'))} / "
+                                f"{_num(_gen(r, 'analyze_ms_p95'))} ms")),
         ("errors", lambda r: _rate(r["aggregates"]["error_rate"])),
         ("run on", _machine),
     ]
@@ -282,9 +291,12 @@ def corpus_note(results: list[dict[str, Any]]) -> str:
 
 
 def table(results: list[dict[str, Any]], *, markdown: bool = False,
-          agreement: dict[str, Any] | None = None) -> str:
-    """The side-by-side table of the suite's main metrics."""
-    names = [_column_name(r) for r in results]
+          agreement: dict[str, Any] | None = None, headers: list[str] | None = None) -> str:
+    """The side-by-side table of the suite's main metrics.
+
+    ``headers`` replaces the column names (``report`` makes them links to the result files).
+    """
+    names = headers or [_column_name(r) for r in results]
     rows = [(label, [render(r) for r in results])
             for label, render in rows_for(results, agreement)]
     if markdown:
