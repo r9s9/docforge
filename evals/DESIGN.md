@@ -1,6 +1,7 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 to M4 are done. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 to M4 are done; M5 is
+> built. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
 > confirmed. The AI runs, and every generate run (it needs the grader's key), happen on the
 > owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
@@ -262,6 +263,9 @@ python -m evals report                                        # rebuild RESULTS.
 python -m evals compare results/A.json results/B.json        # what got better or worse
 python -m evals run --suite generate --config configs/haiku.yaml   # fill templates from notes (M3)
 python -m evals run --suite analyze --config configs/haiku.yaml    # build templates from k examples (M4)
+python -m evals corpus check                                  # the corpus still builds the manifest (M5)
+python -m evals gate                                          # no-AI results vs thresholds.yaml (M5)
+python -m evals report                                        # rebuild RESULTS.md and the README table (M5)
 python -m evals labels sheet --languages en                   # the 30 items the owner labels
 python -m evals labels check                                  # the grader's agreement with them
 python -m evals rescore results/A.json                        # outcomes again, from recorded values
@@ -923,22 +927,49 @@ is still clean.
 
 ## 8. CI
 
-`.github/workflows/evals.yml` is added in M5, on `evals`. It runs on PRs into `evals`, and on
-PRs into master only if the owner opens one.
+`.github/workflows/evals.yml` (added in M5, on `evals`) runs on pull requests into `evals` and on
+pushes to it. As built:
 
-**On every PR**
-1. Set up Python 3.12.
-2. Install: `pip install -e backend` and `pip install -r evals/requirements.txt`.
-3. Run `python -m evals corpus build`, then `git diff --exit-code evals/corpus/manifest.json`.
-4. Run `python -m pytest tests/evals -q`.
-5. Run `python -m evals run --suite all --config configs/no-ai.yaml`.
-6. Check the result against `evals/thresholds.yaml`. Thresholds ratchet at the current baseline:
-   the no-AI path is deterministic, so a lost detection, or any other drop, fails the PR. An
-   improvement raises the threshold in the same PR.
+**The `gate` job**
+1. Set up Python 3.11, the project's minimum (CLAUDE.md, the backend's `requires-python`). The
+   M0 design said 3.12; 3.11 also catches syntax a newer Python would accept.
+2. Install: `pip install -e "backend[dev]"` and `pip install -r evals/requirements.txt`. The
+   latter pins python-docx 1.2.0 and lxml 6.1.3, the versions that built the manifest and every
+   committed result.
+3. `python -m evals corpus check`. It rebuilds the corpus in a temp folder and fails when a
+   ground truth, a value or a label differs from the committed manifest. A byte-only difference
+   is only noted. The M0 design's `git diff --exit-code manifest.json` would also have failed on
+   another lxml's packaging, which changes no case.
+4. Ruff and `python -m pytest tests/evals -q`.
+5. `python -m evals run --suite all --config evals/configs/no-ai.yaml`: each suite runs in a
+   process of its own (one sandbox per process, §2.2), about a minute in all.
+6. `python -m evals gate` on those results, against `evals/thresholds.yaml`:
+   - every key metric of each suite against its floor or ceiling, set at the committed no-AI
+     results
+   - for comply, each of the material deviations found today (62), which must still be found
+   - the results' corpus, notes and analyze hashes, which must equal those the thresholds were
+     set on
 
-**`workflow_dispatch`.** Inputs: a config and a required `max_usd`. The workflow uses the
-`ANTHROPIC_API_KEY` repository secret, and uploads the result file as an artifact for the owner to
-commit.
+   The no-AI path is deterministic, so any drop fails. An improvement passes, with a note to
+   raise the thresholds in the same PR with `gate --update`. A metric whose denominator depends
+   on other outcomes (kind accuracy counts the deviations found) is compared by its value.
+7. `python -m evals report --check`: `evals/RESULTS.md` and the main README's results block
+   must be what `report` would write from the committed results.
+8. The result files are kept as the `no-ai-results` artifact.
+
+**The `ai` job**, by `workflow_dispatch` only. Inputs: a suite and a required `max_usd`. It runs
+`evals/configs/haiku.yaml`, whose own `max_usd: 1.00` the input can only lower. The job first
+stops if the `ANTHROPIC_API_KEY` repository secret is missing. Inputs reach the commands as
+environment variables, never interpolated into them. The result is kept as the `haiku-results`
+artifact for the owner to commit. LM Studio can't run on a CI runner, so local runs stay on the
+owner's PC.
+
+**Permissions** are read-only, and the actions are pinned to version tags.
+
+**The demo.** The brief's test is "a PR that breaks a mutator-detected case fails CI". It was
+shown with a throwaway PR into `evals`, never merged, whose only change lowers DocForge's
+changed-text threshold (`_FIXED_MATCH_THRESHOLD`) from 0.9 to 0.5 in the eval process. DocForge's
+code is unchanged. The CHANGELOG's M5 entry links the failed run.
 
 ## 9. Hypotheses to test
 

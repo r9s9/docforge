@@ -3,8 +3,10 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M4 done (2026-11-28). Three suites, in three modes each (AI off, Claude Haiku 5.5,
-and a local model in LM Studio):
+**Status:** M5 built (2026-11-28). Three suites, in three modes each (AI off, Claude Haiku 5.5,
+and a local model in LM Studio). The part without AI runs as a CI gate on every pull request into
+`evals` ([below](#the-ci-gate)), and [RESULTS.md](RESULTS.md) shows the newest result of each
+mode:
 - **comply** checks returned documents against their template. Its three-way comparison is in
   the changelog's M2 entry.
 - **generate** fills each template from 35 rough-notes texts and measures what DocForge wrote,
@@ -41,12 +43,25 @@ python -m evals corpus build
 python -m evals run --suite comply --config evals/configs/no-ai.yaml
 ```
 
+To reproduce every deterministic result at once and check it against the committed thresholds:
+
+```bash
+python -m evals run --suite all --config evals/configs/no-ai.yaml
+```
+
+```bash
+python -m evals gate
+```
+
 **What each command does**
 - **`corpus build`** writes the 91 documents and 238 comply cases to `evals/corpus/build/`
   (gitignored) in about 10 s, and rewrites `evals/corpus/manifest.json`. That file is committed,
   so a build that changes it means the corpus code changed. It also writes the 19 documents only
   analyze uses (the DPIA and status report examples, and one shared-value document per type),
   listed in the manifest's `analyze` section.
+- **`corpus check`** rebuilds the corpus in a temp folder and compares it with the committed
+  manifest. It fails, listing what changed, when a ground truth, a value or a label differs. Files
+  whose bytes alone differ (another python-docx or lxml version) are only noted.
 - **`run`** prints a table and writes `evals/results/<date>_<config>_comply.json`. With AI off,
   the whole comply suite takes about 40 s. A missing build is created first. If the corpus code
   no longer matches the committed manifest, the run stops.
@@ -66,6 +81,14 @@ python -m evals run --suite comply --config evals/configs/no-ai.yaml
   3 and 5 examples, then from the first example and a second one that shares a value with it.
   It writes `evals/results/<date>_<config>_analyze.json`. With AI off it takes about 10 s.
   `--types` works as for comply; `--limit 1` builds from 1 example only.
+- **`run --suite all`** runs comply, generate and analyze in turn, each in a process of its own,
+  and writes one result file each. With AI, `--max-usd` caps the three together.
+- **`gate [FILES]`** checks no-AI results (by default the newest committed ones) against
+  `evals/thresholds.yaml`, and exits with 1 if anything got worse ([the CI gate](#the-ci-gate)).
+  `gate --update` writes the thresholds from the results instead.
+- **`report`** rebuilds [RESULTS.md](RESULTS.md) and the main README's results table from the
+  newest result of each mode and suite. Nobody edits either by hand. `report --check` only checks
+  they are up to date.
 - **`compare A.json B.json [C.json ...]`** prints results of one suite side by side. After the
   table come the changes from the first file to each of the others: the cases whose alarm
   status changed (comply), or the fields whose outcome changed (generate). Add `--markdown` for
@@ -86,6 +109,55 @@ python -m pytest tests/evals -q
 ```bash
 ruff check --config evals/ruff.toml evals tests/evals
 ```
+
+## The CI gate
+
+[`.github/workflows/evals.yml`](../.github/workflows/evals.yml) runs on every pull request into
+`evals` and every push to it. On Python 3.11 it:
+1. installs DocForge and the eval suite
+2. checks the corpus code still builds the committed manifest (`corpus check`)
+3. lints and runs the eval tests
+4. runs all three suites without AI, in about a minute
+5. checks the results against `evals/thresholds.yaml` (`gate`)
+6. checks `RESULTS.md` and the main README's results table are up to date (`report --check`)
+
+The run keeps its result files as an artifact named `no-ai-results`.
+
+**What fails it**
+- A key metric of a suite falls below its threshold, or a metric that should stay low rises
+  above it. The thresholds sit at the committed no-AI results, and the path without AI is
+  deterministic, so any drop is a real change, not noise.
+- A material deviation that comply finds today is no longer found. The gate names each one.
+- The results ran on other cases: another corpus, other notes or other analyze documents.
+
+**When it fails**
+
+| The gate says | What to do |
+|---|---|
+| `FAILED`, with lost detections or a metric marked `worse` | The change made something worse. Its table names the metric and the cases; find out why before anything else. |
+| `PASSED`, and "Some results improved" | Raise the thresholds in the same PR: the three commands below, then commit `evals/results`, `evals/thresholds.yaml`, `evals/RESULTS.md` and `README.md`. |
+| `corpus check` fails | The corpus code changed. Run `python -m evals corpus build`, commit `evals/corpus/manifest.json`, then raise the thresholds as above. |
+| `report --check` fails | Run `python -m evals report` and commit `evals/RESULTS.md` and `README.md`. |
+
+To raise the thresholds after an improvement, from the repo root:
+
+```bash
+python -m evals run --suite all --config evals/configs/no-ai.yaml
+```
+
+```bash
+python -m evals gate --update
+```
+
+```bash
+python -m evals report
+```
+
+**The Haiku job, by hand.** On GitHub, Actions → evals → Run workflow runs Claude Haiku 5.5 on the
+suite you pick, with the spending cap you give (`max_usd`; the Haiku config never allows more
+than 1.00). It needs your Anthropic key as the `ANTHROPIC_API_KEY` repository secret; without
+it, the job stops before calling anything. The result file comes back as an artifact named
+`haiku-results`, to download and commit.
 
 ## Run the AI modes on your PC (Windows, PowerShell)
 
