@@ -2,6 +2,102 @@
 
 One entry per milestone: what was built, what was learned, what comes next.
 
+## M5: CI gate and results page (2026-11-28)
+
+**Built**
+- **The CI workflow** (`.github/workflows/evals.yml`). On every pull request into `evals` and
+  every push to it, the `gate (no AI)` job runs on Python 3.11, the project's minimum. It
+  installs DocForge and the eval suite, checks the corpus, lints, runs the eval tests, runs all
+  three suites without AI, gates the results and checks the results page. The result files are
+  kept as an artifact. A second job runs Claude Haiku 5.5 on one suite, by hand only, capped by a
+  required `max_usd`. Without the `ANTHROPIC_API_KEY` repository secret (not set), it stops
+  before calling anything. Permissions are read-only.
+- **`python -m evals gate`** (`gate.py`) checks no-AI results against `evals/thresholds.yaml`:
+  - 36 key metrics of the three suites, each with a floor or a ceiling
+  - the 62 material deviations comply finds today, each of which must still be found
+  - the corpus, notes and analyze hashes, so that the numbers compare the same cases
+
+  Any drop fails, and the lost detections are named. An improvement passes, with a note to raise
+  the thresholds in the same PR (`gate --update`). `gate --update` wrote the thresholds from the
+  committed no-AI results: `2026-11-26_no-ai_comply`, `2026-11-26_no-ai_generate` and
+  `2026-11-28_no-ai_analyze`.
+- **`python -m evals report`** (`report.py`) writes [RESULTS.md](RESULTS.md) from the newest
+  result of each mode and suite. It also writes the results table in the main README's new "How
+  well does it work?" section. Each column links to its result file, and a latency replayed from
+  the cache is marked "(replayed)". In CI, `report --check` fails if either file is stale, so
+  neither is edited by hand.
+- **`python -m evals corpus check`** rebuilds the corpus in a temp folder. It fails if a ground
+  truth, value or label differs from the committed manifest, and only notes a byte-only
+  difference. It replaces the design's `git diff --exit-code manifest.json`, which another
+  lxml's packaging alone would fail.
+- **`run --suite all`** runs comply, generate and analyze, each in a process of its own, with one
+  `--max-usd` cap shared between them.
+- **lxml pinned to 6.1.3** in `evals/requirements.txt`, next to python-docx 1.2.0. These are the
+  versions that built the manifest and every committed result.
+
+**Results.** The whole job ran first in a fresh Python 3.11 environment on Linux, then on GitHub:
+
+| Run | Commit | Outcome | Time |
+|---|---|---|---|
+| [run 1](https://github.com/r9s9/docforge/actions/runs/46125392032), push to `evals` | `5785405`, the workflow | passed | 2 min 37 s |
+| [run 2](https://github.com/r9s9/docforge/actions/runs/46125763056), push to `evals` | `93c902f`, the docs | passed | 3 min 11 s |
+| [run 3](https://github.com/r9s9/docforge/actions/runs/46126016452), the demo PR | `32385c1` | failed at the gate, as intended | 2 min 7 s |
+
+In run 2, all 37 of the gate's checks came out exactly at their thresholds: none fell, none
+improved.
+
+**The demo: a PR that breaks a detected case fails CI**
+
+[The demo PR](https://github.com/r9s9/docforge/pull/2) changed one file, `evals/harness.py`. In
+the eval process only, after the sandbox is set up, DocForge's changed-text threshold
+(`_FIXED_MATCH_THRESHOLD`) went from 0.9 to 0.5. This simulates a regression in the checker;
+DocForge's code is unchanged. The tests and the three suites ran as usual, and the gate failed
+with exit code 1:
+
+| Check | Threshold | Demo run | Status |
+|---|---|---|---|
+| material deviations found | ≥ 0.61 (62/102) | 0.57 (58/102) | FAIL |
+| score AUC, clean > material | ≥ 0.78 | 0.75 | FAIL |
+| deviations found before, still found | 62/62 | 58/62 | FAIL (4 lost) |
+| kind accuracy (when found) | ≥ 1.00 (56/56) | 1.00 (52/52) | ok |
+| the other 33 checks (comply, generate, analyze) | | unchanged | ok |
+
+The gate listed the lost detections by name: `nda_de/held_01/change_governing_law`,
+`nda_de/held_02/change_governing_law`, `nda_en/held_01/change_governing_law` and
+`nda_en/held_02/change_governing_law`. The PR was then closed unmerged.
+
+**Learned**
+- **Without AI, the numbers are the same on every machine so far.** The GitHub runner (Ubuntu,
+  Python 3.11.18) matched the owner's PC (Windows, Python 3.13.17) on every gated value and every
+  detection. So the thresholds sit exactly at the baseline, with no tolerance, and any change in
+  the gate's output is a real one.
+- **The governing-law clause is where the 0.9 threshold matters.** The demo lost exactly the four
+  governing-law changes M1 found, those in the NDAs' shorter clause (H1: 4/8). Their similarity to
+  the template's clause lies between 0.5 and 0.9, so a lower threshold hides them. Whether a
+  higher one would catch H1's one-number changes without more benign alarms is something an M6
+  prototype could measure the same way.
+- **The gate compares every rate by its value.** Kind accuracy counts only the deviations found,
+  so the demo's 4 lost detections also took its count from 56/56 to 52/52. While building the
+  gate, a rule that also failed a rate whose count changed (meant to catch runs on other cases)
+  failed this row too, counting the same 4 cases twice. The hashes already catch other cases, so
+  the rule went. In the demo, kind accuracy stayed at 1.00 and passed, and the loss was reported
+  once, by name.
+- **One sandbox per process.** Run in one process, `run --suite all` tripped the harness's guard
+  on the second suite: DocForge reads its settings once, at import (DESIGN.md §2.2). Each suite
+  now runs in a process of its own.
+- **GitHub warns about Node.js 20.** `actions/checkout@v4`, `actions/setup-python@v5` and
+  `actions/upload-artifact@v4` target Node.js 20, which GitHub has deprecated. For now it runs
+  them on Node.js 24, so nothing fails.
+
+**Next**
+- **Optional, for the owner:** make `gate (no AI)` a required check on `evals`, so a PR that fails
+  it can't be merged. Add the `ANTHROPIC_API_KEY` secret only if the by-hand Haiku job is wanted.
+- **M6**, in plan mode: the weakest result from M2–M4, written up, with the fix handled as decided
+  then (DESIGN.md §10.6). The candidates are listed in the M4 entry. The demo's method fits the
+  first option there: an in-memory change on a throwaway branch, measured by the gate and
+  `compare`, and never merged.
+- **A small follow-up:** move the three actions to versions that target Node.js 24.
+
 ## M4: Analyze suite (2026-11-28)
 
 **Built**

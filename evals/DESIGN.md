@@ -1,7 +1,7 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 to M4 are done; M5 is
-> built. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 to M5 are done. Results
+> are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
 > confirmed. The AI runs, and every generate run (it needs the grader's key), happen on the
 > owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
@@ -407,7 +407,7 @@ against DocForge's own extraction (`structure_normalizer.build_extraction`).
   (§4.2). The corpus hash leaves the section out, so comply and generate keep `d2f7d14ee960`, and
   a test checks that every committed result ran on the manifest's corpus.
 - **Manifest check.** A test rebuilds the corpus and compares the result with the committed
-  manifest; in M5, CI does the same with `git diff --exit-code`.
+  manifest. In CI, `python -m evals corpus check` does the same (§8).
 
 ### 4.2 Document types
 
@@ -967,9 +967,11 @@ owner's PC.
 **Permissions** are read-only, and the actions are pinned to version tags.
 
 **The demo.** The brief's test is "a PR that breaks a mutator-detected case fails CI". It was
-shown with a throwaway PR into `evals`, never merged, whose only change lowers DocForge's
-changed-text threshold (`_FIXED_MATCH_THRESHOLD`) from 0.9 to 0.5 in the eval process. DocForge's
-code is unchanged. The CHANGELOG's M5 entry links the failed run.
+shown with a throwaway PR into `evals` ([r9s9/docforge#2](https://github.com/r9s9/docforge/pull/2)),
+closed unmerged. Its only change lowers DocForge's changed-text threshold
+(`_FIXED_MATCH_THRESHOLD`) from 0.9 to 0.5 in the eval process. DocForge's code is unchanged. The
+gate failed and named the 4 deviations no longer found: the governing-law changes in the NDAs.
+The CHANGELOG's M5 entry links the run.
 
 ## 9. Hypotheses to test
 

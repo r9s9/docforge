@@ -3,7 +3,7 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M5 built (2026-11-28). Three suites, in three modes each (AI off, Claude Haiku 5.5,
+**Status:** M5 done (2026-11-28). Three suites, in three modes each (AI off, Claude Haiku 5.5,
 and a local model in LM Studio). The part without AI runs as a CI gate on every pull request into
 `evals` ([below](#the-ci-gate)), and [RESULTS.md](RESULTS.md) shows the newest result of each
 mode:
@@ -129,6 +129,10 @@ The run keeps its result files as an artifact named `no-ai-results`.
   deterministic, so any drop is a real change, not noise.
 - A material deviation that comply finds today is no longer found. The gate names each one.
 - The results ran on other cases: another corpus, other notes or other analyze documents.
+
+[A demo PR](https://github.com/r9s9/docforge/pull/2) shows it at work. It simulated a regression
+in DocForge's checker, which hid four detections, and the gate failed and named them (the
+changelog's M5 entry).
 
 **When it fails**
 
