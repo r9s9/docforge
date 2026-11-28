@@ -3,8 +3,8 @@
 This suite measures how well DocForge's pipelines work, from the outside. It calls the app's real
 service functions in an isolated sandbox and never changes the app's code.
 
-**Status:** M4 built (2026-11-26); its three runs are next. Three suites, in three modes each
-(AI off, Claude Haiku 5.5, and a local model in LM Studio):
+**Status:** M4 done (2026-11-28). Three suites, in three modes each (AI off, Claude Haiku 5.5,
+and a local model in LM Studio):
 - **comply** checks returned documents against their template. Its three-way comparison is in
   the changelog's M2 entry.
 - **generate** fills each template from 35 rough-notes texts and measures what DocForge wrote,
@@ -14,7 +14,8 @@ service functions in an isolated sandbox and never changes the app's code.
 - **analyze** builds a template from 1, 2, 3 or 5 example documents of each type and measures
   what DocForge made of each element: fields found, boilerplate kept, field types, tables,
   "label | value" information blocks, and the template's layout
-  ([guide below](#run-the-analyze-suite-on-your-pc-m4)).
+  ([guide below](#run-the-analyze-suite-on-your-pc-m4)). The comparison by number of examples is
+  in the changelog's M4 entry.
 
 - Design: [DESIGN.md](DESIGN.md)
 - What each milestone built and learned: [CHANGELOG.md](CHANGELOG.md)

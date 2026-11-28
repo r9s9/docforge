@@ -1,7 +1,6 @@
 # DocForge evaluation suite: design
 
-> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1, M2 and M3 are
-> done; M4 is built and its runs are next. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
+> **Status:** approved by the owner on 2026-11-26 (M0 accepted). M1 to M4 are done. Results are in [CHANGELOG.md](CHANGELOG.md), and §9 marks which predictions the runs
 > confirmed. The AI runs, and every generate run (it needs the grader's key), happen on the
 > owner's PC (§6.6).
 > **Decisions at approval:** AI runs use only Claude Haiku 5.5. Local runs use LM Studio. The
@@ -113,7 +112,7 @@ Default severities set by `compliance/checker.py` (the judge may change them lat
 | 20 | Without AI, unstructured notes are routed by heuristics. | `route_unstructured_heuristic` copies `Label: value` lines, then joins every other line, minus the ones it placed and all-caps titles, into the remaining text fields, by keyword overlap or as a last resort into the first one. It never fills tables. | Leftover prose lands in a short field such as an agreement number, as lines that were not next to each other in the notes. A value of four or more words whose words all occur in the notes therefore counts as from the notes (grounded but wrong), not as a hallucination (§3.5). |
 | 21 | — | The writer prompt asks for dates "as ISO (YYYY-MM-DD) unless the description says otherwise" and for normalised numbers (`_WRITER_DEVELOPER`), so values come back as `2026-03-02` and `11950.0`. The assembler renders a value as it is (`_coerce_scalar`: `str()`), with no formatting by field type or language. | AI-written dates and amounts don't keep the template's form (M3: Haiku 17/93 and Qwen 16/93 kept; failure 2). "Form kept" is reported apart from correctness. |
 | 22 | — | A section the writer skips is switched off (`_section_toggles`). The template builder wraps each section with fields in `{%p if _show_<section> %}`, from its first field to the next section with fields, so sections without fields after it fall inside the same block. | Skipping one section can remove every later section, legal clauses and signatures included (M3, failure 1). The layout check catches it. |
-| 23 | — | Smart analysis never makes a single table cell a field: the heuristic marks every cell `FIXED` ("inside table cell"), and the AI classifier sees only top-level elements (a table as its first row and its row count). Only tags-only mode turns cells into fields. A "label \| value" table is recognised (`looks_like_key_value_table`) only with one example, and only when its first value is plainly a value (a date, a number, a long text); it is then kept `FIXED`. With two or more examples, any table whose cells change is `REPEATABLE_TABLE` (`_classify_table`), even one whose first row changes too. The builder keeps a looped table's first row as its heading row and names the loop's columns after that row's cells. | An information block is never kept as a form: its values are frozen into the template, or it becomes a loop whose rows are data, labels included (M4). Analyze scores its cells one by one (§5.3). |
+| 23 | — | Without AI, analysis never makes a single table cell a field: the heuristic marks every cell `FIXED` ("inside table cell"). A "label \| value" table is recognised (`looks_like_key_value_table`) only with one example, and only when its first value is plainly a value (a date, a number, a long text); it is then kept `FIXED`. With two or more examples, any table whose cells change is `REPEATABLE_TABLE` (`_classify_table`), even one whose first row changes too. The builder keeps a looped table's first row as its heading row and names the loop's columns after that row's cells. With AI, the prompt lists only top-level elements, but the answer may classify any element by its ID, cells included (`map_response`), and the tools read any element. | Without AI, an information block is never kept as a form: its values are frozen into the template, or it becomes a loop whose rows are data, labels included. With AI, both models classified each cell and built forms (M4: Haiku 5 of 8, Qwen 7 of 8). Analyze scores the cells one by one (§5.3). |
 
 ### 1.3 Pre-existing state of master (not changed, by rule)
 
@@ -742,6 +741,11 @@ model.
   - `--no-cache`: always call live, and overwrite.
 
   Each run records its hit rate. A code change that alters a prompt simply misses.
+- **Replayed time.** A replayed call reports the latency recorded when it ran live, and a case's
+  time is its wall time minus the replay time plus those recorded times. When DocForge made
+  calls at the same time, as analysis does with a long document's two classification batches,
+  the recorded times add up, so a replay overstates that case's time. M4's Haiku p95 was 45.4 s
+  live and 46.1 s replayed. Latency is therefore taken from live runs.
 - **Secrets.** Request headers are not part of the key and are never stored, so neither
   `x-api-key` nor `authorization` reaches the cache.
 
@@ -950,10 +954,10 @@ rejected by a run.
 | H5 | Reordering two sections raises `changed_fixed` or `missing_fixed` on a document that is fine | `SequenceMatcher` alignment keeps document order | M1 | Confirmed: 8/8 alarms |
 | H6 | An inserted material clause leaves the score unchanged and never reaches the judge | `extra` rows are outside `differences` | M1, M2 | Confirmed for no AI: 6/8 visible only as extra content; 2/8 misaligned onto the original clause. Confirmed in M2: the 6 never reach the judge; both judges call the 2 misaligned ones material. |
 | H7 | No AI almost never writes an unsupported value but leaves many fields empty; AI modes fill more fields and sometimes invent | the heuristic router only copies "Label: value" lines and prose from the notes | M3 | Confirmed in M3: no AI made no hallucinations and left 101/166 given values empty. The AI modes left none empty and rarely invented: short fields Haiku 0/166, Qwen 2/166; table cells 3 each, Qwen's all rewordings. |
-| H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 | — |
-| H9 | German amounts written `12.500,00 €` are typed as text, not number | `CURRENCY_RE` expects the symbol before the number or an ISO code after it | M4 | — (added in M1) |
-| H10 | A "label \| value" information block is never kept as a form, in any mode: with one example it is frozen or looped, depending on its first row; with two or more it is looped | smart mode never makes a cell a field, and `_classify_table` loops any table whose cells change (§1.2 #23) | M4 | — (added in M4) |
-| H11 | A labelled value that is the same in all the examples becomes boilerplate without AI; the AI classifier still makes it a field | the diff marks the value identical; the AI also reads the label | M4 | — (added in M4) |
+| H8 | Analyze quality with 1 example is clearly worse than with 2 or more, because there is no diff to show what varies | `diff_documents` needs at least 2 documents | M4 | Confirmed in M4, every mode: field F1 0.68 → 0.93 without AI, 0.86 → 0.99 Haiku, 0.90 → 0.95 Qwen (1 → 2 examples). |
+| H9 | German amounts written `12.500,00 €` are typed as text, not number | `CURRENCY_RE` expects the symbol before the number or an ISO code after it | M4 | Confirmed without AI in M4: all 16 German amounts typed text, all 16 English ones number. The AI modes type them as numbers (Haiku 32/32, Qwen 27/28). |
+| H10 | A "label \| value" information block is never kept as a form, in any mode: with one example it is frozen or looped, depending on its first row; with two or more it is looped | smart mode never makes a cell a field, and `_classify_table` loops any table whose cells change (§1.2 #23) | M4 | Confirmed without AI (frozen 1, looped 7 of 8). Rejected with AI: the models classified the cells and built forms (Haiku 5 of 8, Qwen 7 of 8; the rest partial). |
+| H11 | A labelled value that is the same in all the examples becomes boilerplate without AI; the AI classifier still makes it a field | the diff marks the value identical; the AI also reads the label | M4 | Confirmed in M4: without AI 0/9 stay fields; Haiku 7/9, Qwen 7/9. |
 
 Confirmed blind spots are the M6 candidates.
 

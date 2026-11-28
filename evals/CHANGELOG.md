@@ -2,6 +2,147 @@
 
 One entry per milestone: what was built, what was learned, what comes next.
 
+## M4: Analyze suite (2026-11-28)
+
+**Built**
+- **Two analyze-only document types:** a DPIA and a project status report (English), so the
+  corpus now has the brief's six types. Each opens with a "label | value" information block,
+  such as a document-control table. The ground truth scores each cell: a label is fixed, a value
+  is a field.
+- **A shared-value document per type** (`shared_02`): the second example with one labelled value
+  copied from the first, as when two invoices go to the same customer.
+- Both live in the manifest's new `analyze` section, with its own hash (`bcbd09c7d660`). The
+  corpus hash stays `d2f7d14ee960`, so the comply and generate cases and results are unchanged.
+- **Scoring** (`metrics/analyze.py`): field precision, recall and F1 (information-block cells
+  included), boilerplate kept, field types, table detection, what became of each information
+  block, the template's layout, and the shared-value check.
+- **The analyze runner, `run --suite analyze` and `compare` for analyze.** 45 templates: each of
+  the 9 types from its first 1, 2, 3 and 5 examples, plus the shared-value pair.
+- **The hyphen rule M3 listed:** "Software-Lizenz" now equals "Softwarelizenz". After
+  rescoring the generate results, Qwen's table cells right are 261/263 (was 260) and its
+  unsupported cells 2/263 (was 3).
+- **Results.** All runs ran on the owner's PC (Windows, Python 3.13.17) with DocForge 0.21.0. The
+  only uncommitted file was the Claude app's launch settings (`dirty_code: false`). No errors,
+  no early stops.
+
+  | Result | Commit | What it is | Time | Spent |
+  |---|---|---|---|---|
+  | `results/2026-11-27_no-ai_analyze.json` | `ca68a42` | live run | 11 s | $0 |
+  | `results/2026-11-27_haiku_analyze.json` | `ca68a42` | live run | 2,056 s | $0.32 |
+  | `results/2026-11-27_local_analyze.json` | `ca68a42` | live run | 13,082 s | $0 |
+  | `results/2026-11-28_<mode>_analyze.json` (three files) | `e19e314` | replays from the cache, with the fixed layout check | 11–17 s | $0 |
+
+  **The first results had a bug in the layout check.** It looked for an information block by its
+  exact first row. A form whose first value is rightly a field has a tag there, so all 12 layout
+  failures in the AI modes were false. The check now finds the block by its labels (`e19e314`),
+  and the owner replayed the three runs from the PC's response cache. Every model call came from
+  the cache (hit rate 1.00, nothing spent). Every element outcome, representative and repeat
+  came out identical to the live runs; only those 12 layout verdicts changed.
+
+  Every number below comes from the replays, except the time per analysis, which comes from the
+  live runs. A replay adds up the recorded times of calls DocForge made at the same time (it
+  classifies a long document in two parallel batches), which makes Haiku's p95 look slightly
+  slower: 46.1 s replayed against 45.4 s live (DESIGN.md §6.2).
+
+**The M4 table** (`python -m evals compare` on the three 2026-11-28 results)
+
+| metric | examples | no AI | Haiku 5.5 | Qwen 3.6-27b (local) |
+|---|---|---|---|---|
+| **field F1** | 1 | 0.68 (tp 53 · fp 45 · fn 4) | 0.86 (tp 57 · fp 18 · fn 0) | 0.90 (tp 57 · fp 12 · fn 0) |
+| | 2 | 0.93 (tp 56 · fp 7 · fn 1) | 0.99 (tp 57 · fp 1 · fn 0) | 0.95 (tp 57 · fp 6 · fn 0) |
+| | 3 | 0.93 (tp 56 · fp 7 · fn 1) | 0.99 (tp 56 · fp 0 · fn 1) | 0.92 (tp 50 · fp 2 · fn 7) |
+| | 5 | 0.93 (tp 56 · fp 7 · fn 1) | 1.00 (tp 57 · fp 0 · fn 0) | 0.94 (tp 55 · fp 5 · fn 2) |
+| **boilerplate kept** | 1 | 0.57 (59/104) | 0.82 (85/104) | 0.88 (92/104) |
+| | 2 | 0.93 (97/104) | 0.99 (103/104) | 0.94 (98/104) |
+| | 3 | 0.93 (97/104) | 1.00 (104/104) | 0.98 (102/104) |
+| | 5 | 0.93 (97/104) | 1.00 (104/104) | 0.95 (99/104) |
+| **information blocks** | 1 | frozen 1 · looped 1 | form 1 · partial 1 | form 2 |
+| | 2 | looped 2 | form 1 · partial 1 | form 2 |
+| | 3 | looped 2 | form 1 · partial 1 | form 1 · partial 1 |
+| | 5 | looped 2 | form 2 | form 2 |
+| **layout kept** | 1 | 0.89 (8/9) | 1.00 (9/9) | 1.00 (9/9) |
+| | 2, 3, 5 | 0.78 (7/9) | 1.00 (9/9) | 1.00 (9/9) |
+| **field types right** | 1 | 0.88 (43/49) | 0.86 (42/49) | 0.92 (45/49) |
+| | 2 | 0.88 (43/49) | 0.94 (46/49) | 0.96 (47/49) |
+| | 3 | 0.88 (43/49) | 0.96 (47/49) | 0.91 (41/45) |
+| | 5 | 0.88 (43/49) | 0.96 (47/49) | 0.94 (44/47) |
+| **tables detected** | 1 | 1.00 (7/7) | 1.00 (7/7) | 0.86 (6/7) |
+| | 2 | 1.00 (7/7) | 1.00 (7/7) | 1.00 (7/7) |
+| | 3 | 1.00 (7/7) | 1.00 (7/7) | 0.86 (6/7) |
+| | 5 | 1.00 (7/7) | 1.00 (7/7) | 1.00 (7/7) |
+
+| metric | no AI | Haiku 5.5 | Qwen 3.6-27b (local) |
+|---|---|---|---|
+| shared value still a field (2 examples) | 0.00 (0/9) | 0.78 (7/9) | 0.78 (7/9) |
+| amounts typed as numbers | 0.50 (16/32) | 1.00 (32/32) | 0.96 (27/28) |
+| people typed as person | 0.50 (8/16) | 1.00 (16/16) | 1.00 (14/14) |
+| field types right, German documents | 0.76 (52/68) | 0.96 (65/68) | 0.90 (60/67) |
+| page numbers as automatic fields | 1.00 (36/36) | 0.97 (35/36) | 0.81 (29/36) |
+| classified by | heuristic 45 | AI 45; fell back 0 | AI 45; fell back 0 |
+| failed AI calls | — | 0/137 | 0/140 |
+| same outcome in 3 runs (10 cases) | — | 0.95 (172/182) | 1.00 (182/182) |
+| cost per analysis | $0 | $0.0050 | $0 (hardware) |
+| time per analysis, p50 / p95 (live runs) | 92 / 212 ms | 31.1 / 45.4 s | 195.7 / 299.1 s |
+
+The counts pool the 9 types at each number of examples. The 2 information blocks are those of
+the DPIA and the status report.
+
+**Learned** (this corpus; Haiku and Qwen as configured in M2)
+- **One example is clearly worse than two, in every mode (H8 confirmed).** With one example
+  DocForge can't see what varies, and boilerplate becomes fields: no AI turned 45 blocks into
+  fields (32 of them clauses), Haiku 18 and Qwen 12. From two examples on, no AI reaches F1
+  0.93 and Haiku 0.99. Only Haiku improves with more: it is perfect at five. Qwen does best with
+  two (0.95) and less well with three (0.92) and five (0.94).
+- **So two examples are enough if they differ in every field, and with AI a single example
+  goes a long way.** Without AI, a value the examples share always becomes boilerplate (0/9); the
+  AI modes still saw a field 7 times out of 9 (H11 confirmed). Both treated the recurring
+  meeting's title as fixed, which is defensible for a recurring meeting. Haiku also missed the
+  invoice customer, and Qwen the DPIA's data protection officer.
+- **The AI modes turn information blocks into forms; without AI they break (H10 confirmed
+  without AI, rejected with AI).** DocForge's AI input lists only top-level elements, but the
+  model may classify any element by its ID, cells included, and its tools can read them. Both
+  models classified each cell. Haiku built a form in 5 of the 8 cases, Qwen in 7. The rest were partial: one value missed, or the fixed
+  "Confidential" made a field. The layout was kept in every case. Without AI, see failure 1.
+- **Without AI, German amounts are typed as text (H9 confirmed):** all 16 German amounts, against
+  none of the 16 English ones. The AI modes type amounts as numbers. Without AI the chair and
+  minute taker are text too, not person.
+- **Haiku is the most accurate, Qwen the most consistent.** Haiku's answers changed only with a
+  single example: 10 of 182 elements across three runs, each about whether a clause or a fixed
+  line is a field. Qwen answered the same every time. No AI call failed in either mode.
+- **Cost:** Haiku $0.0050 per analysis and 31 s at the median; Qwen about 3.3 minutes; no AI
+  92 ms.
+
+**Failures, written up**
+1. **Without AI, an information block becomes a loop** (DPIA and status report, two or more
+   examples). The DPIA's template keeps its first row ("Classification | Confidential") and
+   folds the reference, version, date and owner rows into one looped row, whose columns are
+   named `classification` and `confidential`. Filling the template means typing the labels in as
+   data. With one example, the status report's block is frozen instead: its values become
+   boilerplate. DocForge's own test for these tables covers one document in tags-only mode
+   only.
+2. **Without AI, a value both examples share becomes boilerplate** (all 9 types). Two invoices to
+   the same customer give a template with that customer's name fixed in it.
+3. **Qwen freezes the invoice totals with three examples** (`invoice_en/k3`). The subtotal, VAT
+   and total differ in each of the three examples, and the diff says so, yet Qwen classified all
+   three as fixed. The template would print the first invoice's amounts on every invoice. With
+   two or five examples it got them right.
+4. **The AI modes make constant labelled lines into fields** ("Supplier: …", "Party A: …", the
+   issuer, the controller). With one example, Haiku did this 7 times and Qwen 7. Qwen kept
+   doing it with more examples (4 of its 6 false fields at k = 2), though the diff shows the
+   lines never change.
+5. **The AI modes give some fields an odd type.** Both typed companies as person (the customer,
+   party B), and Haiku typed the legal basis as an enum and some single-line fields as multiline.
+   The design's type map counts these as wrong; the enum and the multiline are defensible.
+
+**Next**
+- **M5**, in plan mode: the CI gate (`evals.yml`, `thresholds.yaml`), the generated `RESULTS.md`,
+  and a "How well does it work?" section in the main README.
+- **Candidates for M6** (the weakest results so far):
+  - without AI, information blocks are frozen or looped
+  - without AI, a value the examples share becomes boilerplate
+  - a skipped section deletes the clauses after it (M3, failure 1)
+  - AI-written dates and amounts lose the template's form (M3, failure 2)
+
 ## M3: Generate suite (2026-11-26)
 
 **Built**
